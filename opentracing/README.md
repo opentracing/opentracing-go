@@ -6,13 +6,17 @@ For background:
 
 ## API overview for those adding instrumentation
 
-The higher levels of the opentracing API in golang encourages and takes
-advantage of the `context.Context` API. Like it or not, this is what the golang
-maintainers want people to do context propagation with inside of a process
-(rather than using something like thread-local storage which is unavailable in
-golang).
+Everyday consumers of this `opentracing` package really only need to worry
+about a couple of key abstractions: the `StartSpan` function, the `Span`
+interface, and golang's `context.Context` idiom. Here are code snippets
+demonstrating some important use cases.
 
-### Initialization
+A note about `context.Context`: the opentracing API here encourages (but does
+not require) the use of golang-team's `context.Context` scheme. Whether we like
+it or not (this author is on the fence), `context.Context` is here to stay,
+goroutine-local-storage bedamned. When in Rome, do as the Romans do (etc).
+
+#### Singleton initialization
 
 The simplest starting point is `./global.go`. As early as possible, call
 
@@ -25,7 +29,12 @@ The simplest starting point is `./global.go`. As early as possible, call
         ...
     }
 
-### Creating a Span given an existing Golang `context.Context`
+##### Note: the singletons are optional
+
+If global singletons make you sad, use `opentracing.NewStandardTracer(...)`
+directly and manage ownership of the `opentracing.OpenTracer` explicitly.
+
+#### Creating a Span given an existing Golang `context.Context`
 
     func xyz(ctx context.Context, ...) {
         ...
@@ -35,7 +44,7 @@ The simplest starting point is `./global.go`. As early as possible, call
         ...
     }
 
-### Creating a Span given an existing Span
+#### Creating a Span given an existing Span
 
     func xyz(parentSpan opentracing.Span, ...) {
         ...
@@ -45,7 +54,7 @@ The simplest starting point is `./global.go`. As early as possible, call
         ...
     }
 
-### Creating a root Span (i.e., without a known parent)
+#### Creating a root Span (i.e., without a known parent)
 
     func xyz() {
         ...
@@ -55,37 +64,40 @@ The simplest starting point is `./global.go`. As early as possible, call
         ...
     }
 
-### Serializing to the wire
+#### Serializing to the wire
 
-    func makeRequest(req http.Request, ctx context.Context) ... {
+    func makeSomeRequest(ctx context.Context) ... {
         if span := SpanFromGoContext(ctx); span != nil {
             httpClient := &http.Client{}
             httpReq, _ := http.NewRequest("GET", "http://myservice/", nil)
+
+			// Transmit the span's ContextID as an HTTP header on our outbound
+            // request.
             opentracing.AddContextIDToHttpHeader(span.ContextID(), httpReq.Header)
+
             resp, err := httpClient.Do(httpReq)
             ...
         }
         ...
     }
 
-### Deerializing from the wire
+#### Deerializing from the wire
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		// Grab the ContextID from the HTTP header using the opentracing
+        // helper.
 		reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
 			req.Header, opentracing.GlobalTracer())
 		if err != nil {
-			panic(err)
+			panic(err)  // obviously don't do this in real code!
 		}
 
+		// Make a new server-side span that's a child of the span/context sent
+        // over the wire.
 		serverSpan, goCtx := opentracing.StartSpan("serverSpan", reqCtxID)
 		defer serverSpan.Finish()
         ...
     }
-
-### Note: the singletons are optional
-
-If global singletons make you sad, use `opentracing.NewStandardTracer(...)`
-directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 
 ## API pointers for those implementing a tracing system
 

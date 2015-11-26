@@ -29,7 +29,7 @@ type ContextIDSource interface {
 	// to NewRootContextID().
 	NewRootContextID() ContextID
 
-	// Converts the encoded binary data (see `SerializeContextID`) into a
+	// Converts the encoded binary data (see `ContextID.Serialize()`) into a
 	// ContextID of the same type as returned by NewRootContextID().
 	DeserializeContextID(encoded []byte) (ContextID, error)
 }

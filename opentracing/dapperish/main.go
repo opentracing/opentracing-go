@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/opentracing/api-golang/opentracing"
 )
@@ -19,8 +20,14 @@ func client() {
 	for {
 		span, ctx := opentracing.StartSpan("getInput")
 		span.Info("ctx: ", ctx)
-		fmt.Print("Enter text: ")
+		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		if len(text) == 0 {
+			fmt.Println("Exiting.")
+			os.Exit(0)
+		}
+
 		span.Info(text)
 
 		httpClient := &http.Client{}
