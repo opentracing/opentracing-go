@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+const (
+	OpenTracingContextIDHeader = "OpenTracing-Context-Id"
+)
+
 func AddContextIDToHttpHeader(ctxID ContextID, h http.Header) {
 	h.Add(OpenTracingContextIDHeader, base64.StdEncoding.EncodeToString(ctxID.Serialize()))
 }

@@ -1,9 +1,5 @@
 package opentracing
 
-const (
-	OpenTracingContextIDHeader = "OpenTracing-Context-Id"
-)
-
 // A ContextID is the smallest amount of state needed to describe a span's
 // context within a larger [potentially distributed] trace. The ContextID is
 // not intended to encode the span's operation name, timing, or log data, but
