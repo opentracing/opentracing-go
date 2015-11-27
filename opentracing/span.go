@@ -32,13 +32,11 @@ type Span interface {
 	//       ]}
 	Info(message string, payload ...interface{})
 
-	// Like Info(), but for warnings.
-	Warning(message string, payload ...interface{})
-
 	// Like Info(), but for errors.
 	Error(message string, payload ...interface{})
 
-	// Sets the end timestamp and calls the `Recorder`s RecordSpan() internally.
+	// Sets the end timestamp and calls the `ComponentRecorder`s RecordSpan()
+	// internally.
 	//
 	// Finish() should be the last call made to any span instance, and to do
 	// otherwise leads to undefined behavior.

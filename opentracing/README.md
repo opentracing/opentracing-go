@@ -111,7 +111,7 @@ There should be no need for tracing system implementors to worry about the
 That said, tracing system authors must provide implementations of:
 - `opentracing.ContextID`
 - `opentracing.ContextIDSource`
-- `opentracing.Recorder`
+- `opentracing.ComponentRecorder`
 
 For a simple working example, see `./dapperish/*.go`.
 

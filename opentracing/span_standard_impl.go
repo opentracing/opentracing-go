@@ -13,7 +13,7 @@ import (
 // `ctxIdSource` as appropriate.
 //
 // See `SetGlobalTracer()`.
-func NewStandardTracer(rec Recorder, ctxIdSource ContextIDSource) OpenTracer {
+func NewStandardTracer(rec ComponentRecorder, ctxIdSource ContextIDSource) OpenTracer {
 	return &standardOpenTracer{
 		ContextIDSource: ctxIdSource,
 		recorder:        rec,
@@ -25,7 +25,7 @@ func NewStandardTracer(rec Recorder, ctxIdSource ContextIDSource) OpenTracer {
 type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardOpenTracer
-	recorder Recorder
+	recorder ComponentRecorder
 	raw      RawSpan
 }
 
@@ -47,24 +47,20 @@ func (s *standardSpan) SetTag(key string, value interface{}) {
 }
 
 func (s *standardSpan) Info(message string, payload ...interface{}) {
-	s.internalLog(SeverityInfo, message, payload...)
-}
-
-func (s *standardSpan) Warning(message string, payload ...interface{}) {
-	s.internalLog(SeverityWarning, message, payload...)
+	s.internalLog(false, message, payload...)
 }
 
 func (s *standardSpan) Error(message string, payload ...interface{}) {
-	s.internalLog(SeverityError, message, payload...)
+	s.internalLog(true, message, payload...)
 }
 
-func (s *standardSpan) internalLog(sev Severity, message string, payload ...interface{}) {
+func (s *standardSpan) internalLog(isErr bool, message string, payload ...interface{}) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.raw.Logs = append(s.raw.Logs, &RawLog{
 		Timestamp: time.Now(),
-		Severity:  sev,
+		Error:     isErr,
 		Message:   message,
 		Payload:   payload,
 	})
@@ -89,7 +85,7 @@ func (s *standardSpan) ContextID() ContextID {
 type standardOpenTracer struct {
 	ContextIDSource
 
-	recorder Recorder
+	recorder ComponentRecorder
 }
 
 func (s *standardOpenTracer) StartSpan(

@@ -24,19 +24,11 @@ type RawSpan struct {
 	Logs []*RawLog
 }
 
-type Severity int
-
-const (
-	SeverityInfo Severity = iota
-	SeverityWarning
-	SeverityError
-)
-
 type RawLog struct {
 	Timestamp time.Time
 
-	// Info/Warning/Error.
-	Severity
+	// Self-explanatory :)
+	Error bool
 
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//
@@ -51,17 +43,3 @@ type RawLog struct {
 	// it is a base type or an anonymous struct.
 	Payload interface{}
 }
-
-type Recorder interface {
-	// Adds a tag to help identify or classify the recording process (e.g.,
-	// the platform, version/build number, host and/or container name, etc).
-	SetTag(key string, val interface{})
-
-	RecordSpan(span *RawSpan)
-}
-
-// NOTE: there should be something like a MultiplexingRecorder which itself
-// implements Recorder but trivially redirects all RecordSpan calls to
-// multiple "real" Recorder implementations.
-//
-//     type MultiplexingRecorder ... { ... }

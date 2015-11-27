@@ -66,7 +66,9 @@ func server() {
 }
 
 func main() {
-	opentracing.InitGlobalTracer(NewTrivialRecorder(), NewDapperishContextIDSource())
+	opentracing.InitGlobalTracer(
+		NewTrivialRecorder("dapperish_tester"),
+		NewDapperishContextIDSource())
 
 	go client()
 	go server()

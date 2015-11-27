@@ -9,14 +9,18 @@ import (
 )
 
 type TrivialRecorder struct {
-	tags map[string]string
+	componentName string
+	tags          map[string]string
 }
 
-func NewTrivialRecorder() *TrivialRecorder {
+func NewTrivialRecorder(componentName string) *TrivialRecorder {
 	return &TrivialRecorder{
-		tags: make(map[string]string),
+		componentName: componentName,
+		tags:          make(map[string]string),
 	}
 }
+
+func (t *TrivialRecorder) ComponentName() string { return t.componentName }
 
 func (t *TrivialRecorder) SetTag(key string, val interface{}) {
 	t.tags[key] = fmt.Sprint(val)

@@ -11,7 +11,7 @@ var (
 // Should be called as early as possible in main(), prior to calling the
 // `StartSpan*` (etc) global funcs below. Prior to calling `InitGlobal`, any
 // Spans started via the `StartSpan*` globals are noops.
-func InitGlobalTracer(rec Recorder, ctxIDSource ContextIDSource) {
+func InitGlobalTracer(rec ComponentRecorder, ctxIDSource ContextIDSource) {
 	globalOpenTracer = NewStandardTracer(rec, ctxIDSource)
 }
 
