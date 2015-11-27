@@ -40,8 +40,8 @@ type Span interface {
 
 	// Sets the end timestamp and calls the `Recorder`s RecordSpan() internally.
 	//
-	// Calling Finish() multiple times on the same Span instance may lead to
-	// undefined behavior.
+	// Finish() should be the last call made to any span instance, and to do
+	// otherwise leads to undefined behavior.
 	Finish()
 
 	// Suitable for serializing over the wire, etc.

@@ -81,20 +81,23 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
         ...
     }
 
-#### Deerializing from the wire
+#### Deserializing from the wire
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		// Grab the ContextID from the HTTP header using the opentracing
-        // helper.
-		reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
-			req.Header, opentracing.GlobalTracer())
-		if err != nil {
-			panic(err)  // obviously don't do this in real code!
-		}
-
-		// Make a new server-side span that's a child of the span/context sent
-        // over the wire.
-		serverSpan, goCtx := opentracing.StartSpan("serverSpan", reqCtxID)
+		// Grab the ContextID from the HTTP header using the
+                // opentracing helper.
+                reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
+                        req.Header, opentracing.GlobalTracer())
+                var serverSpan opentracing.Span
+                var goCtx context.Context
+                if err != nil {
+                    // Just make a root span.
+                    serverSpan, goCtx = opentracing.StartSpan("serverSpan")
+                } else {
+                    // Make a new server-side span that's a child of the span/context sent
+                    // over the wire.
+                    serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqCtxID)
+                }
 		defer serverSpan.Finish()
         ...
     }
