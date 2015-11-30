@@ -29,21 +29,16 @@ type standardSpan struct {
 	raw      RawSpan
 }
 
-func (s *standardSpan) StartChildSpan(operationName string, parent ...context.Context) (Span, context.Context) {
-	var parentGoCtx context.Context
-	if len(parent) > 0 {
-		parentGoCtx = parent[0]
-	} else {
-		parentGoCtx = context.Background()
-	}
+func (s *standardSpan) StartChild(operationName string, initialTags ...Tags) Span {
 	childCtx, childTags := s.raw.TraceContext.NewChild()
-	return s.tracer.startSpanGeneric(operationName, parentGoCtx, childCtx, childTags)
+	return s.tracer.startSpanGeneric(operationName, childCtx, childTags)
 }
 
-func (s *standardSpan) SetTag(key string, value interface{}) {
+func (s *standardSpan) SetTag(key string, value interface{}) Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.raw.Tags[key] = fmt.Sprint(value)
+	return s
 }
 
 func (s *standardSpan) Info(message string, payload ...interface{}) {
@@ -78,7 +73,7 @@ func (s *standardSpan) Finish() {
 func (s *standardSpan) TraceContext() *TraceContext {
 	// No need for a lock since s.raw.TraceContext is not modified after
 	// initialization.
-	return &s.raw.TraceContext
+	return s.raw.TraceContext
 }
 
 // Implements the `OpenTracer` interface.
@@ -88,70 +83,69 @@ type standardOpenTracer struct {
 	recorder ProcessRecorder
 }
 
-func (s *standardOpenTracer) StartSpan(
+func (s *standardOpenTracer) StartNewTrace(
 	operationName string,
-	parent ...interface{},
-) (Span, context.Context) {
-	if len(parent) == 0 {
-		return s.startSpanGeneric(
-			operationName,
-			context.Background(),
-			s.NewRootTraceContextID(),
-			nil,
-		)
-	} else {
-		if goCtx, ok := parent[0].(context.Context); ok {
-			return s.startSpanWithGoContextParent(operationName, goCtx)
-		} else if ctxID, ok := parent[0].(*TraceContext); ok {
-			return s.startSpanWithTraceContextParent(operationName, ctxID)
-		} else {
-			panic(fmt.Errorf("Invalid parent type: %v", reflect.TypeOf(parent[0])))
-		}
-	}
-}
-
-func (s *standardOpenTracer) startSpanWithTraceContextIDParent(
-	operationName string,
-	parent *TraceContext,
-) (Span, context.Context) {
-	childCtx, tags := parent.NewChild()
+	initialTags ...Tags,
+) Span {
 	return s.startSpanGeneric(
 		operationName,
-		context.Background(),
-		childCtx,
-		tags,
+		NewRootTraceContext(s),
+		nil,
 	)
+}
+
+func (s *standardOpenTracer) JoinTrace(
+	operationName string,
+	parent interface{},
+	initialTags ...Tags,
+) Span {
+	if goCtx, ok := parent.(context.Context); ok {
+		return s.startSpanWithGoContextParent(operationName, goCtx)
+	} else if traceCtx, ok := parent.(*TraceContext); ok {
+		return s.startSpanWithTraceContextParent(operationName, traceCtx)
+	} else {
+		panic(fmt.Errorf("Invalid parent type: %v", reflect.TypeOf(parent)))
+	}
 }
 
 func (s *standardOpenTracer) startSpanWithGoContextParent(
 	operationName string,
 	parent context.Context,
-) (Span, context.Context) {
+) Span {
 	if oldSpan := SpanFromGoContext(parent); oldSpan != nil {
 		childCtx, tags := oldSpan.TraceContext().NewChild()
 		return s.startSpanGeneric(
 			operationName,
-			parent,
 			childCtx,
 			tags,
 		)
 	} else {
 		return s.startSpanGeneric(
 			operationName,
-			parent,
 			NewRootTraceContext(s),
 			nil,
 		)
 	}
 }
 
+func (s *standardOpenTracer) startSpanWithTraceContextParent(
+	operationName string,
+	parent *TraceContext,
+) Span {
+	childCtx, tags := parent.NewChild()
+	return s.startSpanGeneric(
+		operationName,
+		childCtx,
+		tags,
+	)
+}
+
 // A helper for standardSpan creation.
 func (s *standardOpenTracer) startSpanGeneric(
 	operationName string,
-	parentGoCtx context.Context,
 	childCtx *TraceContext,
 	tags Tags,
-) (Span, context.Context) {
+) Span {
 	if tags == nil {
 		tags = Tags{}
 	}
@@ -167,6 +161,5 @@ func (s *standardOpenTracer) startSpanGeneric(
 			Logs:         []*RawLog{},
 		},
 	}
-	goCtx := GoContextWithSpan(parentGoCtx, span)
-	return span, goCtx
+	return span
 }

@@ -1,9 +1,5 @@
 package opentracing
 
-import (
-	"golang.org/x/net/context"
-)
-
 var (
 	globalOpenTracer OpenTracer = noopOpenTracer{noopTraceContextIDSource{}}
 )
@@ -15,21 +11,6 @@ func InitGlobalTracer(rec ProcessRecorder, ctxIDSource TraceContextIDSource) {
 	globalOpenTracer = NewStandardTracer(rec, ctxIDSource)
 }
 
-func GlobalTracer() OpenTracer {
+func Global() OpenTracer {
 	return globalOpenTracer
-}
-
-// See `OpenTracer.StartSpan` and `InitGlobal()`.
-func StartSpan(operationName string, parent ...interface{}) (Span, context.Context) {
-	return globalOpenTracer.StartSpan(operationName, parent...)
-}
-
-// See `TraceContextIDSource.DeserializeBinaryTraceContextID()`
-func DeserializeBinaryTraceContextID(encoded []byte) (TraceContextID, error) {
-	return globalOpenTracer.DeserializeTraceContextID(encoded)
-}
-
-// See `TraceContextIDSource.DeserializeStringTraceContextID()`
-func DeserializeStringTraceContextID(encoded []byte) (TraceContextID, error) {
-	return globalOpenTracer.DeserializeTraceContextID(encoded)
 }

@@ -21,8 +21,9 @@ func NewTrivialRecorder(processName string) *TrivialRecorder {
 
 func (t *TrivialRecorder) ProcessName() string { return t.processName }
 
-func (t *TrivialRecorder) SetTag(key string, val interface{}) {
+func (t *TrivialRecorder) SetTag(key string, val interface{}) opentracing.ProcessRecorder {
 	t.tags[key] = fmt.Sprint(val)
+	return t
 }
 
 func (t *TrivialRecorder) RecordSpan(span *opentracing.RawSpan) {

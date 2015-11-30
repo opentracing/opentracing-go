@@ -18,7 +18,8 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span, ctx := opentracing.StartSpan("getInput")
+		span := opentracing.Global().StartNewTrace("getInput")
+		ctx := opentracing.BackgroundContextWithSpan(span)
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
@@ -47,12 +48,12 @@ func client() {
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		reqCtx, err := opentracing.GetTraceContextFromHttpHeader(
-			req.Header, opentracing.GlobalTracer())
+			req.Header, opentracing.Global())
 		if err != nil {
 			panic(err)
 		}
 
-		serverSpan, _ := opentracing.StartSpan("serverSpan", reqCtx)
+		serverSpan := opentracing.Global().StartNewTrace("serverSpan")
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {

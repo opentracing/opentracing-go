@@ -9,6 +9,17 @@ type TraceContext struct {
 	traceTags map[string]string
 }
 
+// `tags` may be nil.
+func newTraceContext(id TraceContextID, tags map[string]string) *TraceContext {
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	return &TraceContext{
+		Id:        id,
+		traceTags: tags,
+	}
+}
+
 // Set a tag on this TraceContext that also propagates to future TraceContext
 // children per `NewChild()`.
 //
@@ -65,16 +76,24 @@ func NewRootTraceContext(source TraceContextIDSource) *TraceContext {
 func DeserializeBinaryTraceContext(
 	source TraceContextIDSource,
 	encoded []byte,
-) (TraceContext, error) {
+) (*TraceContext, error) {
 	// XXX: implement correctly if we like this API
-	return source.DeserializeBinaryTraceContext(encoded)
+	tcid, err := source.DeserializeBinaryTraceContextID(encoded)
+	if err != nil {
+		return nil, err
+	}
+	return newTraceContext(tcid, nil), nil
 }
 func DeserializeStringTraceContext(
 	source TraceContextIDSource,
 	encoded string,
-) (TraceContext, error) {
+) (*TraceContext, error) {
 	// XXX: implement correctly if we like this API
-	return source.DeserializeStringTraceContext(encoded)
+	tcid, err := source.DeserializeStringTraceContextID(encoded)
+	if err != nil {
+		return nil, err
+	}
+	return newTraceContext(tcid, nil), nil
 }
 
 // A TraceContextID is the smallest amount of state needed to describe a span's

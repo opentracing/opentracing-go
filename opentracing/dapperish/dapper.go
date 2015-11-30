@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 
 	"github.com/opentracing/api-golang/opentracing"
@@ -27,7 +28,7 @@ func (d *DapperishTraceContextID) NewChild() (opentracing.TraceContextID, opentr
 	}, opentracing.Tags{"parent_span_id": d.SpanID}
 }
 
-func (d *DapperishTraceContextID) Serialize() []byte {
+func (d *DapperishTraceContextID) SerializeBinary() []byte {
 	var err error
 	buf := new(bytes.Buffer)
 	err = binary.Write(buf, binary.BigEndian, d.TraceID)
@@ -49,6 +50,10 @@ func (d *DapperishTraceContextID) Serialize() []byte {
 	return buf.Bytes()
 }
 
+func (d *DapperishTraceContextID) SerializeString() string {
+	return base64.StdEncoding.EncodeToString(d.SerializeBinary())
+}
+
 // An implementation of opentracing.TraceContextIDSource.
 type DapperishTraceContextIDSource struct{}
 
@@ -64,7 +69,7 @@ func (m *DapperishTraceContextIDSource) NewRootTraceContextID() opentracing.Trac
 	}
 }
 
-func (m *DapperishTraceContextIDSource) DeserializeTraceContextID(encoded []byte) (opentracing.TraceContextID, error) {
+func (m *DapperishTraceContextIDSource) DeserializeBinaryTraceContextID(encoded []byte) (opentracing.TraceContextID, error) {
 	var err error
 	reader := bytes.NewReader(encoded)
 	var traceID, spanID int64
@@ -87,4 +92,12 @@ func (m *DapperishTraceContextIDSource) DeserializeTraceContextID(encoded []byte
 		SpanID:  spanID,
 		Sampled: sampledByte != 0,
 	}, nil
+}
+
+func (d *DapperishTraceContextIDSource) DeserializeStringTraceContextID(encoded string) (opentracing.TraceContextID, error) {
+	ctxIdBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, err
+	}
+	return d.DeserializeBinaryTraceContextID(ctxIdBytes)
 }
