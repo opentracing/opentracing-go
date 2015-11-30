@@ -43,3 +43,10 @@ type RawLog struct {
 	// it is a base type or an anonymous struct.
 	Payload interface{}
 }
+
+func (t Tags) Merge(other Tags) Tags {
+	for k, v := range other {
+		t[k] = v
+	}
+	return t
+}

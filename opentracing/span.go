@@ -3,7 +3,7 @@ package opentracing
 type Span interface {
 	// Creates and starts a child span.
 	// XXX: Tags
-	StartChild(operationName string, initialTags ...Tags) Span
+	StartChild(operationName string, keyValueTags ...interface{}) Span
 
 	// Adds a tag to the span. The `value` is immediately coerced into a string
 	// using fmt.Sprint().

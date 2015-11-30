@@ -5,25 +5,33 @@ package opentracing
 type OpenTracer interface {
 	TraceContextIDSource
 
-	StartNewTrace(operationName string, initialTags ...Tags) Span
-
-	// `parent` can either be a `context.Context` or an
-	// `opentracing.TraceContext`.
-	JoinTrace(operationName string, parent interface{}, initialTags ...Tags) Span
-
-	// XXX: adapt comment below to StartNewTrace / JoinTrace above.
-
-	// Starts a new Span for `operationName`.
+	// Create, start, and return a new Span with the given `operationName`, all
+	// without specifying a parent Span that can be used to incorporate the
+	// newly-returned Span into an existing trace.
 	//
-	// If `parent` is a golang `context.Context`, the returned
-	// `context.Context` and `Span` are schematic children of that context and
-	// any `Span` found therein.
+	// `keyValueTags` is a [possibly empty] list of <string, interface{}> tag
+	// pairs which are applied to the returned `Span`, just as if they were
+	// applied in successive calls to `Span.SetTag()`. If the even-numbered
+	// `keyValueTags` parameters are not of `string` type, the implementation
+	// is undefined (and may `panic()`).
 	//
-	// If `parent` is an `opentracing.ContextID`, the returned
-	// `context.Context` descends from the `context.Background()` and the
-	// returned `Span` descends from the provided `opentracing.ContextID`.
+	// Examples:
 	//
-	// If `parent` is omitted, the returned `Span` is a "root" span: i.e., it
-	// has no known parent.
-	// StartSpan(operationName string, parent ...interface{}) (Span, context.Context)
+	//     val tracer OpenTracer = ...
+	//
+	//     sp := tracer.StartTrace("GetFeed")
+	//
+	//     sp := tracer.StartTrace(
+	//         "HandleHTTPRequest",
+	//         "user_agent", req.UserAgent,
+	//         "lucky_number", 42)
+	//
+	StartTrace(operationName string, keyValueTags ...interface{}) Span
+
+	// Like `StartTrace`, but the return `Span` is made a child of `parent`.
+	//
+	// The `parent` parameter can either be a `context.Context` or an
+	// `opentracing.TraceContext`. In the former case, the implementation
+	// attempts to extract an `opentracing.Span` using `SpanFromGoContext()`.
+	JoinTrace(operationName string, parent interface{}, keyValueTags ...interface{}) Span
 }

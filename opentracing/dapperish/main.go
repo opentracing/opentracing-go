@@ -18,7 +18,7 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span := opentracing.Global().StartNewTrace("getInput")
+		span := opentracing.Global().StartTrace("getInput")
 		ctx := opentracing.BackgroundContextWithSpan(span)
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
@@ -53,7 +53,10 @@ func server() {
 			panic(err)
 		}
 
-		serverSpan := opentracing.Global().StartNewTrace("serverSpan")
+		serverSpan := opentracing.Global().JoinTrace(
+			"serverSpan", reqCtx,
+			"component", "server",
+		)
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
