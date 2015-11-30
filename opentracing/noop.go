@@ -3,30 +3,30 @@ package opentracing
 
 import "golang.org/x/net/context"
 
-type noopContextID struct{}
+type noopTraceContextID struct{}
 type noopSpan struct{}
 type noopRecorder struct{}
-type noopContextIDSource struct{}
+type noopTraceContextIDSource struct{}
 type noopOpenTracer struct {
-	noopContextIDSource
+	noopTraceContextIDSource
 }
 
 var (
-	defaultNoopContextID       = noopContextID{}
-	defaultNoopSpan            = noopSpan{}
-	defaultNoopRecorder        = noopRecorder{}
-	defaultNoopContextIDSource = noopContextIDSource{}
-	defaultNoopOpenTracer      = noopOpenTracer{}
-	emptyTags                  = Tags{}
-	emptyBytes                 = []byte{}
+	defaultNoopTraceContextID       = noopTraceContextID{}
+	defaultNoopSpan                 = noopSpan{}
+	defaultNoopRecorder             = noopRecorder{}
+	defaultNoopTraceContextIDSource = noopTraceContextIDSource{}
+	defaultNoopOpenTracer           = noopOpenTracer{}
+	emptyTags                       = Tags{}
+	emptyBytes                      = []byte{}
 )
 
-// noopContextID:
+// noopTraceContextID:
 
-func (n noopContextID) NewChild() (ContextID, Tags) {
-	return defaultNoopContextID, emptyTags
+func (n noopTraceContextID) NewChild() (TraceContextID, Tags) {
+	return defaultNoopTraceContextID, emptyTags
 }
-func (n noopContextID) Serialize() []byte {
+func (n noopTraceContextID) Serialize() []byte {
 	return emptyBytes
 }
 
@@ -43,20 +43,20 @@ func (n noopSpan) Info(message string, payload ...interface{})    {}
 func (n noopSpan) Warning(message string, payload ...interface{}) {}
 func (n noopSpan) Error(message string, payload ...interface{})   {}
 func (n noopSpan) Finish()                                        {}
-func (n noopSpan) ContextID() ContextID                           { return defaultNoopContextID }
+func (n noopSpan) TraceContext() TraceContextID                   { return defaultNoopTraceContextID }
 
-// noopContextIDSource:
-func (n noopContextIDSource) DeserializeContextID(encoded []byte) (ContextID, error) {
-	return defaultNoopContextID, nil
+// noopTraceContextIDSource:
+func (n noopTraceContextIDSource) DeserializeTraceContextID(encoded []byte) (TraceContextID, error) {
+	return defaultNoopTraceContextID, nil
 }
-func (n noopContextIDSource) NewRootContextID() ContextID {
-	return defaultNoopContextID
+func (n noopTraceContextIDSource) NewRootTraceContextID() TraceContextID {
+	return defaultNoopTraceContextID
 }
 
 // noopRecorder:
 func (n noopRecorder) SetTag(key string, val interface{}) {}
 func (n noopRecorder) RecordSpan(span *RawSpan)           {}
-func (n noopRecorder) ComponentName() string              { return "" }
+func (n noopRecorder) ProcessName() string                { return "" }
 
 // noopOpenTracer:
 func (n noopOpenTracer) StartSpan(operationName string, parent ...interface{}) (Span, context.Context) {

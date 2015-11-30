@@ -7,21 +7,24 @@ import (
 )
 
 const (
-	OpenTracingContextIDHeader = "OpenTracing-Context-Id"
+	OpenTracingContextHeader = "OpenTracing-Context"
 )
 
-func AddContextIDToHttpHeader(ctxID ContextID, h http.Header) {
-	h.Add(OpenTracingContextIDHeader, base64.StdEncoding.EncodeToString(ctxID.Serialize()))
+func AddContextToHttpHeader(ctx TraceContext, h http.Header) {
+	h.Add(OpenTracingContextHeader, ctxID.SerializeString())
 }
 
-func GetContextIDFromHttpHeader(h http.Header, ctxIDSource ContextIDSource) (ContextID, error) {
-	headerStr := h.Get(OpenTracingContextIDHeader)
+func GetTraceContextFromHttpHeader(
+	h http.Header,
+	ctxIDSource TraceContextIDSource,
+) (TraceContext, error) {
+	headerStr := h.Get(OpenTracingContextHeader)
 	if len(headerStr) == 0 {
-		return nil, fmt.Errorf("%q header not found", OpenTracingContextIDHeader)
+		return nil, fmt.Errorf("%q header not found", OpenTracingContextHeader)
 	}
 	ctxBytes, err := base64.StdEncoding.DecodeString(headerStr)
 	if err != nil {
 		return nil, err
 	}
-	return ctxIDSource.DeserializeContextID(ctxBytes)
+	return DeserializeStringTraceContext(ctxBytes)
 }

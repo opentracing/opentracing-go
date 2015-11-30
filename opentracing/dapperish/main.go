@@ -32,7 +32,7 @@ func client() {
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
-		opentracing.AddContextIDToHttpHeader(span.ContextID(), httpReq.Header)
+		opentracing.AddTraceContextToHttpHeader(span.TraceContext(), httpReq.Header)
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.Error("error: ", err)
@@ -46,20 +46,20 @@ func client() {
 
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
+		reqCtx, err := opentracing.GetTraceContextFromHttpHeader(
 			req.Header, opentracing.GlobalTracer())
 		if err != nil {
 			panic(err)
 		}
 
-		serverSpan, _ := opentracing.StartSpan("serverSpan", reqCtxID)
+		serverSpan, _ := opentracing.StartSpan("serverSpan", reqCtx)
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
-		fmt.Fprintf(w, "Hello: %v / %q", reqCtxID.Serialize(), html.EscapeString(req.URL.Path))
+		fmt.Fprintf(w, "Hello: %v / %q", reqCtx.SerializeString(), html.EscapeString(req.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -68,10 +68,10 @@ func server() {
 func main() {
 	opentracing.InitGlobalTracer(
 		NewTrivialRecorder("dapperish_tester"),
-		NewDapperishContextIDSource())
+		NewDapperishTraceContextIDSource())
 
-	go client()
 	go server()
+	go client()
 
 	runtime.Goexit()
 }

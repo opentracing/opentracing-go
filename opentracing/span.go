@@ -3,21 +3,18 @@ package opentracing
 import "golang.org/x/net/context"
 
 type Span interface {
-	// Creates a child span, optionally modifying a `context.Context` parent.
-	//
-	// `parent` is optional; if specified, it is used as the descendant for the
-	// returned `context.Context` object.
-	//
-	// Regardless of whether `parent` is specified, `StartChildSpan` returns a
-	// `Span` that descends directly from the callee. The returned
-	// `context.Context` instance derives from `parent` if.f. it was specified.
-	StartChildSpan(operationName string, parent ...context.Context) (Span, context.Context)
+	// Creates and starts a child span.
+	// XXX: Tags
+	StartChild(operationName string, initialTags ...Tags) (Span, context.Context)
+	// Creates and starts a child span and adds it to the `context.Context`
+	// argument, `parent`, before returning both.
+	StartChildWithContext(operationName string, parent context.Context, initialTags ...Tags) (Span, context.Context)
 
 	// Adds a tag to the span. The `value` is immediately coerced into a string
 	// using fmt.Sprint().
 	//
 	// If there is a pre-existing tag set for `key`, it is overwritten.
-	SetTag(key string, value interface{})
+	SetTag(key string, value interface{}) Span
 
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//
@@ -35,7 +32,7 @@ type Span interface {
 	// Like Info(), but for errors.
 	Error(message string, payload ...interface{})
 
-	// Sets the end timestamp and calls the `ComponentRecorder`s RecordSpan()
+	// Sets the end timestamp and calls the `ProcessRecorder`s RecordSpan()
 	// internally.
 	//
 	// Finish() should be the last call made to any span instance, and to do
@@ -43,13 +40,25 @@ type Span interface {
 	Finish()
 
 	// Suitable for serializing over the wire, etc.
-	ContextID() ContextID
+	TraceContext() *TraceContext
 }
 
 // A simple, thin interface for Span creation. Though other implementations are
 // possible and plausible, most users will be fine with `NewStandardTracer()`.
 type OpenTracer interface {
-	ContextIDSource
+	TraceContextIDSource
+
+	StartEmptyTrace(
+		operationName string, initialTags ...Tags,
+	) (Span, context.Context)
+
+	// `parent` can either be a `context.Context` or an
+	// `opentracing.TraceContext`.
+	ContinueTrace(
+		operationName string, parent interface{}, initialTags ...Tags,
+	) (Span, context.Context)
+
+	// XXX START HERE: adapt comment below to BeginTrace / ContinueTrace above.
 
 	// Starts a new Span for `operationName`.
 	//
@@ -63,7 +72,7 @@ type OpenTracer interface {
 	//
 	// If `parent` is omitted, the returned `Span` is a "root" span: i.e., it
 	// has no known parent.
-	StartSpan(operationName string, parent ...interface{}) (Span, context.Context)
+	// StartSpan(operationName string, parent ...interface{}) (Span, context.Context)
 }
 
 ////////////////////////////////////

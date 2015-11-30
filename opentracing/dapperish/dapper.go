@@ -7,8 +7,8 @@ import (
 	"github.com/opentracing/api-golang/opentracing"
 )
 
-// An implementation of opentracing.ContextID.
-type DapperishContextID struct {
+// An implementation of opentracing.TraceContextID.
+type DapperishTraceContextID struct {
 	// A probabilistically unique identifier for a [multi-span] trace.
 	TraceID int64
 
@@ -19,15 +19,15 @@ type DapperishContextID struct {
 	Sampled bool
 }
 
-func (d *DapperishContextID) NewChild() (opentracing.ContextID, opentracing.Tags) {
-	return &DapperishContextID{
+func (d *DapperishTraceContextID) NewChild() (opentracing.TraceContextID, opentracing.Tags) {
+	return &DapperishTraceContextID{
 		TraceID: d.TraceID,
 		SpanID:  randomID(),
 		Sampled: d.Sampled,
 	}, opentracing.Tags{"parent_span_id": d.SpanID}
 }
 
-func (d *DapperishContextID) Serialize() []byte {
+func (d *DapperishTraceContextID) Serialize() []byte {
 	var err error
 	buf := new(bytes.Buffer)
 	err = binary.Write(buf, binary.BigEndian, d.TraceID)
@@ -49,22 +49,22 @@ func (d *DapperishContextID) Serialize() []byte {
 	return buf.Bytes()
 }
 
-// An implementation of opentracing.ContextIDSource.
-type DapperishContextIDSource struct{}
+// An implementation of opentracing.TraceContextIDSource.
+type DapperishTraceContextIDSource struct{}
 
-func NewDapperishContextIDSource() *DapperishContextIDSource {
-	return &DapperishContextIDSource{}
+func NewDapperishTraceContextIDSource() *DapperishTraceContextIDSource {
+	return &DapperishTraceContextIDSource{}
 }
 
-func (m *DapperishContextIDSource) NewRootContextID() opentracing.ContextID {
-	return &DapperishContextID{
+func (m *DapperishTraceContextIDSource) NewRootTraceContextID() opentracing.TraceContextID {
+	return &DapperishTraceContextID{
 		TraceID: randomID(),
 		SpanID:  randomID(),
 		Sampled: randomID()%1024 == 0,
 	}
 }
 
-func (m *DapperishContextIDSource) DeserializeContextID(encoded []byte) (opentracing.ContextID, error) {
+func (m *DapperishTraceContextIDSource) DeserializeTraceContextID(encoded []byte) (opentracing.TraceContextID, error) {
 	var err error
 	reader := bytes.NewReader(encoded)
 	var traceID, spanID int64
@@ -82,7 +82,7 @@ func (m *DapperishContextIDSource) DeserializeContextID(encoded []byte) (opentra
 	if err != nil {
 		return nil, err
 	}
-	return &DapperishContextID{
+	return &DapperishTraceContextID{
 		TraceID: traceID,
 		SpanID:  spanID,
 		Sampled: sampledByte != 0,

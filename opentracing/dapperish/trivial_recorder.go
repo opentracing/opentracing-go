@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"reflect"
 
@@ -9,29 +8,28 @@ import (
 )
 
 type TrivialRecorder struct {
-	componentName string
-	tags          map[string]string
+	processName string
+	tags        map[string]string
 }
 
-func NewTrivialRecorder(componentName string) *TrivialRecorder {
+func NewTrivialRecorder(processName string) *TrivialRecorder {
 	return &TrivialRecorder{
-		componentName: componentName,
-		tags:          make(map[string]string),
+		processName: processName,
+		tags:        make(map[string]string),
 	}
 }
 
-func (t *TrivialRecorder) ComponentName() string { return t.componentName }
+func (t *TrivialRecorder) ProcessName() string { return t.processName }
 
 func (t *TrivialRecorder) SetTag(key string, val interface{}) {
 	t.tags[key] = fmt.Sprint(val)
 }
 
 func (t *TrivialRecorder) RecordSpan(span *opentracing.RawSpan) {
-	str := base64.StdEncoding.EncodeToString(span.ContextID.Serialize())
-
 	fmt.Printf(
-		"RecordSpan: %v[%v, %v us] --> %v logs. context base64: %v\n",
-		span.Operation, span.Start, span.Duration, len(span.Logs), str)
+		"RecordSpan: %v[%v, %v us] --> %v logs. trace context: %v\n",
+		span.Operation, span.Start, span.Duration, len(span.Logs),
+		span.TraceContext.SerializeString())
 	for i, l := range span.Logs {
 		fmt.Printf(
 			"    log %v: %v --> %v\n", i, l.Message, reflect.TypeOf(l.Payload))

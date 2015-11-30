@@ -23,9 +23,9 @@ The simplest starting point is `./global.go`. As early as possible, call
     import ".../opentracing"
     
     func main() {
-        tracingRecorder := ... // tracing impl specific
-        tracingContextIDSource := ... // tracing impl specific
-        opentracing.InitGlobalTracer(tracingRecorder, tracingContextIDSource)
+        procRecorder := ... // tracing impl specific
+        traceContextIDSource := ... // tracing impl specific
+        opentracing.InitGlobalTracer(procRecorder, traceContextIDSource)
         ...
     }
 
@@ -71,9 +71,9 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
             httpClient := &http.Client{}
             httpReq, _ := http.NewRequest("GET", "http://myservice/", nil)
 
-			// Transmit the span's ContextID as an HTTP header on our outbound
-            // request.
-            opentracing.AddContextIDToHttpHeader(span.ContextID(), httpReq.Header)
+            // Transmit the span's TraceContext as an HTTP header on our
+            // outbound request.
+            opentracing.AddTraceContextToHttpHeader(span.TraceContext(), httpReq.Header)
 
             resp, err := httpClient.Do(httpReq)
             ...
@@ -84,21 +84,21 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 #### Deserializing from the wire
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		// Grab the ContextID from the HTTP header using the
-                // opentracing helper.
-                reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
-                        req.Header, opentracing.GlobalTracer())
-                var serverSpan opentracing.Span
-                var goCtx context.Context
-                if err != nil {
-                    // Just make a root span.
-                    serverSpan, goCtx = opentracing.StartSpan("serverSpan")
-                } else {
-                    // Make a new server-side span that's a child of the span/context sent
-                    // over the wire.
-                    serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqCtxID)
-                }
-		defer serverSpan.Finish()
+        // Grab the TraceContext from the HTTP header using the
+        // opentracing helper.
+        reqCtxID, err := opentracing.GetTraceContextFromHttpHeader(
+                req.Header, opentracing.GlobalTracer())
+        var serverSpan opentracing.Span
+        var goCtx context.Context
+        if err != nil {
+            // Just make a root span.
+            serverSpan, goCtx = opentracing.StartSpan("serverSpan")
+        } else {
+            // Make a new server-side span that's a child of the span/context sent
+            // over the wire.
+            serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqCtxID)
+        }
+        defer serverSpan.Finish()
         ...
     }
 
@@ -109,11 +109,11 @@ There should be no need for tracing system implementors to worry about the
 `opentracing.NewStandardTracer(...)` should work well enough for most clients.
 
 That said, tracing system authors must provide implementations of:
-- `opentracing.ContextID`
-- `opentracing.ContextIDSource`
-- `opentracing.ComponentRecorder`
+- `opentracing.TraceContextID`
+- `opentracing.TraceContextIDSource`
+- `opentracing.ProcessRecorder`
 
-For a simple working example, see `./dapperish/*.go`.
+For a small working example, see `./dapperish/*.go`.
 
 ## TODO items
 

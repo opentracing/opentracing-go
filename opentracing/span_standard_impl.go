@@ -13,10 +13,10 @@ import (
 // `ctxIdSource` as appropriate.
 //
 // See `SetGlobalTracer()`.
-func NewStandardTracer(rec ComponentRecorder, ctxIdSource ContextIDSource) OpenTracer {
+func NewStandardTracer(rec ProcessRecorder, ctxIdSource TraceContextIDSource) OpenTracer {
 	return &standardOpenTracer{
-		ContextIDSource: ctxIdSource,
-		recorder:        rec,
+		TraceContextIDSource: ctxIdSource,
+		recorder:             rec,
 	}
 }
 
@@ -25,7 +25,7 @@ func NewStandardTracer(rec ComponentRecorder, ctxIdSource ContextIDSource) OpenT
 type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardOpenTracer
-	recorder ComponentRecorder
+	recorder ProcessRecorder
 	raw      RawSpan
 }
 
@@ -36,8 +36,8 @@ func (s *standardSpan) StartChildSpan(operationName string, parent ...context.Co
 	} else {
 		parentGoCtx = context.Background()
 	}
-	childID, childTags := s.raw.ContextID.NewChild()
-	return s.tracer.startSpanGeneric(operationName, parentGoCtx, childID, childTags)
+	childCtx, childTags := s.raw.TraceContext.NewChild()
+	return s.tracer.startSpanGeneric(operationName, parentGoCtx, childCtx, childTags)
 }
 
 func (s *standardSpan) SetTag(key string, value interface{}) {
@@ -75,17 +75,17 @@ func (s *standardSpan) Finish() {
 	s.recorder.RecordSpan(&s.raw)
 }
 
-func (s *standardSpan) ContextID() ContextID {
-	// No need for a lock since s.raw.ContextID is not modified after
+func (s *standardSpan) TraceContext() *TraceContext {
+	// No need for a lock since s.raw.TraceContext is not modified after
 	// initialization.
-	return s.raw.ContextID
+	return &s.raw.TraceContext
 }
 
 // Implements the `OpenTracer` interface.
 type standardOpenTracer struct {
-	ContextIDSource
+	TraceContextIDSource
 
-	recorder ComponentRecorder
+	recorder ProcessRecorder
 }
 
 func (s *standardOpenTracer) StartSpan(
@@ -96,23 +96,23 @@ func (s *standardOpenTracer) StartSpan(
 		return s.startSpanGeneric(
 			operationName,
 			context.Background(),
-			s.NewRootContextID(),
+			s.NewRootTraceContextID(),
 			nil,
 		)
 	} else {
 		if goCtx, ok := parent[0].(context.Context); ok {
 			return s.startSpanWithGoContextParent(operationName, goCtx)
-		} else if ctxID, ok := parent[0].(ContextID); ok {
-			return s.startSpanWithContextIDParent(operationName, ctxID)
+		} else if ctxID, ok := parent[0].(*TraceContext); ok {
+			return s.startSpanWithTraceContextParent(operationName, ctxID)
 		} else {
 			panic(fmt.Errorf("Invalid parent type: %v", reflect.TypeOf(parent[0])))
 		}
 	}
 }
 
-func (s *standardOpenTracer) startSpanWithContextIDParent(
+func (s *standardOpenTracer) startSpanWithTraceContextIDParent(
 	operationName string,
-	parent ContextID,
+	parent *TraceContext,
 ) (Span, context.Context) {
 	childCtx, tags := parent.NewChild()
 	return s.startSpanGeneric(
@@ -128,18 +128,18 @@ func (s *standardOpenTracer) startSpanWithGoContextParent(
 	parent context.Context,
 ) (Span, context.Context) {
 	if oldSpan := SpanFromGoContext(parent); oldSpan != nil {
-		childCtxId, tags := oldSpan.ContextID().NewChild()
+		childCtx, tags := oldSpan.TraceContext().NewChild()
 		return s.startSpanGeneric(
 			operationName,
 			parent,
-			childCtxId,
+			childCtx,
 			tags,
 		)
 	} else {
 		return s.startSpanGeneric(
 			operationName,
 			parent,
-			s.NewRootContextID(),
+			NewRootTraceContext(s),
 			nil,
 		)
 	}
@@ -149,7 +149,7 @@ func (s *standardOpenTracer) startSpanWithGoContextParent(
 func (s *standardOpenTracer) startSpanGeneric(
 	operationName string,
 	parentGoCtx context.Context,
-	childCtxID ContextID,
+	childCtx *TraceContext,
 	tags Tags,
 ) (Span, context.Context) {
 	if tags == nil {
@@ -159,12 +159,12 @@ func (s *standardOpenTracer) startSpanGeneric(
 		tracer:   s,
 		recorder: s.recorder,
 		raw: RawSpan{
-			ContextID: childCtxID,
-			Operation: operationName,
-			Start:     time.Now(),
-			Duration:  -1,
-			Tags:      tags,
-			Logs:      []*RawLog{},
+			TraceContext: childCtx,
+			Operation:    operationName,
+			Start:        time.Now(),
+			Duration:     -1,
+			Tags:         tags,
+			Logs:         []*RawLog{},
 		},
 	}
 	goCtx := GoContextWithSpan(parentGoCtx, span)
