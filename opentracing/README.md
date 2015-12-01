@@ -8,13 +8,8 @@ For background:
 
 Everyday consumers of this `opentracing` package really only need to worry
 about a couple of key abstractions: the `StartSpan` function, the `Span`
-interface, and golang's `context.Context` idiom. Here are code snippets
-demonstrating some important use cases.
-
-A note about `context.Context`: the opentracing API here encourages (but does
-not require) the use of golang-team's `context.Context` scheme. Whether we like
-it or not (this author is on the fence), `context.Context` is here to stay,
-goroutine-local-storage bedamned. When in Rome, do as the Romans do (etc).
+interface, and binding a `ProcessRuntime` at `main()`-time. Here are code
+snippets demonstrating some important use cases.
 
 #### Singleton initialization
 
@@ -23,9 +18,9 @@ The simplest starting point is `./global.go`. As early as possible, call
     import ".../opentracing"
     
     func main() {
-        procRecorder := ... // tracing impl specific
-        traceContextIDSource := ... // tracing impl specific
-        opentracing.InitGlobalTracer(procRecorder, traceContextIDSource)
+        procRecorder := some_tracing_impl.NewProcessRecorder(...) // tracing impl specific
+        traceContextIDSource := some_tracing_impl.NewContextIDSource(...) // tracing impl specific
+        opentracing.InitGlobal(procRecorder, traceContextIDSource)
         ...
     }
 
@@ -34,21 +29,21 @@ The simplest starting point is `./global.go`. As early as possible, call
 If global singletons make you sad, use `opentracing.NewStandardTracer(...)`
 directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 
-#### Creating a Span given an existing Golang `context.Context`
+#### Creating a Span given an existing Span
 
-    func xyz(ctx context.Context, ...) {
+    func xyz(parentSpan opentracing.Span, ...) {
         ...
-        sp, ctx := opentracing.StartSpan("span_name", ctx)
+        sp := opentracing.JoinTrace("span_name", parentSpan)
         defer sp.Finish()
 		sp.Info("called xyz")
         ...
     }
 
-#### Creating a Span given an existing Span
+#### Creating a Span given an existing Golang `context.Context`
 
-    func xyz(parentSpan opentracing.Span, ...) {
+    func xyz(goCtx context.Context, ...) {
         ...
-        sp, ctx := opentracing.StartSpan("span_name", parentSpan)
+        sp, goCtx := opentracing.JoinTrace("span_name", goCtx).AddToGoContext(goCtx)
         defer sp.Finish()
 		sp.Info("called xyz")
         ...
@@ -56,9 +51,11 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 
 #### Creating a root Span (i.e., without a known parent)
 
+Just to show that it's not required, we don't call `AddToGoContext` this time.
+
     func xyz() {
         ...
-        sp, ctx := opentracing.StartSpan("span_name")
+        sp := opentracing.StartTrace("span_name")
         defer sp.Finish()
 		sp.Info("called xyz")
         ...
@@ -86,17 +83,17 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
         // Grab the TraceContext from the HTTP header using the
         // opentracing helper.
-        reqCtxID, err := opentracing.GetTraceContextFromHttpHeader(
+        reqTraceCtx, err := opentracing.GetTraceContextFromHttpHeader(
                 req.Header, opentracing.GlobalTracer())
         var serverSpan opentracing.Span
-        var goCtx context.Context
+        var goCtx context.Context = ...
         if err != nil {
             // Just make a root span.
-            serverSpan, goCtx = opentracing.StartSpan("serverSpan")
+            serverSpan, goCtx = opentracing.StartSpan("serverSpan").AddToGoContext(goCtx)
         } else {
             // Make a new server-side span that's a child of the span/context sent
             // over the wire.
-            serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqCtxID)
+            serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqTraceCtx).AddToGoContext(goCtx)
         }
         defer serverSpan.Finish()
         ...

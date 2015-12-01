@@ -44,6 +44,7 @@ type RawLog struct {
 	Payload interface{}
 }
 
+// Incorporate the keys and values from `other` into this `Tags` instance.
 func (t Tags) Merge(other Tags) Tags {
 	for k, v := range other {
 		t[k] = v

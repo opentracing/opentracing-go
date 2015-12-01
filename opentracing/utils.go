@@ -11,7 +11,7 @@ const (
 )
 
 func AddTraceContextToHttpHeader(ctx *TraceContext, h http.Header) {
-	h.Add(OpenTracingContextHeader, ctx.SerializeString())
+	h.Add(OpenTracingContextHeader, ctx.SerializeASCII())
 }
 
 func GetTraceContextFromHttpHeader(
@@ -22,7 +22,7 @@ func GetTraceContextFromHttpHeader(
 	if len(headerStr) == 0 {
 		return nil, fmt.Errorf("%q header not found", OpenTracingContextHeader)
 	}
-	return DeserializeStringTraceContext(ctxIDSource, headerStr)
+	return DeserializeASCIITraceContext(ctxIDSource, headerStr)
 }
 
 func keyValueListToTags(keyValueTags []interface{}) Tags {

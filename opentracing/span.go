@@ -1,8 +1,12 @@
 package opentracing
 
+import "golang.org/x/net/context"
+
 type Span interface {
 	// Creates and starts a child span.
-	// XXX: Tags
+	//
+	// For more information about `keyValueTags`, see the documentation for
+	// `OpenTracer.StartTrace()`.
 	StartChild(operationName string, keyValueTags ...interface{}) Span
 
 	// Adds a tag to the span. The `value` is immediately coerced into a string
@@ -36,4 +40,12 @@ type Span interface {
 
 	// Suitable for serializing over the wire, etc.
 	TraceContext() *TraceContext
+
+	// A convenience method. Equivalent to
+	//
+	//    var goCtx context.Context = ...
+	//    var span Span = ...
+	//    goCtx := opentracing.GoContextWithSpan(ctx, span)
+	//
+	AddToGoContext(goCtx context.Context) (Span, context.Context)
 }

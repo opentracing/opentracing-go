@@ -50,7 +50,7 @@ func (d *DapperishTraceContextID) SerializeBinary() []byte {
 	return buf.Bytes()
 }
 
-func (d *DapperishTraceContextID) SerializeString() string {
+func (d *DapperishTraceContextID) SerializeASCII() string {
 	return base64.StdEncoding.EncodeToString(d.SerializeBinary())
 }
 
@@ -94,7 +94,7 @@ func (m *DapperishTraceContextIDSource) DeserializeBinaryTraceContextID(encoded 
 	}, nil
 }
 
-func (d *DapperishTraceContextIDSource) DeserializeStringTraceContextID(encoded string) (opentracing.TraceContextID, error) {
+func (d *DapperishTraceContextIDSource) DeserializeASCIITraceContextID(encoded string) (opentracing.TraceContextID, error) {
 	ctxIdBytes, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, err

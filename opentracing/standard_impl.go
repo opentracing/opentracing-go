@@ -76,6 +76,10 @@ func (s *standardSpan) TraceContext() *TraceContext {
 	return s.raw.TraceContext
 }
 
+func (s *standardSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
+	return s, GoContextWithSpan(ctx, s)
+}
+
 // Implements the `OpenTracer` interface.
 type standardOpenTracer struct {
 	TraceContextIDSource

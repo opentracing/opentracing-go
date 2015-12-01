@@ -1,6 +1,8 @@
 // Noop implementations of the core opentracing interfaces.
 package opentracing
 
+import "golang.org/x/net/context"
+
 type noopTraceContextID struct{}
 type noopSpan struct{}
 type noopRecorder struct{}
@@ -32,7 +34,7 @@ func (n noopTraceContextID) NewChild() (TraceContextID, Tags) {
 func (n noopTraceContextID) SerializeBinary() []byte {
 	return emptyBytes
 }
-func (n noopTraceContextID) SerializeString() string {
+func (n noopTraceContextID) SerializeASCII() string {
 	return emptyString
 }
 
@@ -46,12 +48,15 @@ func (n noopSpan) Warning(message string, payload ...interface{}) {}
 func (n noopSpan) Error(message string, payload ...interface{})   {}
 func (n noopSpan) Finish()                                        {}
 func (n noopSpan) TraceContext() *TraceContext                    { return defaultNoopTraceContext }
+func (n noopSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
+	return n, GoContextWithSpan(ctx, n)
+}
 
 // noopTraceContextIDSource:
 func (n noopTraceContextIDSource) DeserializeBinaryTraceContextID(encoded []byte) (TraceContextID, error) {
 	return defaultNoopTraceContextID, nil
 }
-func (n noopTraceContextIDSource) DeserializeStringTraceContextID(encoded string) (TraceContextID, error) {
+func (n noopTraceContextIDSource) DeserializeASCIITraceContextID(encoded string) (TraceContextID, error) {
 	return defaultNoopTraceContextID, nil
 }
 func (n noopTraceContextIDSource) NewRootTraceContextID() TraceContextID {

@@ -18,7 +18,7 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span := opentracing.Global().StartTrace("getInput")
+		span := opentracing.StartTrace("getInput")
 		ctx := opentracing.BackgroundContextWithSpan(span)
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
@@ -53,7 +53,7 @@ func server() {
 			panic(err)
 		}
 
-		serverSpan := opentracing.Global().JoinTrace(
+		serverSpan := opentracing.JoinTrace(
 			"serverSpan", reqCtx,
 			"component", "server",
 		)
@@ -63,14 +63,14 @@ func server() {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
-		fmt.Fprintf(w, "Hello: %v / %q", reqCtx.SerializeString(), html.EscapeString(req.URL.Path))
+		fmt.Fprintf(w, "Hello: %v / %q", reqCtx.SerializeASCII(), html.EscapeString(req.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func main() {
-	opentracing.InitGlobalTracer(
+	opentracing.InitGlobal(
 		NewTrivialRecorder("dapperish_tester"),
 		NewDapperishTraceContextIDSource())
 
