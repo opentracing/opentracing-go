@@ -1,4 +1,3 @@
-// Noop implementations of the core opentracing interfaces.
 package opentracing
 
 import "golang.org/x/net/context"
