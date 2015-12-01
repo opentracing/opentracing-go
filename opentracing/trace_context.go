@@ -19,7 +19,8 @@ type TraceContextID interface {
 	// TraceContextID implementation itself.
 	NewChild() (childCtx TraceContextID, childSpanTags Tags)
 
-	// Serializes the TraceContextID as a valid unicode string.
+	// Serializes the TraceContextID as a printable ASCII string (e.g.,
+	// base64).
 	SerializeASCII() string
 
 	// Serializes the TraceContextID as arbitrary binary data.
@@ -34,9 +35,14 @@ type TraceContextIDSource interface {
 	// to NewRootTraceContextID().
 	NewRootTraceContextID() TraceContextID
 
-	// Converts the encoded binary data (see `TraceContextID.Serialize()`) into a
-	// TraceContextID of the same type as returned by NewRootTraceContextID().
+	// Converts the encoded binary data (see
+	// `TraceContextID.SerializeBinary()`) into a TraceContextID of the same
+	// type as returned by NewRootTraceContextID().
 	DeserializeBinaryTraceContextID(encoded []byte) (TraceContextID, error)
+
+	// Converts the encoded ASCII data (see `TraceContextID.SerializeASCII()`)
+	// into a TraceContextID of the same type as returned by
+	// NewRootTraceContextID().
 	DeserializeASCIITraceContextID(encoded string) (TraceContextID, error)
 }
 
