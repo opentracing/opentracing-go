@@ -18,32 +18,34 @@ type TraceContextID interface {
 	// The returned TraceContextID type must be the same as the type of the
 	// TraceContextID implementation itself.
 	NewChild() (childCtx TraceContextID, childSpanTags Tags)
+}
 
-	// Serializes the TraceContextID as a printable ASCII string (e.g.,
-	// base64).
-	SerializeASCII() string
+// XXX: comment
+type TraceContextIDMarshaler interface {
+	MarshalBinaryTraceContextID(tcid TraceContextID) []byte
+	MarshalStringMapTraceContextID(tcid TraceContextID) map[string]string
+}
 
-	// Serializes the TraceContextID as arbitrary binary data.
-	SerializeBinary() []byte
+// XXX: comment
+type TraceContextIDUnmarshaler interface {
+	// Converts the encoded binary data (see
+	// `TraceContextIDMarshaler.MarshalBinary()`) into a TraceContextID.
+	UnmarshalBinaryTraceContextID(marshaled []byte) (TraceContextID, error)
+	// Converts the encoded string:string map (see
+	// `TraceContextIDMarshaler.MarshalStringMap()`) into a TraceContextID.
+	UnmarshalStringMapTraceContextID(marshaled map[string]string) (TraceContextID, error)
 }
 
 // A long-lived interface that knows how to create a root TraceContextID and
 // serialize/deserialize any other.
 type TraceContextIDSource interface {
+	TraceContextIDMarshaler
+	TraceContextIDUnmarshaler
+
 	// Create a TraceContextID which has no parent (and thus begins its own trace).
 	// A TraceContextIDSource must always return the same type in successive calls
 	// to NewRootTraceContextID().
 	NewRootTraceContextID() TraceContextID
-
-	// Converts the encoded binary data (see
-	// `TraceContextID.SerializeBinary()`) into a TraceContextID of the same
-	// type as returned by NewRootTraceContextID().
-	DeserializeBinaryTraceContextID(encoded []byte) (TraceContextID, error)
-
-	// Converts the encoded ASCII data (see `TraceContextID.SerializeASCII()`)
-	// into a TraceContextID of the same type as returned by
-	// NewRootTraceContextID().
-	DeserializeASCIITraceContextID(encoded string) (TraceContextID, error)
 }
 
 // A `TraceContext` builds off of an implementation-provided TraceContextID and
@@ -139,24 +141,24 @@ func NewRootTraceContext(source TraceContextIDSource) *TraceContext {
 	}
 }
 
-func DeserializeBinaryTraceContext(
+func UnmarshalBinaryTraceContext(
 	source TraceContextIDSource,
 	encoded []byte,
 ) (*TraceContext, error) {
 	// XXX: implement correctly if we like this API
-	tcid, err := source.DeserializeBinaryTraceContextID(encoded)
+	tcid, err := source.UnmarshalBinaryTraceContextID(encoded)
 	if err != nil {
 		return nil, err
 	}
 	return newTraceContext(tcid, nil), nil
 }
 
-func DeserializeASCIITraceContext(
+func UnmarshalStringMapTraceContext(
 	source TraceContextIDSource,
-	encoded string,
+	encoded map[string]string,
 ) (*TraceContext, error) {
 	// XXX: implement correctly if we like this API
-	tcid, err := source.DeserializeASCIITraceContextID(encoded)
+	tcid, err := source.UnmarshalStringMapTraceContextID(encoded)
 	if err != nil {
 		return nil, err
 	}

@@ -19,22 +19,13 @@ var (
 	defaultNoopTraceContext         = newTraceContext(defaultNoopTraceContextID, nil)
 	emptyTags                       = Tags{}
 	emptyBytes                      = []byte{}
-)
-
-const (
-	emptyString = ""
+	emptyStringMap                  = map[string]string{}
 )
 
 // noopTraceContextID:
 
 func (n noopTraceContextID) NewChild() (TraceContextID, Tags) {
 	return defaultNoopTraceContextID, emptyTags
-}
-func (n noopTraceContextID) SerializeBinary() []byte {
-	return emptyBytes
-}
-func (n noopTraceContextID) SerializeASCII() string {
-	return emptyString
 }
 
 // noopSpan:
@@ -52,10 +43,16 @@ func (n noopSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
 }
 
 // noopTraceContextIDSource:
-func (n noopTraceContextIDSource) DeserializeBinaryTraceContextID(encoded []byte) (TraceContextID, error) {
+func (n noopTraceContextIDSource) MarshalBinaryTraceContextID(tcid TraceContextID) []byte {
+	return emptyBytes
+}
+func (n noopTraceContextIDSource) MarshalStringMapTraceContextID(tcid TraceContextID) map[string]string {
+	return emptyStringMap
+}
+func (n noopTraceContextIDSource) UnmarshalBinaryTraceContextID(encoded []byte) (TraceContextID, error) {
 	return defaultNoopTraceContextID, nil
 }
-func (n noopTraceContextIDSource) DeserializeASCIITraceContextID(encoded string) (TraceContextID, error) {
+func (n noopTraceContextIDSource) UnmarshalStringMapTraceContextID(encoded map[string]string) (TraceContextID, error) {
 	return defaultNoopTraceContextID, nil
 }
 func (n noopTraceContextIDSource) NewRootTraceContextID() TraceContextID {

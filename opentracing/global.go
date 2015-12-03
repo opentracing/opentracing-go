@@ -28,12 +28,12 @@ func JoinTrace(operationName string, parent interface{}, keyValueTags ...interfa
 	return globalOpenTracer.JoinTrace(operationName, parent, keyValueTags...)
 }
 
-// Defers to `DeserializeBinaryTraceContext()`. See `InitGlobal()`.
-func GlobalDeserializeBinaryTraceContext(encoded []byte) (*TraceContext, error) {
-	return DeserializeBinaryTraceContext(globalOpenTracer, encoded)
+// Defers to `UnmarshalBinaryTraceContext()`. See `InitGlobal()`.
+func GlobalUnmarshalBinaryTraceContext(encoded []byte) (*TraceContext, error) {
+	return UnmarshalBinaryTraceContext(globalOpenTracer, encoded)
 }
 
-// Defers to `DeserializeASCIITraceContext()`. See `InitGlobal()`.
-func GlobalDeserializeASCIITraceContext(encoded string) (*TraceContext, error) {
-	return DeserializeASCIITraceContext(globalOpenTracer, encoded)
+// Defers to `UnmarshalStringMapTraceContext()`. See `InitGlobal()`.
+func GlobalUnmarshalStringMapTraceContext(encoded map[string]string) (*TraceContext, error) {
+	return UnmarshalStringMapTraceContext(globalOpenTracer, encoded)
 }
