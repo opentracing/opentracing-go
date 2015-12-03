@@ -31,7 +31,7 @@ type Span interface {
 	// Like Info(), but for errors.
 	Error(message string, payload ...interface{})
 
-	// Sets the end timestamp and calls the `ProcessRecorder`s RecordSpan()
+	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
 	// internally.
 	//
 	// Finish() should be the last call made to any span instance, and to do

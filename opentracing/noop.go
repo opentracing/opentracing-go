@@ -65,9 +65,9 @@ func (n noopTraceContextSource) NewRootTraceContext() TraceContext {
 }
 
 // noopRecorder:
-func (n noopRecorder) SetTag(key string, val interface{}) ProcessRecorder { return n }
-func (n noopRecorder) RecordSpan(span *RawSpan)                           {}
-func (n noopRecorder) ProcessName() string                                { return "" }
+func (n noopRecorder) SetTag(key string, val interface{}) ProcessIdentifier { return n }
+func (n noopRecorder) RecordSpan(span *RawSpan)                             {}
+func (n noopRecorder) ProcessName() string                                  { return "" }
 
 // noopOpenTracer:
 func (n noopOpenTracer) StartTrace(operationName string, keyValueTags ...interface{}) Span {

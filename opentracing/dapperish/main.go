@@ -67,7 +67,7 @@ func server() {
 		fmt.Fprintf(
 			w,
 			"Hello: %v / %q",
-			opentracing.DefaultMarshalStringMapTraceContext(reqCtx),
+			opentracing.MarshalStringMapTraceContext(reqCtx),
 			html.EscapeString(req.URL.Path))
 	})
 

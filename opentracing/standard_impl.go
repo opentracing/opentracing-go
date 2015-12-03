@@ -11,9 +11,7 @@ import (
 
 // Creates and returns a standard OpenTracer which defers to `rec` and
 // `ctxIdSource` as appropriate.
-//
-// See `InitGlobalTracer()`.
-func NewStandardTracer(rec ProcessRecorder, ctxIdSource TraceContextSource) OpenTracer {
+func NewStandardTracer(rec Recorder, ctxIdSource TraceContextSource) OpenTracer {
 	return &standardOpenTracer{
 		TraceContextSource: ctxIdSource,
 		recorder:           rec,
@@ -25,7 +23,7 @@ func NewStandardTracer(rec ProcessRecorder, ctxIdSource TraceContextSource) Open
 type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardOpenTracer
-	recorder ProcessRecorder
+	recorder Recorder
 	raw      RawSpan
 }
 
@@ -84,7 +82,7 @@ func (s *standardSpan) AddToGoContext(ctx context.Context) (Span, context.Contex
 type standardOpenTracer struct {
 	TraceContextSource
 
-	recorder ProcessRecorder
+	recorder Recorder
 }
 
 func (s *standardOpenTracer) StartTrace(

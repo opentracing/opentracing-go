@@ -13,21 +13,32 @@ snippets demonstrating some important use cases.
 
 #### Singleton initialization
 
-The simplest starting point is `./global.go`. As early as possible, call
+The simplest starting point is `./default_tracer.go`. As early as possible, call
 
     import ".../opentracing"
     
     func main() {
-        procRecorder := some_tracing_impl.NewProcessRecorder(...) // tracing impl specific
-        traceContextIDSource := some_tracing_impl.NewContextIDSource(...) // tracing impl specific
-        opentracing.InitGlobal(procRecorder, traceContextIDSource)
+        procRecorder := some_tracing_impl.NewRecorder(...) // tracing impl specific
+        traceContextSource := some_tracing_impl.NewContextSource(...) // tracing impl specific
+        opentracing.InitDefaultTracer(procRecorder, traceContextSource)
         ...
     }
 
 ##### Note: the singletons are optional
 
-If global singletons make you sad, use `opentracing.NewStandardTracer(...)`
-directly and manage ownership of the `opentracing.OpenTracer` explicitly.
+If you prefer direct control to singletons, use
+`opentracing.NewStandardTracer(...)` directly and manage ownership of the
+`opentracing.OpenTracer` implementation explicitly.
+
+#### Creating a root Span (i.e., without a known parent)
+
+    func xyz() {
+        ...
+        sp := opentracing.StartTrace("span_name")
+        defer sp.Finish()
+		sp.Info("called xyz")
+        ...
+    }
 
 #### Creating a Span given an existing Span
 
@@ -41,21 +52,12 @@ directly and manage ownership of the `opentracing.OpenTracer` explicitly.
 
 #### Creating a Span given an existing Golang `context.Context`
 
+Additionally, this example demonstrates how to get a `context.Context`
+associated with any `opentracing.Span` instance.
+
     func xyz(goCtx context.Context, ...) {
         ...
         sp, goCtx := opentracing.JoinTrace("span_name", goCtx).AddToGoContext(goCtx)
-        defer sp.Finish()
-		sp.Info("called xyz")
-        ...
-    }
-
-#### Creating a root Span (i.e., without a known parent)
-
-Just to show that it's not required, we don't call `AddToGoContext` this time.
-
-    func xyz() {
-        ...
-        sp := opentracing.StartTrace("span_name")
         defer sp.Finish()
 		sp.Info("called xyz")
         ...
@@ -70,7 +72,10 @@ Just to show that it's not required, we don't call `AddToGoContext` this time.
 
             // Transmit the span's TraceContext as an HTTP header on our
             // outbound request.
-            opentracing.AddTraceContextToHttpHeader(span.TraceContext(), httpReq.Header)
+            opentracing.AddTraceContextToHeader(
+                span.TraceContext(),
+                httpReq.Header,
+                opentracing.DefaultTracer())
 
             resp, err := httpClient.Do(httpReq)
             ...
@@ -83,17 +88,17 @@ Just to show that it's not required, we don't call `AddToGoContext` this time.
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
         // Grab the TraceContext from the HTTP header using the
         // opentracing helper.
-        reqTraceCtx, err := opentracing.GetTraceContextFromHttpHeader(
+        reqTraceCtx, err := opentracing.TraceContextFromHeader(
                 req.Header, opentracing.GlobalTracer())
         var serverSpan opentracing.Span
         var goCtx context.Context = ...
         if err != nil {
             // Just make a root span.
-            serverSpan, goCtx = opentracing.StartSpan("serverSpan").AddToGoContext(goCtx)
+            serverSpan, goCtx = opentracing.StartTrace("serverSpan").AddToGoContext(goCtx)
         } else {
             // Make a new server-side span that's a child of the span/context sent
             // over the wire.
-            serverSpan, goCtx = opentracing.StartSpan("serverSpan", reqTraceCtx).AddToGoContext(goCtx)
+            serverSpan, goCtx = opentracing.JoinTrace("serverSpan", reqTraceCtx).AddToGoContext(goCtx)
         }
         defer serverSpan.Finish()
         ...
@@ -101,14 +106,14 @@ Just to show that it's not required, we don't call `AddToGoContext` this time.
 
 ## API pointers for those implementing a tracing system
 
-There should be no need for tracing system implementors to worry about the
+There should be no need for most tracing system implementors to worry about the
 `opentracing.Span` or `opentracing.OpenTracer` interfaces directly:
 `opentracing.NewStandardTracer(...)` should work well enough for most clients.
 
 That said, tracing system authors must provide implementations of:
-- `opentracing.TraceContextID`
-- `opentracing.TraceContextIDSource`
-- `opentracing.ProcessRecorder`
+- `opentracing.TraceContext`
+- `opentracing.TraceContextSource`
+- `opentracing.Recorder`
 
 For a small working example, see `./dapperish/*.go`.
 

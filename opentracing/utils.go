@@ -17,7 +17,6 @@ func AddTraceContextToHeader(
 	marshaler TraceContextMarshaler,
 ) {
 	for headerSuffix, val := range marshaler.MarshalStringMapTraceContext(ctx) {
-		fmt.Println("BHS10", headerSuffix, val)
 		h.Add(OpenTracingContextHeaderPrefix+headerSuffix, val) // XXX escape val
 	}
 }
@@ -29,7 +28,6 @@ func TraceContextFromHeader(
 	marshaled := make(map[string]string)
 	for key, val := range h {
 		if strings.HasPrefix(key, OpenTracingContextHeaderPrefix) {
-			fmt.Println("BHS12", key, val[0])
 			// We don't know what to do with anything beyond slice item v[0]:
 			marshaled[strings.TrimPrefix(key, OpenTracingContextHeaderPrefix)] = val[0]
 		}
