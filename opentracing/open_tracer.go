@@ -3,7 +3,7 @@ package opentracing
 // A simple, thin interface for Span creation. Though other implementations are
 // possible and plausible, most users will be fine with `NewStandardTracer()`.
 type OpenTracer interface {
-	TraceContextIDSource
+	TraceContextSource
 
 	// Create, start, and return a new Span with the given `operationName`, all
 	// without specifying a parent Span that can be used to incorporate the

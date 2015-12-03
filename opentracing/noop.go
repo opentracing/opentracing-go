@@ -2,31 +2,36 @@ package opentracing
 
 import "golang.org/x/net/context"
 
-type noopTraceContextID struct{}
+type noopTraceContext struct{}
 type noopSpan struct{}
 type noopRecorder struct{}
-type noopTraceContextIDSource struct{}
+type noopTraceContextSource struct{}
 type noopOpenTracer struct {
-	noopTraceContextIDSource
+	noopTraceContextSource
 }
 
 var (
-	defaultNoopTraceContextID       = noopTraceContextID{}
-	defaultNoopSpan                 = noopSpan{}
-	defaultNoopRecorder             = noopRecorder{}
-	defaultNoopTraceContextIDSource = noopTraceContextIDSource{}
-	defaultNoopOpenTracer           = noopOpenTracer{}
-	defaultNoopTraceContext         = newTraceContext(defaultNoopTraceContextID, nil)
-	emptyTags                       = Tags{}
-	emptyBytes                      = []byte{}
-	emptyStringMap                  = map[string]string{}
+	defaultNoopTraceContext       = noopTraceContext{}
+	defaultNoopSpan               = noopSpan{}
+	defaultNoopRecorder           = noopRecorder{}
+	defaultNoopTraceContextSource = noopTraceContextSource{}
+	defaultNoopOpenTracer         = noopOpenTracer{}
+	emptyTags                     = Tags{}
+	emptyBytes                    = []byte{}
+	emptyStringMap                = map[string]string{}
 )
 
-// noopTraceContextID:
+const (
+	emptyString = ""
+)
 
-func (n noopTraceContextID) NewChild() (TraceContextID, Tags) {
-	return defaultNoopTraceContextID, emptyTags
+// noopTraceContext:
+
+func (n noopTraceContext) NewChild() (TraceContext, Tags) {
+	return defaultNoopTraceContext, emptyTags
 }
+func (n noopTraceContext) SetTraceTag(key, val string) TraceContext { return n }
+func (n noopTraceContext) TraceTag(key string) string               { return emptyString }
 
 // noopSpan:
 func (n noopSpan) StartChild(operationName string, keyValueTags ...interface{}) Span {
@@ -37,26 +42,26 @@ func (n noopSpan) Info(message string, payload ...interface{})    {}
 func (n noopSpan) Warning(message string, payload ...interface{}) {}
 func (n noopSpan) Error(message string, payload ...interface{})   {}
 func (n noopSpan) Finish()                                        {}
-func (n noopSpan) TraceContext() *TraceContext                    { return defaultNoopTraceContext }
+func (n noopSpan) TraceContext() TraceContext                     { return defaultNoopTraceContext }
 func (n noopSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
 	return n, GoContextWithSpan(ctx, n)
 }
 
-// noopTraceContextIDSource:
-func (n noopTraceContextIDSource) MarshalBinaryTraceContextID(tcid TraceContextID) []byte {
+// noopTraceContextSource:
+func (n noopTraceContextSource) MarshalBinaryTraceContext(tcid TraceContext) []byte {
 	return emptyBytes
 }
-func (n noopTraceContextIDSource) MarshalStringMapTraceContextID(tcid TraceContextID) map[string]string {
+func (n noopTraceContextSource) MarshalStringMapTraceContext(tcid TraceContext) map[string]string {
 	return emptyStringMap
 }
-func (n noopTraceContextIDSource) UnmarshalBinaryTraceContextID(encoded []byte) (TraceContextID, error) {
-	return defaultNoopTraceContextID, nil
+func (n noopTraceContextSource) UnmarshalBinaryTraceContext(encoded []byte) (TraceContext, error) {
+	return defaultNoopTraceContext, nil
 }
-func (n noopTraceContextIDSource) UnmarshalStringMapTraceContextID(encoded map[string]string) (TraceContextID, error) {
-	return defaultNoopTraceContextID, nil
+func (n noopTraceContextSource) UnmarshalStringMapTraceContext(encoded map[string]string) (TraceContext, error) {
+	return defaultNoopTraceContext, nil
 }
-func (n noopTraceContextIDSource) NewRootTraceContextID() TraceContextID {
-	return defaultNoopTraceContextID
+func (n noopTraceContextSource) NewRootTraceContext() TraceContext {
+	return defaultNoopTraceContext
 }
 
 // noopRecorder:

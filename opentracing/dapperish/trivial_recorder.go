@@ -30,7 +30,7 @@ func (t *TrivialRecorder) RecordSpan(span *opentracing.RawSpan) {
 	fmt.Printf(
 		"RecordSpan: %v[%v, %v us] --> %v logs. trace context: %v\n",
 		span.Operation, span.Start, span.Duration, len(span.Logs),
-		span.TraceContext.SerializeASCII())
+		span.TraceContext)
 	for i, l := range span.Logs {
 		fmt.Printf(
 			"    log %v: %v --> %v\n", i, l.Message, reflect.TypeOf(l.Payload))

@@ -33,7 +33,8 @@ func client() {
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
-		opentracing.AddTraceContextToHttpHeader(span.TraceContext(), httpReq.Header)
+		opentracing.AddTraceContextToHttpHeader(
+			span.TraceContext(), httpReq.Header, opentracing.Global())
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.Error("error: ", err)
@@ -63,7 +64,11 @@ func server() {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
-		fmt.Fprintf(w, "Hello: %v / %q", reqCtx.SerializeASCII(), html.EscapeString(req.URL.Path))
+		fmt.Fprintf(
+			w,
+			"Hello: %v / %q",
+			opentracing.Global().MarshalStringMapTraceContext(reqCtx),
+			html.EscapeString(req.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -72,7 +77,7 @@ func server() {
 func main() {
 	opentracing.InitGlobal(
 		NewTrivialRecorder("dapperish_tester"),
-		NewDapperishTraceContextIDSource())
+		NewDapperishTraceContextSource())
 
 	go server()
 	go client()

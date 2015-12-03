@@ -4,25 +4,37 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 )
 
 const (
-	OpenTracingContextHeader = "OpenTracing-Context"
+	OpenTracingContextHeaderPrefix = "Opentracing-Context-"
 )
 
-func AddTraceContextToHttpHeader(ctx *TraceContext, h http.Header) {
-	h.Add(OpenTracingContextHeader, ctx.SerializeASCII())
+func AddTraceContextToHttpHeader(
+	ctx TraceContext,
+	h http.Header,
+	marshaler TraceContextMarshaler,
+) {
+	for headerSuffix, val := range marshaler.MarshalStringMapTraceContext(ctx) {
+		fmt.Println("BHS10", headerSuffix, val)
+		h.Add(OpenTracingContextHeaderPrefix+headerSuffix, val) // XXX escape val
+	}
 }
 
 func GetTraceContextFromHttpHeader(
 	h http.Header,
-	ctxIDSource TraceContextIDSource,
-) (*TraceContext, error) {
-	headerStr := h.Get(OpenTracingContextHeader)
-	if len(headerStr) == 0 {
-		return nil, fmt.Errorf("%q header not found", OpenTracingContextHeader)
+	unmarshaler TraceContextUnmarshaler,
+) (TraceContext, error) {
+	marshaled := make(map[string]string)
+	for key, val := range h {
+		if strings.HasPrefix(key, OpenTracingContextHeaderPrefix) {
+			fmt.Println("BHS12", key, val[0])
+			// We don't know what to do with anything beyond slice item v[0]:
+			marshaled[strings.TrimPrefix(key, OpenTracingContextHeaderPrefix)] = val[0]
+		}
 	}
-	return DeserializeASCIITraceContext(ctxIDSource, headerStr)
+	return unmarshaler.UnmarshalStringMapTraceContext(marshaled)
 }
 
 func keyValueListToTags(keyValueTags []interface{}) Tags {

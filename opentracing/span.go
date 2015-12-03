@@ -39,7 +39,7 @@ type Span interface {
 	Finish()
 
 	// Suitable for serializing over the wire, etc.
-	TraceContext() *TraceContext
+	TraceContext() TraceContext
 
 	// A convenience method. Equivalent to
 	//

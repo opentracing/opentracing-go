@@ -5,7 +5,7 @@ import "time"
 type Tags map[string]interface{}
 
 type RawSpan struct {
-	*TraceContext
+	TraceContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span
 	// name" in some implementations)
