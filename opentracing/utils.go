@@ -11,7 +11,7 @@ const (
 	OpenTracingContextHeaderPrefix = "Opentracing-Context-"
 )
 
-func AddTraceContextToHttpHeader(
+func AddTraceContextToHeader(
 	ctx TraceContext,
 	h http.Header,
 	marshaler TraceContextMarshaler,
@@ -22,7 +22,7 @@ func AddTraceContextToHttpHeader(
 	}
 }
 
-func GetTraceContextFromHttpHeader(
+func TraceContextFromHeader(
 	h http.Header,
 	unmarshaler TraceContextUnmarshaler,
 ) (TraceContext, error) {
