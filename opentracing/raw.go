@@ -2,8 +2,13 @@ package opentracing
 
 import "time"
 
+// Tags is a generic map from an arbitrary string key to an opaque value type.
+//
+// TODO: decide on restrictions (if any) for the values: just strings and POD?
+// just simple maps and slices of same? arbitrary objects?
 type Tags map[string]interface{}
 
+// RawSpan encapsulates all state associated with a (finished) Span.
 type RawSpan struct {
 	TraceContext
 
@@ -24,6 +29,7 @@ type RawSpan struct {
 	Logs []*RawLog
 }
 
+// RawLog encapsolutes all state associated with a log element in a Span.
 type RawLog struct {
 	Timestamp time.Time
 
@@ -44,7 +50,8 @@ type RawLog struct {
 	Payload interface{}
 }
 
-// Incorporate the keys and values from `other` into this `Tags` instance.
+// Merge incorporates the keys and values from `other` into this `Tags`
+// instance, then returns same.
 func (t Tags) Merge(other Tags) Tags {
 	for k, v := range other {
 		t[k] = v

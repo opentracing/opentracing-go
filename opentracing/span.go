@@ -2,6 +2,9 @@ package opentracing
 
 import "golang.org/x/net/context"
 
+// Span represents an active, un-finished span in the opentracing system.
+//
+// Spans are created by the OpenTracer interface and Span.StartChild.
 type Span interface {
 	// Creates and starts a child span.
 	//
@@ -47,5 +50,8 @@ type Span interface {
 	//    var span Span = ...
 	//    goCtx := opentracing.GoContextWithSpan(ctx, span)
 	//
+	//
+	// NOTE: We use the term "GoContext" to minimize confusion with
+	// TraceContext.
 	AddToGoContext(goCtx context.Context) (Span, context.Context)
 }

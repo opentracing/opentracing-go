@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	seededIDGen  *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	seededIDGen  = rand.New(rand.NewSource(time.Now().UnixNano()))
 	seededIDLock sync.Mutex
 )
 
