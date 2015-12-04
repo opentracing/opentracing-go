@@ -78,8 +78,9 @@ func server() {
 
 func main() {
 	opentracing.InitDefaultTracer(
-		NewTrivialRecorder("dapperish_tester"),
-		NewDapperishTraceContextSource())
+		opentracing.NewStandardTracer(
+			NewTrivialRecorder("dapperish_tester"),
+			NewDapperishTraceContextSource()))
 
 	go server()
 	go client()

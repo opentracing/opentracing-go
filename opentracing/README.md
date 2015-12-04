@@ -30,7 +30,7 @@ If you prefer direct control to singletons, use
 `opentracing.NewStandardTracer(...)` directly and manage ownership of the
 `opentracing.OpenTracer` implementation explicitly.
 
-#### Creating a root Span (i.e., without a known parent)
+#### Starting an empty trace by creating a "root span"
 
     func xyz() {
         ...
