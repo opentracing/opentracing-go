@@ -11,11 +11,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Creates and returns a standard OpenTracer which defers to `rec` and
-// `ctxIDSource` as appropriate.
-func New(rec opentracing.Recorder, ctxIDSource opentracing.TraceContextSource) opentracing.OpenTracer {
+// New creates and returns a standard OpenTracer which defers to `rec` and
+// `source` as appropriate.
+func New(rec opentracing.Recorder, source opentracing.TraceContextSource) opentracing.OpenTracer {
 	return &standardOpenTracer{
-		TraceContextSource: ctxIDSource,
+		TraceContextSource: source,
 		recorder:           rec,
 	}
 }
@@ -126,14 +126,14 @@ func (s *standardOpenTracer) startSpanWithGoContextParent(
 			childCtx,
 			tags,
 		)
-	} else {
-		tags := keyValueListToTags(keyValueTags)
-		return s.startSpanGeneric(
-			operationName,
-			s.NewRootTraceContext(),
-			tags,
-		)
 	}
+
+	tags := keyValueListToTags(keyValueTags)
+	return s.startSpanGeneric(
+		operationName,
+		s.NewRootTraceContext(),
+		tags,
+	)
 }
 
 func (s *standardOpenTracer) startSpanWithTraceContextParent(
@@ -182,17 +182,17 @@ func keyValueListToTags(keyValueTags []interface{}) opentracing.Tags {
 	}
 	rval := make(opentracing.Tags, len(keyValueTags)/2)
 	var k string
-	for i, kOrV := range keyValueTags {
+	for i, keyOrVal := range keyValueTags {
 		if i%2 == 0 {
 			var ok bool
-			k, ok = kOrV.(string)
+			k, ok = keyOrVal.(string)
 			if !ok {
 				panic(fmt.Errorf(
 					"even-indexed keyValueTags (i.e., the keys) must be strings: got %v",
-					reflect.TypeOf(kOrV)))
+					reflect.TypeOf(keyOrVal)))
 			}
 		} else {
-			rval[k] = kOrV
+			rval[k] = keyOrVal
 		}
 	}
 	return rval

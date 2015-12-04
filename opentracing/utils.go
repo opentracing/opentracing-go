@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	OpenTracingContextHeaderPrefix = "Opentracing-Context-"
+	// OpenTracingContextHTTPHeaderPrefix precedes all opentracing-related HTTP
+	// headers.
+	OpenTracingContextHTTPHeaderPrefix = "Opentracing-Context-"
 )
 
 // AddTraceContextToHeader marshals TraceContext `ctx` to `h` as a series of
@@ -18,7 +20,7 @@ func AddTraceContextToHeader(
 	marshaler TraceContextMarshaler,
 ) {
 	for headerSuffix, val := range marshaler.MarshalTraceContextStringMap(ctx) {
-		h.Add(OpenTracingContextHeaderPrefix+headerSuffix, url.QueryEscape(val))
+		h.Add(OpenTracingContextHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 }
 
@@ -30,13 +32,13 @@ func TraceContextFromHeader(
 ) (TraceContext, error) {
 	marshaled := make(map[string]string)
 	for key, val := range h {
-		if strings.HasPrefix(key, OpenTracingContextHeaderPrefix) {
+		if strings.HasPrefix(key, OpenTracingContextHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:
 			unescaped, err := url.QueryUnescape(val[0])
 			if err != nil {
 				return nil, err
 			}
-			marshaled[strings.TrimPrefix(key, OpenTracingContextHeaderPrefix)] = unescaped
+			marshaled[strings.TrimPrefix(key, OpenTracingContextHTTPHeaderPrefix)] = unescaped
 		}
 	}
 	return unmarshaler.UnmarshalTraceContextStringMap(marshaled)

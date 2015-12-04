@@ -1,5 +1,8 @@
 package opentracing
 
+// ProcessIdentifier is a thin interface that guarantees all implementors
+// represent a ProcessName and accepts arbitrary process-level tag assignment
+// (e.g., build numbers, platforms, hostnames, etc).
 type ProcessIdentifier interface {
 	// Every process in the opentracing-instrumented distributed system must
 	// have a name.

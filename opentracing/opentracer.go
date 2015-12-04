@@ -1,7 +1,9 @@
 package opentracing
 
-// A simple, thin interface for Span creation. Though other implementations are
-// possible and plausible, most users will be fine with `NewStandardTracer()`.
+// OpenTracer is a simple, thin interface for Span creation.
+//
+// A straightforward implementation is available via the
+// `opentracing/standardtracer` package's `standardtracer.New()'.
 type OpenTracer interface {
 	TraceContextSource
 
