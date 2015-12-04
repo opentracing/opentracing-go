@@ -26,9 +26,9 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
 
 ##### Non-Singleton initialization
 
-If you prefer direct control to singletons, use
-`opentracing.NewStandardTracer(...)` directly and manage ownership of the
-`opentracing.OpenTracer` implementation explicitly.
+If you prefer direct control to singletons, use `standardtracer.New(...)`
+directly and manage ownership of the `opentracing.OpenTracer` implementation
+explicitly.
 
 #### Starting an empty trace by creating a "root span"
 
@@ -108,14 +108,14 @@ associated with any `opentracing.Span` instance.
 
 There should be no need for most tracing system implementors to worry about the
 `opentracing.Span` or `opentracing.OpenTracer` interfaces directly:
-`opentracing.NewStandardTracer(...)` should work well enough for most clients.
+`standardtracer.New(...)` should work well enough in most circumstances.
 
 That said, tracing system authors must provide implementations of:
 - `opentracing.TraceContext`
 - `opentracing.TraceContextSource`
 - `opentracing.Recorder`
 
-For a small working example, see `./dapperish/*.go`.
+For a small working example, see `../examples/dapperish/*.go`.
 
 ## TODO items
 

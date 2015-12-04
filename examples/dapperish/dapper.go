@@ -9,7 +9,14 @@ import (
 	"sync"
 
 	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
+
+func NewDapperishTracer(processName string) opentracing.OpenTracer {
+	return standardtracer.New(
+		NewTrivialRecorder(processName),
+		NewDapperishTraceContextSource())
+}
 
 // An implementation of opentracing.TraceContext.
 type DapperishTraceContext struct {
