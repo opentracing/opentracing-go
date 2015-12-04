@@ -7,11 +7,13 @@ import (
 	"github.com/opentracing/api-golang/opentracing"
 )
 
+// TrivialRecorder implements the opentracing.Recorder interface.
 type TrivialRecorder struct {
 	processName string
 	tags        map[string]string
 }
 
+// NewTrivialRecorder returns a TrivialRecorder for the given `processName`.
 func NewTrivialRecorder(processName string) *TrivialRecorder {
 	return &TrivialRecorder{
 		processName: processName,
@@ -19,13 +21,16 @@ func NewTrivialRecorder(processName string) *TrivialRecorder {
 	}
 }
 
+// ProcessName complies with the opentracing.ProcessIdentifier interface.
 func (t *TrivialRecorder) ProcessName() string { return t.processName }
 
+// SetTag complies with the opentracing.ProcessIdentifier interface.
 func (t *TrivialRecorder) SetTag(key string, val interface{}) opentracing.ProcessIdentifier {
 	t.tags[key] = fmt.Sprint(val)
 	return t
 }
 
+// RecordSpan complies with the opentracing.Recorder interface.
 func (t *TrivialRecorder) RecordSpan(span *opentracing.RawSpan) {
 	fmt.Printf(
 		"RecordSpan: %v[%v, %v us] --> %v logs. trace context: %v\n",
