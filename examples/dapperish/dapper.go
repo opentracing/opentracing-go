@@ -12,7 +12,7 @@ import (
 	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
 
-func NewDapperishTracer(processName string) opentracing.OpenTracer {
+func NewTracer(processName string) opentracing.OpenTracer {
 	return standardtracer.New(
 		NewTrivialRecorder(processName),
 		NewDapperishTraceContextSource())
