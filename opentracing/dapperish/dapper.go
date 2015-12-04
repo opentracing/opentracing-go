@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/opentracing/api-golang/opentracing"
@@ -20,10 +22,20 @@ type DapperishTraceContext struct {
 	// Whether the trace is sampled.
 	Sampled bool
 
-	// XXX: comment
+	// `tagLock` protects the `traceTags` map, which in turn supports
+	// `SetTraceTag` and `TraceTag`.
 	tagLock   sync.RWMutex
 	traceTags map[string]string
 }
+
+const (
+	// Note that these strings are designed to be unchanged by the conversion
+	// into standard HTTP headers (which messes with capitalization).
+	fieldNameTraceId   = "Traceid"
+	fieldNameSpanId    = "Spanid"
+	fieldNameSampled   = "Sampled"
+	fieldNameTagPrefix = "Tag-"
+)
 
 func (d *DapperishTraceContext) NewChild() (opentracing.TraceContext, opentracing.Tags) {
 	d.tagLock.RLock()
@@ -76,36 +88,64 @@ func (d *DapperishTraceContextSource) MarshalTraceContextStringMap(
 	ctx opentracing.TraceContext,
 ) map[string]string {
 	dctx := ctx.(*DapperishTraceContext)
-	return map[string]string{
-		// NOTE: silly capitalization can be blamed on silly HTTP Header
-		// conventions.
-		"Traceid": strconv.FormatInt(dctx.TraceID, 10),
-		"Spanid":  strconv.FormatInt(dctx.SpanID, 10),
-		"Sampled": strconv.FormatBool(dctx.Sampled),
+	rval := map[string]string{
+		fieldNameTraceId: strconv.FormatInt(dctx.TraceID, 10),
+		fieldNameSpanId:  strconv.FormatInt(dctx.SpanID, 10),
+		fieldNameSampled: strconv.FormatBool(dctx.Sampled),
 	}
+	dctx.tagLock.RLock()
+	for k, v := range dctx.traceTags {
+		rval[fieldNameTagPrefix+k] = v
+	}
+	dctx.tagLock.RUnlock()
+	return rval
 }
 
 func (d *DapperishTraceContextSource) UnmarshalTraceContextStringMap(
 	encoded map[string]string,
 ) (opentracing.TraceContext, error) {
-	traceID, err := strconv.ParseInt(encoded["Traceid"], 10, 64)
-	if err != nil {
-		return nil, err
+	traceTags := make(map[string]string)
+	requiredFieldCount := 0
+	var traceID, spanID int64
+	var sampled bool
+	var err error
+	for k, v := range encoded {
+		switch k {
+		case fieldNameTraceId:
+			traceID, err = strconv.ParseInt(encoded[fieldNameTraceId], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSpanId:
+			spanID, err = strconv.ParseInt(encoded[fieldNameSpanId], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSampled:
+			sampled, err = strconv.ParseBool(encoded[fieldNameSampled])
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		default:
+			if strings.HasPrefix(k, fieldNameTagPrefix) {
+				traceTags[strings.TrimPrefix(k, fieldNameTagPrefix)] = v
+			} else {
+				return nil, fmt.Errorf("Unknown string map field: %v", k)
+			}
+		}
 	}
-	spanID, err := strconv.ParseInt(encoded["Spanid"], 10, 64)
-	if err != nil {
-		return nil, err
+	if requiredFieldCount < 3 {
+		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
-	sampled, err := strconv.ParseBool(encoded["Sampled"])
-	if err != nil {
-		return nil, err
-	}
-	// XXX: support tags
+
 	return &DapperishTraceContext{
 		TraceID:   traceID,
 		SpanID:    spanID,
 		Sampled:   sampled,
-		traceTags: make(map[string]string),
+		traceTags: traceTags,
 	}, nil
 }
 
@@ -136,6 +176,7 @@ func (d *DapperishTraceContextSource) MarshalTraceContextBinary(ctx opentracing.
 func (d *DapperishTraceContextSource) UnmarshalTraceContextBinary(
 	encoded []byte,
 ) (opentracing.TraceContext, error) {
+	// XXX: support tags
 	var err error
 	reader := bytes.NewReader(encoded)
 	var traceID, spanID int64

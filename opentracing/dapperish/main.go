@@ -20,6 +20,8 @@ func client() {
 	for {
 		span := opentracing.StartTrace("getInput")
 		ctx := opentracing.BackgroundContextWithSpan(span)
+		// Make sure that global trace tag propagation works.
+		span.TraceContext().SetTraceTag("User", os.Getenv("USER"))
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
