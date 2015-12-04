@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
 
 func client() {
@@ -78,7 +79,7 @@ func server() {
 
 func main() {
 	opentracing.InitDefaultTracer(
-		opentracing.NewStandardTracer(
+		standardtracer.New(
 			NewTrivialRecorder("dapperish_tester"),
 			NewDapperishTraceContextSource()))
 
