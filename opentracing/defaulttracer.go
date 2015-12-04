@@ -7,8 +7,6 @@ var (
 // Should be called as early as possible in main(), prior to calling the
 // `StartSpan*` (etc) global funcs below. Prior to calling `InitDefaultTracer`,
 // any Spans started via the `StartSpan*` globals are noops.
-//
-// See `NewStandardTracer(...)` to create an `OpenTracer` instance.
 func InitDefaultTracer(tracer OpenTracer) {
 	defaultOpenTracer = tracer
 }
