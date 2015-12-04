@@ -18,7 +18,10 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span, ctx := opentracing.StartSpan("getInput")
+		span := opentracing.StartTrace("getInput")
+		ctx := opentracing.BackgroundContextWithSpan(span)
+		// Make sure that global trace tag propagation works.
+		span.TraceContext().SetTraceTag("User", os.Getenv("USER"))
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
@@ -32,7 +35,8 @@ func client() {
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
-		opentracing.AddContextIDToHttpHeader(span.ContextID(), httpReq.Header)
+		opentracing.AddTraceContextToHeader(
+			span.TraceContext(), httpReq.Header, opentracing.DefaultTracer())
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.Error("error: ", err)
@@ -46,30 +50,40 @@ func client() {
 
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		reqCtxID, err := opentracing.GetContextIDFromHttpHeader(
-			req.Header, opentracing.GlobalTracer())
+		reqCtx, err := opentracing.TraceContextFromHeader(
+			req.Header, opentracing.DefaultTracer())
 		if err != nil {
 			panic(err)
 		}
 
-		serverSpan, _ := opentracing.StartSpan("serverSpan", reqCtxID)
+		serverSpan := opentracing.JoinTrace(
+			"serverSpan", reqCtx,
+			"component", "server",
+		)
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
-		fmt.Fprintf(w, "Hello: %v / %q", reqCtxID.Serialize(), html.EscapeString(req.URL.Path))
+		fmt.Fprintf(
+			w,
+			"Hello: %v / %q",
+			opentracing.MarshalTraceContextStringMap(reqCtx),
+			html.EscapeString(req.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func main() {
-	opentracing.InitGlobalTracer(NewTrivialRecorder(), NewDapperishContextIDSource())
+	opentracing.InitDefaultTracer(
+		opentracing.NewStandardTracer(
+			NewTrivialRecorder("dapperish_tester"),
+			NewDapperishTraceContextSource()))
 
-	go client()
 	go server()
+	go client()
 
 	runtime.Goexit()
 }

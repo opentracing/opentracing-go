@@ -3,21 +3,17 @@ package opentracing
 import "golang.org/x/net/context"
 
 type Span interface {
-	// Creates a child span, optionally modifying a `context.Context` parent.
+	// Creates and starts a child span.
 	//
-	// `parent` is optional; if specified, it is used as the descendant for the
-	// returned `context.Context` object.
-	//
-	// Regardless of whether `parent` is specified, `StartChildSpan` returns a
-	// `Span` that descends directly from the callee. The returned
-	// `context.Context` instance derives from `parent` if.f. it was specified.
-	StartChildSpan(operationName string, parent ...context.Context) (Span, context.Context)
+	// For more information about `keyValueTags`, see the documentation for
+	// `OpenTracer.StartTrace()`.
+	StartChild(operationName string, keyValueTags ...interface{}) Span
 
 	// Adds a tag to the span. The `value` is immediately coerced into a string
 	// using fmt.Sprint().
 	//
 	// If there is a pre-existing tag set for `key`, it is overwritten.
-	SetTag(key string, value interface{})
+	SetTag(key string, value interface{}) Span
 
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//
@@ -32,60 +28,24 @@ type Span interface {
 	//       ]}
 	Info(message string, payload ...interface{})
 
-	// Like Info(), but for warnings.
-	Warning(message string, payload ...interface{})
-
 	// Like Info(), but for errors.
 	Error(message string, payload ...interface{})
 
-	// Sets the end timestamp and calls the `Recorder`s RecordSpan() internally.
+	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
+	// internally.
 	//
 	// Finish() should be the last call made to any span instance, and to do
 	// otherwise leads to undefined behavior.
 	Finish()
 
 	// Suitable for serializing over the wire, etc.
-	ContextID() ContextID
-}
+	TraceContext() TraceContext
 
-// A simple, thin interface for Span creation. Though other implementations are
-// possible and plausible, most users will be fine with `NewStandardTracer()`.
-type OpenTracer interface {
-	ContextIDSource
-
-	// Starts a new Span for `operationName`.
+	// A convenience method. Equivalent to
 	//
-	// If `parent` is a golang `context.Context`, the returned
-	// `context.Context` and `Span` are schematic children of that context and
-	// any `Span` found therein.
+	//    var goCtx context.Context = ...
+	//    var span Span = ...
+	//    goCtx := opentracing.GoContextWithSpan(ctx, span)
 	//
-	// If `parent` is an `opentracing.ContextID`, the returned
-	// `context.Context` descends from the `context.Background()` and the
-	// returned `Span` descends from the provided `opentracing.ContextID`.
-	//
-	// If `parent` is omitted, the returned `Span` is a "root" span: i.e., it
-	// has no known parent.
-	StartSpan(operationName string, parent ...interface{}) (Span, context.Context)
+	AddToGoContext(goCtx context.Context) (Span, context.Context)
 }
-
-////////////////////////////////////
-// begin context.Context boilerplate
-
-type goContextKey int
-
-const activeSpanKey goContextKey = iota
-
-func GoContextWithSpan(ctx context.Context, span Span) context.Context {
-	return context.WithValue(ctx, activeSpanKey, span)
-}
-
-func SpanFromGoContext(ctx context.Context) Span {
-	val := ctx.Value(activeSpanKey)
-	if span, ok := val.(Span); ok {
-		return span
-	}
-	return nil
-}
-
-// end context.Context boilerplate
-////////////////////////////////////

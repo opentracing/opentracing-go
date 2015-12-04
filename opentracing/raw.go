@@ -5,7 +5,7 @@ import "time"
 type Tags map[string]interface{}
 
 type RawSpan struct {
-	ContextID
+	TraceContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span
 	// name" in some implementations)
@@ -24,19 +24,11 @@ type RawSpan struct {
 	Logs []*RawLog
 }
 
-type Severity int
-
-const (
-	SeverityInfo Severity = iota
-	SeverityWarning
-	SeverityError
-)
-
 type RawLog struct {
 	Timestamp time.Time
 
-	// Info/Warning/Error.
-	Severity
+	// Self-explanatory :)
+	Error bool
 
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//
@@ -52,16 +44,10 @@ type RawLog struct {
 	Payload interface{}
 }
 
-type Recorder interface {
-	// Adds a tag to help identify or classify the recording process (e.g.,
-	// the platform, version/build number, host and/or container name, etc).
-	SetTag(key string, val interface{})
-
-	RecordSpan(span *RawSpan)
+// Incorporate the keys and values from `other` into this `Tags` instance.
+func (t Tags) Merge(other Tags) Tags {
+	for k, v := range other {
+		t[k] = v
+	}
+	return t
 }
-
-// NOTE: there should be something like a MultiplexingRecorder which itself
-// implements Recorder but trivially redirects all RecordSpan calls to
-// multiple "real" Recorder implementations.
-//
-//     type MultiplexingRecorder ... { ... }
