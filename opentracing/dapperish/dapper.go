@@ -72,7 +72,7 @@ func (d *DapperishTraceContext) TraceTag(key string) string {
 	return d.traceTags[key]
 }
 
-func (d *DapperishTraceContextSource) MarshalStringMapTraceContext(
+func (d *DapperishTraceContextSource) MarshalTraceContextStringMap(
 	ctx opentracing.TraceContext,
 ) map[string]string {
 	dctx := ctx.(*DapperishTraceContext)
@@ -85,7 +85,7 @@ func (d *DapperishTraceContextSource) MarshalStringMapTraceContext(
 	}
 }
 
-func (d *DapperishTraceContextSource) UnmarshalStringMapTraceContext(
+func (d *DapperishTraceContextSource) UnmarshalTraceContextStringMap(
 	encoded map[string]string,
 ) (opentracing.TraceContext, error) {
 	traceID, err := strconv.ParseInt(encoded["Traceid"], 10, 64)
@@ -109,7 +109,7 @@ func (d *DapperishTraceContextSource) UnmarshalStringMapTraceContext(
 	}, nil
 }
 
-func (d *DapperishTraceContextSource) MarshalBinaryTraceContext(ctx opentracing.TraceContext) []byte {
+func (d *DapperishTraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceContext) []byte {
 	dtc := ctx.(*DapperishTraceContext)
 	// XXX: support tags
 	var err error
@@ -133,7 +133,7 @@ func (d *DapperishTraceContextSource) MarshalBinaryTraceContext(ctx opentracing.
 	return buf.Bytes()
 }
 
-func (d *DapperishTraceContextSource) UnmarshalBinaryTraceContext(
+func (d *DapperishTraceContextSource) UnmarshalTraceContextBinary(
 	encoded []byte,
 ) (opentracing.TraceContext, error) {
 	var err error

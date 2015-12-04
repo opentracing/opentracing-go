@@ -48,16 +48,16 @@ func (n noopSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
 }
 
 // noopTraceContextSource:
-func (n noopTraceContextSource) MarshalBinaryTraceContext(tcid TraceContext) []byte {
+func (n noopTraceContextSource) MarshalTraceContextBinary(tcid TraceContext) []byte {
 	return emptyBytes
 }
-func (n noopTraceContextSource) MarshalStringMapTraceContext(tcid TraceContext) map[string]string {
+func (n noopTraceContextSource) MarshalTraceContextStringMap(tcid TraceContext) map[string]string {
 	return emptyStringMap
 }
-func (n noopTraceContextSource) UnmarshalBinaryTraceContext(encoded []byte) (TraceContext, error) {
+func (n noopTraceContextSource) UnmarshalTraceContextBinary(encoded []byte) (TraceContext, error) {
 	return defaultNoopTraceContext, nil
 }
-func (n noopTraceContextSource) UnmarshalStringMapTraceContext(encoded map[string]string) (TraceContext, error) {
+func (n noopTraceContextSource) UnmarshalTraceContextStringMap(encoded map[string]string) (TraceContext, error) {
 	return defaultNoopTraceContext, nil
 }
 func (n noopTraceContextSource) NewRootTraceContext() TraceContext {

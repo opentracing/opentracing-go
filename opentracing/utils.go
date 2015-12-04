@@ -19,7 +19,7 @@ func AddTraceContextToHeader(
 	h http.Header,
 	marshaler TraceContextMarshaler,
 ) {
-	for headerSuffix, val := range marshaler.MarshalStringMapTraceContext(ctx) {
+	for headerSuffix, val := range marshaler.MarshalTraceContextStringMap(ctx) {
 		h.Add(OpenTracingContextHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 }
@@ -41,7 +41,7 @@ func TraceContextFromHeader(
 			marshaled[strings.TrimPrefix(key, OpenTracingContextHeaderPrefix)] = unescaped
 		}
 	}
-	return unmarshaler.UnmarshalStringMapTraceContext(marshaled)
+	return unmarshaler.UnmarshalTraceContextStringMap(marshaled)
 }
 
 func keyValueListToTags(keyValueTags []interface{}) Tags {
