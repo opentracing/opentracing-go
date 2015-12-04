@@ -8,8 +8,8 @@ For background:
 
 Everyday consumers of this `opentracing` package really only need to worry
 about a couple of key abstractions: the `StartSpan` function, the `Span`
-interface, and binding a `ProcessRuntime` at `main()`-time. Here are code
-snippets demonstrating some important use cases.
+interface, and binding a `Recorder` at `main()`-time. Here are code snippets
+demonstrating some important use cases.
 
 #### Singleton initialization
 
@@ -24,7 +24,7 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
         ...
     }
 
-##### Note: the singletons are optional
+##### Non-Singleton initialization
 
 If you prefer direct control to singletons, use
 `opentracing.NewStandardTracer(...)` directly and manage ownership of the

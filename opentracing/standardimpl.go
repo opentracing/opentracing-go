@@ -10,10 +10,10 @@ import (
 )
 
 // Creates and returns a standard OpenTracer which defers to `rec` and
-// `ctxIdSource` as appropriate.
-func NewStandardTracer(rec Recorder, ctxIdSource TraceContextSource) OpenTracer {
+// `ctxIDSource` as appropriate.
+func NewStandardTracer(rec Recorder, ctxIDSource TraceContextSource) OpenTracer {
 	return &standardOpenTracer{
-		TraceContextSource: ctxIdSource,
+		TraceContextSource: ctxIDSource,
 		recorder:           rec,
 	}
 }
