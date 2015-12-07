@@ -39,10 +39,9 @@ type DapperishTraceContext struct {
 const (
 	// Note that these strings are designed to be unchanged by the conversion
 	// into standard HTTP headers (which messes with capitalization).
-	fieldNameTraceID   = "Traceid"
-	fieldNameSpanID    = "Spanid"
-	fieldNameSampled   = "Sampled"
-	fieldNameTagPrefix = "Tag-"
+	fieldNameTraceID = "Traceid"
+	fieldNameSpanID  = "Spanid"
+	fieldNameSampled = "Sampled"
 )
 
 // NewChild complies with the opentracing.TraceContext interface.
@@ -63,20 +62,20 @@ func (d *DapperishTraceContext) NewChild() (opentracing.TraceContext, opentracin
 }
 
 // SetTraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) SetTraceTag(key, val string) opentracing.TraceContext {
+func (d *DapperishTraceContext) SetTraceTag(caseInsensitiveKey, val string) opentracing.TraceContext {
 	d.tagLock.Lock()
 	defer d.tagLock.Unlock()
 
-	d.traceTags[key] = val
+	d.traceTags[strings.ToLower(caseInsensitiveKey)] = val
 	return d
 }
 
 // TraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) TraceTag(key string) string {
+func (d *DapperishTraceContext) TraceTag(caseInsensitiveKey string) string {
 	d.tagLock.RLock()
 	defer d.tagLock.RUnlock()
 
-	return d.traceTags[key]
+	return d.traceTags[strings.ToLower(caseInsensitiveKey)]
 }
 
 // DapperishTraceContextSource is an implementation of
@@ -103,76 +102,77 @@ func (d *DapperishTraceContextSource) NewRootTraceContext() opentracing.TraceCon
 // opentracing.TraceContextSource interface.
 func (d *DapperishTraceContextSource) MarshalTraceContextStringMap(
 	ctx opentracing.TraceContext,
-) map[string]string {
+) (contextIDMap map[string]string, tagsMap map[string]string) {
 	dctx := ctx.(*DapperishTraceContext)
-	rval := map[string]string{
+	contextIDMap = map[string]string{
 		fieldNameTraceID: strconv.FormatInt(dctx.TraceID, 10),
 		fieldNameSpanID:  strconv.FormatInt(dctx.SpanID, 10),
 		fieldNameSampled: strconv.FormatBool(dctx.Sampled),
 	}
 	dctx.tagLock.RLock()
+	tagsMap = make(map[string]string, len(dctx.traceTags))
 	for k, v := range dctx.traceTags {
-		rval[fieldNameTagPrefix+k] = v
+		tagsMap[k] = v
 	}
 	dctx.tagLock.RUnlock()
-	return rval
+	return contextIDMap, tagsMap
 }
 
 // UnmarshalTraceContextStringMap complies with the
 // opentracing.TraceContextSource interface.
 func (d *DapperishTraceContextSource) UnmarshalTraceContextStringMap(
-	encoded map[string]string,
+	contextIDMap map[string]string,
+	tagsMap map[string]string,
 ) (opentracing.TraceContext, error) {
-	traceTags := make(map[string]string)
 	requiredFieldCount := 0
 	var traceID, spanID int64
 	var sampled bool
 	var err error
-	for k, v := range encoded {
+	for k, v := range contextIDMap {
 		switch k {
 		case fieldNameTraceID:
-			traceID, err = strconv.ParseInt(encoded[fieldNameTraceID], 10, 64)
+			traceID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return nil, err
 			}
 			requiredFieldCount++
 		case fieldNameSpanID:
-			spanID, err = strconv.ParseInt(encoded[fieldNameSpanID], 10, 64)
+			spanID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return nil, err
 			}
 			requiredFieldCount++
 		case fieldNameSampled:
-			sampled, err = strconv.ParseBool(encoded[fieldNameSampled])
+			sampled, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, err
 			}
 			requiredFieldCount++
 		default:
-			if strings.HasPrefix(k, fieldNameTagPrefix) {
-				traceTags[strings.TrimPrefix(k, fieldNameTagPrefix)] = v
-			} else {
-				return nil, fmt.Errorf("Unknown string map field: %v", k)
-			}
+			return nil, fmt.Errorf("Unknown contextIDMap field: %v", k)
 		}
 	}
 	if requiredFieldCount < 3 {
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
+	lowercaseTagsMap := make(map[string]string, len(tagsMap))
+	for k, v := range tagsMap {
+		lowercaseTagsMap[strings.ToLower(k)] = v
+	}
+
 	return &DapperishTraceContext{
 		TraceID:   traceID,
 		SpanID:    spanID,
 		Sampled:   sampled,
-		traceTags: traceTags,
+		traceTags: lowercaseTagsMap,
 	}, nil
 }
 
 // MarshalTraceContextBinary complies with the opentracing.TraceContextSource
 // interface.
-func (d *DapperishTraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceContext) []byte {
+func (d *DapperishTraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceContext) (contextID []byte, traceTags []byte) {
 	dtc := ctx.(*DapperishTraceContext)
-	// XXX: support tags
 	var err error
 	buf := new(bytes.Buffer)
 	err = binary.Write(buf, binary.BigEndian, dtc.TraceID)
@@ -191,17 +191,18 @@ func (d *DapperishTraceContextSource) MarshalTraceContextBinary(ctx opentracing.
 	if err != nil {
 		panic(err)
 	}
-	return buf.Bytes()
+	// XXX: support tags
+	return buf.Bytes(), []byte{}
 }
 
 // UnmarshalTraceContextBinary complies with the opentracing.TraceContextSource
 // interface.
 func (d *DapperishTraceContextSource) UnmarshalTraceContextBinary(
-	encoded []byte,
+	contextID []byte,
+	traceTags []byte,
 ) (opentracing.TraceContext, error) {
-	// XXX: support tags
 	var err error
-	reader := bytes.NewReader(encoded)
+	reader := bytes.NewReader(contextID)
 	var traceID, spanID int64
 	var sampledByte byte
 
@@ -217,6 +218,7 @@ func (d *DapperishTraceContextSource) UnmarshalTraceContextBinary(
 	if err != nil {
 		return nil, err
 	}
+	// XXX: support tags
 	return &DapperishTraceContext{
 		TraceID:   traceID,
 		SpanID:    spanID,
