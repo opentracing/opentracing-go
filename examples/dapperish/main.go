@@ -19,7 +19,7 @@ func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		span := opentracing.StartTrace("getInput")
-		ctx := opentracing.BackgroundContextWithSpan(span)
+		ctx := opentracing.BackgroundGoContextWithSpan(span)
 		// Make sure that global trace tag propagation works.
 		span.TraceContext().SetTraceTag("User", os.Getenv("USER"))
 		span.Info("ctx: ", ctx)
@@ -66,10 +66,12 @@ func server() {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
+		contextIDMap, tagsMap := opentracing.MarshalTraceContextStringMap(reqCtx)
 		fmt.Fprintf(
 			w,
-			"Hello: %v / %q",
-			opentracing.MarshalTraceContextStringMap(reqCtx),
+			"Hello: %v // %v //  %q",
+			contextIDMap,
+			tagsMap,
 			html.EscapeString(req.URL.Path))
 	})
 

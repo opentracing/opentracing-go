@@ -52,10 +52,33 @@ type TraceContext interface {
 type TraceContextMarshaler interface {
 	// Converts the TraceContext into marshaled binary data (see
 	// TraceContextUnmarshaler.UnmarshalTraceContextBinary()).
-	MarshalTraceContextBinary(tcid TraceContext) []byte
+	//
+	// The first return value must represent the marshaler's serialization of
+	// the core identifying information in `tcid`.
+	//
+	// The second return value must represent the marshaler's serialization of
+	// the trace tags, per `SetTraceTag` and `TraceTag`.
+	MarshalTraceContextBinary(
+		tcid TraceContext,
+	) (
+		traceContextID []byte,
+		traceTags []byte,
+	)
+
 	// Converts the TraceContext into a marshaled string:string map (see
 	// TraceContextUnmarshaler.UnmarshalTraceContextStringMap()).
-	MarshalTraceContextStringMap(tcid TraceContext) map[string]string
+	//
+	// The first return value must represent the marshaler's serialization of
+	// the core identifying information in `tcid`.
+	//
+	// The second return value must represent the marshaler's serialization of
+	// the trace tags, per `SetTraceTag` and `TraceTag`.
+	MarshalTraceContextStringMap(
+		tcid TraceContext,
+	) (
+		traceContextID map[string]string,
+		traceTags map[string]string,
+	)
 }
 
 // TraceContextUnmarshaler is a simple interface to unmarshal a binary byte
@@ -63,10 +86,31 @@ type TraceContextMarshaler interface {
 type TraceContextUnmarshaler interface {
 	// Converts the marshaled binary data (see
 	// TraceContextMarshaler.MarshalTraceContextBinary()) into a TraceContext.
-	UnmarshalTraceContextBinary(marshaled []byte) (TraceContext, error)
+	//
+	// The first parameter contains the marshaler's serialization of the core
+	// identifying information in a TraceContext instance.
+	//
+	// The first parameter contains the marshaler's serialization of the trace
+	// tags (per `SetTraceTag` and `TraceTag`) attached to a TraceContext
+	// instance.
+	UnmarshalTraceContextBinary(
+		traceContextID []byte,
+		traceTags []byte,
+	) (TraceContext, error)
+
 	// Converts the marshaled string:string map (see
 	// TraceContextMarshaler.MarshalTraceContextStringMap()) into a TraceContext.
-	UnmarshalTraceContextStringMap(marshaled map[string]string) (TraceContext, error)
+	//
+	// The first parameter contains the marshaler's serialization of the core
+	// identifying information in a TraceContext instance.
+	//
+	// The first parameter contains the marshaler's serialization of the trace
+	// tags (per `SetTraceTag` and `TraceTag`) attached to a TraceContext
+	// instance.
+	UnmarshalTraceContextStringMap(
+		traceContextID map[string]string,
+		traceTags map[string]string,
+	) (TraceContext, error)
 }
 
 // TraceContextSource is a long-lived interface that knows how to create a root

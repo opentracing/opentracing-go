@@ -35,7 +35,7 @@ func JoinTrace(operationName string, parent interface{}, keyValueTags ...interfa
 // `TraceContextMarshaler.MarshalTraceContextBinary`.
 //
 // See `DefaultTracer()`.
-func MarshalTraceContextBinary(ctx TraceContext) []byte {
+func MarshalTraceContextBinary(ctx TraceContext) ([]byte, []byte) {
 	return defaultOpenTracer.MarshalTraceContextBinary(ctx)
 }
 
@@ -43,7 +43,7 @@ func MarshalTraceContextBinary(ctx TraceContext) []byte {
 // `TraceContextMarshaler.MarshalTraceContextStringMap`.
 //
 // See `DefaultTracer()`.
-func MarshalTraceContextStringMap(ctx TraceContext) map[string]string {
+func MarshalTraceContextStringMap(ctx TraceContext) (map[string]string, map[string]string) {
 	return defaultOpenTracer.MarshalTraceContextStringMap(ctx)
 }
 
@@ -51,14 +51,14 @@ func MarshalTraceContextStringMap(ctx TraceContext) map[string]string {
 // `TraceContextUnmarshaler.UnmarshalTraceContextBinary`.
 //
 // See `DefaultTracer()`.
-func UnmarshalTraceContextBinary(encoded []byte) (TraceContext, error) {
-	return defaultOpenTracer.UnmarshalTraceContextBinary(encoded)
+func UnmarshalTraceContextBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
+	return defaultOpenTracer.UnmarshalTraceContextBinary(traceContextID, traceTags)
 }
 
 // UnmarshalTraceContextStringMap defers to
 // `TraceContextUnmarshaler.UnmarshaTraceContextStringMap`.
 //
 // See `DefaultTracer()`.
-func UnmarshalTraceContextStringMap(encoded map[string]string) (TraceContext, error) {
-	return defaultOpenTracer.UnmarshalTraceContextStringMap(encoded)
+func UnmarshalTraceContextStringMap(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
+	return defaultOpenTracer.UnmarshalTraceContextStringMap(traceContextID, traceTags)
 }

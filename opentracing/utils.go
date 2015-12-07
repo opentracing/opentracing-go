@@ -7,9 +7,12 @@ import (
 )
 
 const (
-	// OpenTracingContextHTTPHeaderPrefix precedes all opentracing-related HTTP
-	// headers.
-	OpenTracingContextHTTPHeaderPrefix = "Opentracing-Context-"
+	// OpenTracingContextIDHTTPHeaderPrefix precedes the opentracing-related
+	// ContextID HTTP headers.
+	OpenTracingContextIDHTTPHeaderPrefix = "Open-Tracing-Context-Id-"
+	// OpenTracingTagsHTTPHeaderPrefix precedes the opentracing-related
+	// trace-tags HTTP headers.
+	OpenTracingTagsHTTPHeaderPrefix = "Open-Tracing-Trace-Tags-"
 )
 
 // AddTraceContextToHeader marshals TraceContext `ctx` to `h` as a series of
@@ -19,8 +22,12 @@ func AddTraceContextToHeader(
 	h http.Header,
 	marshaler TraceContextMarshaler,
 ) {
-	for headerSuffix, val := range marshaler.MarshalTraceContextStringMap(ctx) {
-		h.Add(OpenTracingContextHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
+	contextIDMap, tagsMap := marshaler.MarshalTraceContextStringMap(ctx)
+	for headerSuffix, val := range contextIDMap {
+		h.Add(OpenTracingContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
+	}
+	for headerSuffix, val := range tagsMap {
+		h.Add(OpenTracingTagsHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 }
 
@@ -30,16 +37,25 @@ func TraceContextFromHeader(
 	h http.Header,
 	unmarshaler TraceContextUnmarshaler,
 ) (TraceContext, error) {
-	marshaled := make(map[string]string)
+	contextIDMap := make(map[string]string)
+	tagsMap := make(map[string]string)
 	for key, val := range h {
-		if strings.HasPrefix(key, OpenTracingContextHTTPHeaderPrefix) {
+		if strings.HasPrefix(key, OpenTracingContextIDHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:
 			unescaped, err := url.QueryUnescape(val[0])
 			if err != nil {
 				return nil, err
 			}
-			marshaled[strings.TrimPrefix(key, OpenTracingContextHTTPHeaderPrefix)] = unescaped
+			contextIDMap[strings.TrimPrefix(key, OpenTracingContextIDHTTPHeaderPrefix)] = unescaped
+		} else if strings.HasPrefix(key, OpenTracingTagsHTTPHeaderPrefix) {
+			// We don't know what to do with anything beyond slice item v[0]:
+			unescaped, err := url.QueryUnescape(val[0])
+			if err != nil {
+				return nil, err
+			}
+			tagsMap[strings.TrimPrefix(key, OpenTracingTagsHTTPHeaderPrefix)] = unescaped
 		}
+
 	}
-	return unmarshaler.UnmarshalTraceContextStringMap(marshaled)
+	return unmarshaler.UnmarshalTraceContextStringMap(contextIDMap, tagsMap)
 }
