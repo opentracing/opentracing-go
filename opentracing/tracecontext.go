@@ -94,7 +94,7 @@ type TraceContextUnmarshaler interface {
 	// The first parameter contains the marshaler's serialization of the core
 	// identifying information in a TraceContext instance.
 	//
-	// The first parameter contains the marshaler's serialization of the trace
+	// The second parameter contains the marshaler's serialization of the trace
 	// tags (per `SetTraceTag` and `TraceTag`) attached to a TraceContext
 	// instance.
 	UnmarshalTraceContextBinary(
@@ -108,9 +108,13 @@ type TraceContextUnmarshaler interface {
 	// The first parameter contains the marshaler's serialization of the core
 	// identifying information in a TraceContext instance.
 	//
-	// The first parameter contains the marshaler's serialization of the trace
+	// The second parameter contains the marshaler's serialization of the trace
 	// tags (per `SetTraceTag` and `TraceTag`) attached to a TraceContext
 	// instance.
+	//
+	// It's permissable to pass the same map to both parameters (e.g., an HTTP
+	// request headers map): the implementation should only unmarshal the
+	// subset its interested in.
 	UnmarshalTraceContextStringMap(
 		traceContextID map[string]string,
 		traceTags map[string]string,
