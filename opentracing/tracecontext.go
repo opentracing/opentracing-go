@@ -39,12 +39,16 @@ type TraceContext interface {
 	// TraceContext, and that can add up to a lot of network and cpu
 	// overhead.
 	//
+	// IMPORTANT NOTE #3: Trace tags are case-insensitive: implementations may
+	// wish to use them as HTTP header keys (or key suffixes), and of course
+	// HTTP headers are case insensitive.
+	//
 	// Returns a reference to this TraceContext for chaining, etc.
-	SetTraceTag(key, value string) TraceContext
+	SetTraceTag(caseInsensitiveKey, value string) TraceContext
 
 	// Gets the value for a trace tag given its key. Returns the empty string
 	// if the value isn't found in this TraceContext.
-	TraceTag(key string) string
+	TraceTag(caseInsensitiveKey string) string
 }
 
 // TraceContextMarshaler is a simple interface to marshal a TraceContext to a

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/opentracing/api-golang/opentracing"
@@ -61,20 +62,20 @@ func (d *DapperishTraceContext) NewChild() (opentracing.TraceContext, opentracin
 }
 
 // SetTraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) SetTraceTag(key, val string) opentracing.TraceContext {
+func (d *DapperishTraceContext) SetTraceTag(caseInsensitiveKey, val string) opentracing.TraceContext {
 	d.tagLock.Lock()
 	defer d.tagLock.Unlock()
 
-	d.traceTags[key] = val
+	d.traceTags[strings.ToLower(caseInsensitiveKey)] = val
 	return d
 }
 
 // TraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) TraceTag(key string) string {
+func (d *DapperishTraceContext) TraceTag(caseInsensitiveKey string) string {
 	d.tagLock.RLock()
 	defer d.tagLock.RUnlock()
 
-	return d.traceTags[key]
+	return d.traceTags[strings.ToLower(caseInsensitiveKey)]
 }
 
 // DapperishTraceContextSource is an implementation of
@@ -155,11 +156,16 @@ func (d *DapperishTraceContextSource) UnmarshalTraceContextStringMap(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
+	lowercaseTagsMap := make(map[string]string, len(tagsMap))
+	for k, v := range tagsMap {
+		lowercaseTagsMap[strings.ToLower(k)] = v
+	}
+
 	return &DapperishTraceContext{
 		TraceID:   traceID,
 		SpanID:    spanID,
 		Sampled:   sampled,
-		traceTags: tagsMap,
+		traceTags: lowercaseTagsMap,
 	}, nil
 }
 
