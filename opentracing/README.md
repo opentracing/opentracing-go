@@ -1,4 +1,4 @@
-# DCP RFC
+# `opentracing` RFC
 
 For background:
 - [Main DCP doc](https://paper.dropbox.com/doc/Distributed-Context-Propagation-RGvlvD1NFKYmrJG9vGCES)
