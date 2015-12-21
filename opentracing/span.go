@@ -7,16 +7,17 @@ import "golang.org/x/net/context"
 // Spans are created by the OpenTracer interface and Span.StartChild.
 type Span interface {
 	// Creates and starts a child span.
-	//
-	// For more information about `keyValueTags`, see the documentation for
-	// `OpenTracer.StartTrace()`.
-	StartChild(operationName string, keyValueTags ...interface{}) Span
+	StartChild(operationName string) Span
 
 	// Adds a tag to the span. The `value` is immediately coerced into a string
 	// using fmt.Sprint().
 	//
 	// If there is a pre-existing tag set for `key`, it is overwritten.
 	SetTag(key string, value interface{}) Span
+
+	// SetTags adds multiple tags to this Span instance. Equivalent to calling
+	// SetTag separately for each key:value pair.
+	SetTags(tags Tags) Span
 
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//

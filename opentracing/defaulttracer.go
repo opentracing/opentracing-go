@@ -22,13 +22,13 @@ func DefaultTracer() OpenTracer {
 }
 
 // StartTrace defers to `OpenTracer.StartTrace`. See `DefaultTracer()`.
-func StartTrace(operationName string, keyValueTags ...interface{}) Span {
-	return defaultOpenTracer.StartTrace(operationName, keyValueTags...)
+func StartTrace(operationName string) Span {
+	return defaultOpenTracer.StartTrace(operationName)
 }
 
 // JoinTrace defers to `OpenTracer.JoinTrace`. See `DefaultTracer()`.
-func JoinTrace(operationName string, parent interface{}, keyValueTags ...interface{}) Span {
-	return defaultOpenTracer.JoinTrace(operationName, parent, keyValueTags...)
+func JoinTrace(operationName string, parent interface{}) Span {
+	return defaultOpenTracer.JoinTrace(operationName, parent)
 }
 
 // MarshalTraceContextBinary defers to

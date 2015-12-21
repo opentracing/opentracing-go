@@ -34,10 +34,11 @@ func (n noopTraceContext) SetTraceTag(key, val string) TraceContext { return n }
 func (n noopTraceContext) TraceTag(key string) string               { return emptyString }
 
 // noopSpan:
-func (n noopSpan) StartChild(operationName string, keyValueTags ...interface{}) Span {
+func (n noopSpan) StartChild(operationName string) Span {
 	return defaultNoopSpan
 }
 func (n noopSpan) SetTag(key string, value interface{}) Span      { return n }
+func (n noopSpan) SetTags(tags Tags) Span                         { return n }
 func (n noopSpan) Info(message string, payload ...interface{})    {}
 func (n noopSpan) Warning(message string, payload ...interface{}) {}
 func (n noopSpan) Error(message string, payload ...interface{})   {}
@@ -76,10 +77,10 @@ func (n noopRecorder) RecordSpan(span *RawSpan)                             {}
 func (n noopRecorder) ProcessName() string                                  { return "" }
 
 // noopOpenTracer:
-func (n noopOpenTracer) StartTrace(operationName string, keyValueTags ...interface{}) Span {
+func (n noopOpenTracer) StartTrace(operationName string) Span {
 	return defaultNoopSpan
 }
 
-func (n noopOpenTracer) JoinTrace(operationName string, parent interface{}, keyValueTags ...interface{}) Span {
+func (n noopOpenTracer) JoinTrace(operationName string, parent interface{}) Span {
 	return defaultNoopSpan
 }
