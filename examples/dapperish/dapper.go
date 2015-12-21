@@ -62,20 +62,30 @@ func (d *DapperishTraceContext) NewChild() (opentracing.TraceContext, opentracin
 }
 
 // SetTraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) SetTraceTag(caseInsensitiveKey, val string) opentracing.TraceContext {
+func (d *DapperishTraceContext) SetTraceTag(restrictedKey, val string) opentracing.TraceContext {
+	canonicalKey, valid := opentracing.CanonicalizeTraceTagKey(restrictedKey)
+	if !valid {
+		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
+	}
+
 	d.tagLock.Lock()
 	defer d.tagLock.Unlock()
 
-	d.traceTags[strings.ToLower(caseInsensitiveKey)] = val
+	d.traceTags[canonicalKey] = val
 	return d
 }
 
 // TraceTag complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) TraceTag(caseInsensitiveKey string) string {
+func (d *DapperishTraceContext) TraceTag(restrictedKey string) string {
+	canonicalKey, valid := opentracing.CanonicalizeTraceTagKey(restrictedKey)
+	if !valid {
+		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
+	}
+
 	d.tagLock.RLock()
 	defer d.tagLock.RUnlock()
 
-	return d.traceTags[strings.ToLower(caseInsensitiveKey)]
+	return d.traceTags[canonicalKey]
 }
 
 // DapperishTraceContextSource is an implementation of

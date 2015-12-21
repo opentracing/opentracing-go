@@ -1,5 +1,10 @@
 package opentracing
 
+import (
+	"regexp"
+	"strings"
+)
+
 // TraceContext encpasulates the smallest amount of state needed to describe a
 // Span's identity within a larger [potentially distributed] trace. The
 // TraceContext is not intended to encode the span's operation name, timing,
@@ -43,11 +48,18 @@ type TraceContext interface {
 	// wish to use them as HTTP header keys (or key suffixes), and of course
 	// HTTP headers are case insensitive.
 	//
+	// `restrictedKey` MUST match the regular expression
+	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. See
+	// CanonicalizeTraceTagKey().
+	//
 	// Returns a reference to this TraceContext for chaining, etc.
 	SetTraceTag(caseInsensitiveKey, value string) TraceContext
 
 	// Gets the value for a trace tag given its key. Returns the empty string
 	// if the value isn't found in this TraceContext.
+	//
+	// `restrictedKey` MUST match the regular expression
+	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive.
 	TraceTag(caseInsensitiveKey string) string
 }
 
@@ -58,12 +70,12 @@ type TraceContextMarshaler interface {
 	// TraceContextUnmarshaler.UnmarshalTraceContextBinary()).
 	//
 	// The first return value must represent the marshaler's serialization of
-	// the core identifying information in `tcid`.
+	// the core identifying information in `tc`.
 	//
 	// The second return value must represent the marshaler's serialization of
 	// the trace tags, per `SetTraceTag` and `TraceTag`.
 	MarshalTraceContextBinary(
-		tcid TraceContext,
+		tc TraceContext,
 	) (
 		traceContextID []byte,
 		traceTags []byte,
@@ -73,12 +85,12 @@ type TraceContextMarshaler interface {
 	// TraceContextUnmarshaler.UnmarshalTraceContextStringMap()).
 	//
 	// The first return value must represent the marshaler's serialization of
-	// the core identifying information in `tcid`.
+	// the core identifying information in `tc`.
 	//
 	// The second return value must represent the marshaler's serialization of
 	// the trace tags, per `SetTraceTag` and `TraceTag`.
 	MarshalTraceContextStringMap(
-		tcid TraceContext,
+		tc TraceContext,
 	) (
 		traceContextID map[string]string,
 		traceTags map[string]string,
@@ -131,4 +143,15 @@ type TraceContextSource interface {
 	// A TraceContextSource must always return the same type in successive calls
 	// to NewRootTraceContext().
 	NewRootTraceContext() TraceContext
+}
+
+var kTraceTagRegexp = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
+
+// Returns the canonicalized version of trace tag key `key`, and true if and
+// only if the key was valid.
+func CanonicalizeTraceTagKey(key string) (string, bool) {
+	if !kTraceTagRegexp.MatchString(key) {
+		return "", false
+	}
+	return strings.ToLower(key), true
 }
