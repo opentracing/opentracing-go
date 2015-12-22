@@ -49,18 +49,20 @@ type TraceContext interface {
 	// HTTP headers are case insensitive.
 	//
 	// `restrictedKey` MUST match the regular expression
-	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. See
-	// CanonicalizeTraceTagKey().
+	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
+	// start with a letter or number, and the remaining characters must be
+	// letters, numbers, or hyphens. See CanonicalizeTraceTagKey(). If
+	// `restrictedKey` does not meet these criteria, SetTraceTag() results in
+	// undefined behavior.
 	//
 	// Returns a reference to this TraceContext for chaining, etc.
-	SetTraceTag(caseInsensitiveKey, value string) TraceContext
+	SetTraceTag(restrictedKey, value string) TraceContext
 
 	// Gets the value for a trace tag given its key. Returns the empty string
 	// if the value isn't found in this TraceContext.
 	//
-	// `restrictedKey` MUST match the regular expression
-	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive.
-	TraceTag(caseInsensitiveKey string) string
+	// See the `SetTraceTag` notes about `restrictedKey`.
+	TraceTag(restrictedKey string) string
 }
 
 // TraceContextMarshaler is a simple interface to marshal a TraceContext to a
