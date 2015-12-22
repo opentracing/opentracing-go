@@ -58,8 +58,7 @@ func server() {
 
 		serverSpan := opentracing.JoinTrace(
 			"serverSpan", reqCtx,
-			"component", "server",
-		)
+		).SetTag("component", "server")
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {

@@ -29,7 +29,7 @@ type standardSpan struct {
 	raw      opentracing.RawSpan
 }
 
-func (s *standardSpan) StartChild(operationName string, keyValueTags ...interface{}) opentracing.Span {
+func (s *standardSpan) StartChild(operationName string) opentracing.Span {
 	childCtx, childTags := s.raw.TraceContext.NewChild()
 	return s.tracer.startSpanGeneric(operationName, childCtx, childTags)
 }
@@ -38,6 +38,16 @@ func (s *standardSpan) SetTag(key string, value interface{}) opentracing.Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.raw.Tags[key] = fmt.Sprint(value)
+	return s
+}
+
+func (s *standardSpan) SetTags(tags opentracing.Tags) opentracing.Span {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for k, v := range tags {
+		s.raw.Tags[k] = fmt.Sprint(v)
+	}
 	return s
 }
 
@@ -89,25 +99,22 @@ type standardOpenTracer struct {
 
 func (s *standardOpenTracer) StartTrace(
 	operationName string,
-	keyValueTags ...interface{},
 ) opentracing.Span {
-	tags := keyValueListToTags(keyValueTags)
 	return s.startSpanGeneric(
 		operationName,
 		s.NewRootTraceContext(),
-		tags,
+		nil,
 	)
 }
 
 func (s *standardOpenTracer) JoinTrace(
 	operationName string,
 	parent interface{},
-	keyValueTags ...interface{},
 ) opentracing.Span {
 	if goCtx, ok := parent.(context.Context); ok {
-		return s.startSpanWithGoContextParent(operationName, goCtx, keyValueTags...)
+		return s.startSpanWithGoContextParent(operationName, goCtx)
 	} else if traceCtx, ok := parent.(opentracing.TraceContext); ok {
-		return s.startSpanWithTraceContextParent(operationName, traceCtx, keyValueTags...)
+		return s.startSpanWithTraceContextParent(operationName, traceCtx)
 	} else {
 		panic(fmt.Errorf("Invalid parent type: %v", reflect.TypeOf(parent)))
 	}
@@ -116,11 +123,9 @@ func (s *standardOpenTracer) JoinTrace(
 func (s *standardOpenTracer) startSpanWithGoContextParent(
 	operationName string,
 	parent context.Context,
-	keyValueTags ...interface{},
 ) opentracing.Span {
 	if oldSpan := opentracing.SpanFromGoContext(parent); oldSpan != nil {
 		childCtx, tags := oldSpan.TraceContext().NewChild()
-		tags.Merge(keyValueListToTags(keyValueTags))
 		return s.startSpanGeneric(
 			operationName,
 			childCtx,
@@ -128,21 +133,18 @@ func (s *standardOpenTracer) startSpanWithGoContextParent(
 		)
 	}
 
-	tags := keyValueListToTags(keyValueTags)
 	return s.startSpanGeneric(
 		operationName,
 		s.NewRootTraceContext(),
-		tags,
+		nil,
 	)
 }
 
 func (s *standardOpenTracer) startSpanWithTraceContextParent(
 	operationName string,
 	parent opentracing.TraceContext,
-	keyValueTags ...interface{},
 ) opentracing.Span {
 	childCtx, tags := parent.NewChild()
-	tags.Merge(keyValueListToTags(keyValueTags))
 	return s.startSpanGeneric(
 		operationName,
 		childCtx,
@@ -172,28 +174,4 @@ func (s *standardOpenTracer) startSpanGeneric(
 		},
 	}
 	return span
-}
-
-func keyValueListToTags(keyValueTags []interface{}) opentracing.Tags {
-	if len(keyValueTags)%2 != 0 {
-		panic(fmt.Errorf(
-			"there must be an even number of keyValueTags params to split them into pairs: got %v",
-			len(keyValueTags)))
-	}
-	rval := make(opentracing.Tags, len(keyValueTags)/2)
-	var k string
-	for i, keyOrVal := range keyValueTags {
-		if i%2 == 0 {
-			var ok bool
-			k, ok = keyOrVal.(string)
-			if !ok {
-				panic(fmt.Errorf(
-					"even-indexed keyValueTags (i.e., the keys) must be strings: got %v",
-					reflect.TypeOf(keyOrVal)))
-			}
-		} else {
-			rval[k] = keyOrVal
-		}
-	}
-	return rval
 }
