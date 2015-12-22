@@ -51,7 +51,9 @@ type TraceContext interface {
 	// `restrictedKey` MUST match the regular expression
 	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
 	// start with a letter or number, and the remaining characters must be
-	// letters, numbers, or hyphens. See CanonicalizeTraceTagKey().
+	// letters, numbers, or hyphens. See CanonicalizeTraceTagKey(). If
+	// `restrictedKey` does not meet these criteria, SetTraceTag() results in
+	// undefined behavior.
 	//
 	// Returns a reference to this TraceContext for chaining, etc.
 	SetTraceTag(restrictedKey, value string) TraceContext
