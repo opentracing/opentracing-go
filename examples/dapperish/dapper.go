@@ -12,8 +12,8 @@ import (
 	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
 
-// NewTracer returns a new dapperish OpenTracer instance.
-func NewTracer(processName string) opentracing.OpenTracer {
+// NewTracer returns a new dapperish Tracer instance.
+func NewTracer(processName string) opentracing.Tracer {
 	return standardtracer.New(
 		NewTrivialRecorder(processName),
 		NewTraceContextSource())

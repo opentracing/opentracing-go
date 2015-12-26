@@ -11,20 +11,20 @@ import (
 	"golang.org/x/net/context"
 )
 
-// New creates and returns a standard OpenTracer which defers to `rec` and
+// New creates and returns a standard Tracer which defers to `recorder` and
 // `source` as appropriate.
-func New(rec opentracing.Recorder, source opentracing.TraceContextSource) opentracing.OpenTracer {
-	return &standardOpenTracer{
+func New(recorder opentracing.Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
+	return &standardTracer{
 		TraceContextSource: source,
-		recorder:           rec,
+		recorder:           recorder,
 	}
 }
 
-// Implements the `Span` interface. Created via standardOpenTracer (see
+// Implements the `Span` interface. Created via standardTracer (see
 // `NewStandardTracer()`).
 type standardSpan struct {
 	lock     sync.Mutex
-	tracer   *standardOpenTracer
+	tracer   *standardTracer
 	recorder opentracing.Recorder
 	raw      opentracing.RawSpan
 }
@@ -90,14 +90,14 @@ func (s *standardSpan) AddToGoContext(ctx context.Context) (opentracing.Span, co
 	return s, opentracing.GoContextWithSpan(ctx, s)
 }
 
-// Implements the `OpenTracer` interface.
-type standardOpenTracer struct {
+// Implements the `Tracer` interface.
+type standardTracer struct {
 	opentracing.TraceContextSource
 
 	recorder opentracing.Recorder
 }
 
-func (s *standardOpenTracer) StartTrace(
+func (s *standardTracer) StartTrace(
 	operationName string,
 ) opentracing.Span {
 	return s.startSpanGeneric(
@@ -107,7 +107,7 @@ func (s *standardOpenTracer) StartTrace(
 	)
 }
 
-func (s *standardOpenTracer) JoinTrace(
+func (s *standardTracer) JoinTrace(
 	operationName string,
 	parent interface{},
 ) opentracing.Span {
@@ -120,7 +120,7 @@ func (s *standardOpenTracer) JoinTrace(
 	}
 }
 
-func (s *standardOpenTracer) startSpanWithGoContextParent(
+func (s *standardTracer) startSpanWithGoContextParent(
 	operationName string,
 	parent context.Context,
 ) opentracing.Span {
@@ -140,7 +140,7 @@ func (s *standardOpenTracer) startSpanWithGoContextParent(
 	)
 }
 
-func (s *standardOpenTracer) startSpanWithTraceContextParent(
+func (s *standardTracer) startSpanWithTraceContextParent(
 	operationName string,
 	parent opentracing.TraceContext,
 ) opentracing.Span {
@@ -153,7 +153,7 @@ func (s *standardOpenTracer) startSpanWithTraceContextParent(
 }
 
 // A helper for standardSpan creation.
-func (s *standardOpenTracer) startSpanGeneric(
+func (s *standardTracer) startSpanGeneric(
 	operationName string,
 	childCtx opentracing.TraceContext,
 	tags opentracing.Tags,

@@ -16,7 +16,7 @@ type ProcessIdentifier interface {
 }
 
 // A Recorder handles all of the `RawSpan` data generated via an
-// associated `OpenTracer` (see `NewStandardTracer`) instance. It also names
+// associated `Tracer` (see `NewStandardTracer`) instance. It also names
 // the containing process and provides access to a straightforward tag map.
 type Recorder interface {
 	ProcessIdentifier

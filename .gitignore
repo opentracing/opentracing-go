@@ -1,0 +1,13 @@
+# IntelliJ project files
+.idea/
+api-golang.iml
+api-golang.ipr
+api-golang.iws
+
+# Test results
+*.cov
+*.html
+test.log
+
+# Build dir
+build/

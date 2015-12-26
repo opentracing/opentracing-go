@@ -1,34 +1,34 @@
 package opentracing
 
 var (
-	defaultOpenTracer OpenTracer = noopOpenTracer{noopTraceContextSource{}}
+	defaultTracer Tracer = noopTracer{noopTraceContextSource{}}
 )
 
-// InitDefaultTracer sets the [singleton] OpenTracer returned by
+// InitDefaultTracer sets the [singleton] opentracing.Tracer returned by
 // DefaultTracer(). Those who use DefaultTracer (rather than directly manage an
-// OpenTracer instance) should call InitDefaultTracer as early as possible in
+// opentracing.Tracer instance) should call InitDefaultTracer as early as possible in
 // main(), prior to calling the `StartTrace` (etc) global funcs below. Prior to
 // calling `InitDefaultTracer`, any Spans started via the `StartTrace` (etc)
 // globals are noops.
-func InitDefaultTracer(tracer OpenTracer) {
-	defaultOpenTracer = tracer
+func InitDefaultTracer(tracer Tracer) {
+	defaultTracer = tracer
 }
 
-// DefaultTracer returns the global singleton `OpenTracer` implementation.
+// DefaultTracer returns the global singleton `Tracer` implementation.
 // Before `InitDefaultTracer()` is called, the `DefaultTracer()` is a noop
 // implementation that drops all data handed to it.
-func DefaultTracer() OpenTracer {
-	return defaultOpenTracer
+func DefaultTracer() Tracer {
+	return defaultTracer
 }
 
-// StartTrace defers to `OpenTracer.StartTrace`. See `DefaultTracer()`.
+// StartTrace defers to `Tracer.StartTrace`. See `DefaultTracer()`.
 func StartTrace(operationName string) Span {
-	return defaultOpenTracer.StartTrace(operationName)
+	return defaultTracer.StartTrace(operationName)
 }
 
-// JoinTrace defers to `OpenTracer.JoinTrace`. See `DefaultTracer()`.
+// JoinTrace defers to `Tracer.JoinTrace`. See `DefaultTracer()`.
 func JoinTrace(operationName string, parent interface{}) Span {
-	return defaultOpenTracer.JoinTrace(operationName, parent)
+	return defaultTracer.JoinTrace(operationName, parent)
 }
 
 // MarshalTraceContextBinary defers to
@@ -36,7 +36,7 @@ func JoinTrace(operationName string, parent interface{}) Span {
 //
 // See `DefaultTracer()`.
 func MarshalTraceContextBinary(ctx TraceContext) ([]byte, []byte) {
-	return defaultOpenTracer.MarshalTraceContextBinary(ctx)
+	return defaultTracer.MarshalTraceContextBinary(ctx)
 }
 
 // MarshalTraceContextStringMap defers to
@@ -44,7 +44,7 @@ func MarshalTraceContextBinary(ctx TraceContext) ([]byte, []byte) {
 //
 // See `DefaultTracer()`.
 func MarshalTraceContextStringMap(ctx TraceContext) (map[string]string, map[string]string) {
-	return defaultOpenTracer.MarshalTraceContextStringMap(ctx)
+	return defaultTracer.MarshalTraceContextStringMap(ctx)
 }
 
 // UnmarshalTraceContextBinary defers to
@@ -52,7 +52,7 @@ func MarshalTraceContextStringMap(ctx TraceContext) (map[string]string, map[stri
 //
 // See `DefaultTracer()`.
 func UnmarshalTraceContextBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
-	return defaultOpenTracer.UnmarshalTraceContextBinary(traceContextID, traceTags)
+	return defaultTracer.UnmarshalTraceContextBinary(traceContextID, traceTags)
 }
 
 // UnmarshalTraceContextStringMap defers to
@@ -60,5 +60,5 @@ func UnmarshalTraceContextBinary(traceContextID []byte, traceTags []byte) (Trace
 //
 // See `DefaultTracer()`.
 func UnmarshalTraceContextStringMap(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
-	return defaultOpenTracer.UnmarshalTraceContextStringMap(traceContextID, traceTags)
+	return defaultTracer.UnmarshalTraceContextStringMap(traceContextID, traceTags)
 }

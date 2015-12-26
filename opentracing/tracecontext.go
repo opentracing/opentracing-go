@@ -126,7 +126,7 @@ type TraceContextUnmarshaler interface {
 	// tags (per `SetTraceTag` and `TraceTag`) attached to a TraceContext
 	// instance.
 	//
-	// It's permissable to pass the same map to both parameters (e.g., an HTTP
+	// It's permissible to pass the same map to both parameters (e.g., an HTTP
 	// request headers map): the implementation should only unmarshal the
 	// subset its interested in.
 	UnmarshalTraceContextStringMap(
@@ -147,12 +147,12 @@ type TraceContextSource interface {
 	NewRootTraceContext() TraceContext
 }
 
-var kTraceTagRegexp = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
+var regexTraceTag = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
 
-// Returns the canonicalized version of trace tag key `key`, and true if and
-// only if the key was valid.
+// CanonicalizeTraceTagKey returns the canonicalized version of trace tag key `key`,
+// and true if and only if the key was valid.
 func CanonicalizeTraceTagKey(key string) (string, bool) {
-	if !kTraceTagRegexp.MatchString(key) {
+	if !regexTraceTag.MatchString(key) {
 		return "", false
 	}
 	return strings.ToLower(key), true

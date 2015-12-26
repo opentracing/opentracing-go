@@ -6,7 +6,7 @@ type noopTraceContext struct{}
 type noopSpan struct{}
 type noopRecorder struct{}
 type noopTraceContextSource struct{}
-type noopOpenTracer struct {
+type noopTracer struct {
 	noopTraceContextSource
 }
 
@@ -15,7 +15,7 @@ var (
 	defaultNoopSpan               = noopSpan{}
 	defaultNoopRecorder           = noopRecorder{}
 	defaultNoopTraceContextSource = noopTraceContextSource{}
-	defaultNoopOpenTracer         = noopOpenTracer{}
+	defaultNoopTracer             = noopTracer{}
 	emptyTags                     = Tags{}
 	emptyBytes                    = []byte{}
 	emptyStringMap                = map[string]string{}
@@ -76,11 +76,11 @@ func (n noopRecorder) SetTag(key string, val interface{}) ProcessIdentifier { re
 func (n noopRecorder) RecordSpan(span *RawSpan)                             {}
 func (n noopRecorder) ProcessName() string                                  { return "" }
 
-// noopOpenTracer:
-func (n noopOpenTracer) StartTrace(operationName string) Span {
+// noopTracer:
+func (n noopTracer) StartTrace(operationName string) Span {
 	return defaultNoopSpan
 }
 
-func (n noopOpenTracer) JoinTrace(operationName string, parent interface{}) Span {
+func (n noopTracer) JoinTrace(operationName string, parent interface{}) Span {
 	return defaultNoopSpan
 }
