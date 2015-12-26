@@ -4,7 +4,7 @@ import "golang.org/x/net/context"
 
 // Span represents an active, un-finished span in the opentracing system.
 //
-// Spans are created by the OpenTracer interface and Span.StartChild.
+// Spans are created by the Tracer interface and Span.StartChild.
 type Span interface {
 	// Creates and starts a child span.
 	StartChild(operationName string) Span

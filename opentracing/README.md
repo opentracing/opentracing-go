@@ -27,7 +27,7 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
 ##### Non-Singleton initialization
 
 If you prefer direct control to singletons, use `standardtracer.New(...)`
-directly and manage ownership of the `opentracing.OpenTracer` implementation
+directly and manage ownership of the `opentracing.Tracer` implementation
 explicitly.
 
 #### Starting an empty trace by creating a "root span"
@@ -107,7 +107,7 @@ associated with any `opentracing.Span` instance.
 ## API pointers for those implementing a tracing system
 
 There should be no need for most tracing system implementors to worry about the
-`opentracing.Span` or `opentracing.OpenTracer` interfaces directly:
+`opentracing.Span` or `opentracing.Tracer` interfaces directly:
 `standardtracer.New(...)` should work well enough in most circumstances.
 
 That said, tracing system authors must provide implementations of:

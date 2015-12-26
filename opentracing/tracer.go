@@ -1,10 +1,10 @@
 package opentracing
 
-// OpenTracer is a simple, thin interface for Span creation.
+// Tracer is a simple, thin interface for Span creation.
 //
 // A straightforward implementation is available via the
 // `opentracing/standardtracer` package's `standardtracer.New()'.
-type OpenTracer interface {
+type Tracer interface {
 	TraceContextSource
 
 	// Create, start, and return a new Span with the given `operationName`, all
@@ -13,7 +13,7 @@ type OpenTracer interface {
 	//
 	// Examples:
 	//
-	//     val tracer OpenTracer = ...
+	//     var tracer Tracer = ...
 	//
 	//     sp := tracer.StartTrace("GetFeed")
 	//
