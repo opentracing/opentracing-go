@@ -37,7 +37,7 @@ func (s *standardSpan) StartChild(operationName string) opentracing.Span {
 func (s *standardSpan) SetTag(key string, value interface{}) opentracing.Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.raw.Tags[key] = fmt.Sprint(value)
+	s.raw.Tags[key] = value
 	return s
 }
 
@@ -46,7 +46,7 @@ func (s *standardSpan) SetTags(tags opentracing.Tags) opentracing.Span {
 	defer s.lock.Unlock()
 
 	for k, v := range tags {
-		s.raw.Tags[k] = fmt.Sprint(v)
+		s.raw.Tags[k] = v
 	}
 	return s
 }

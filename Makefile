@@ -4,7 +4,7 @@
 
 .PHONY: test
 test:
-	go test ./...
+	go test -v -cover ./...
 
 .PHONY: lint
 lint:
@@ -16,5 +16,5 @@ vet:
 
 .PHONY: example
 example:
-	go build -o build/dapperish-example ./examples/dapperish/.
+	go build -o build/dapperish-example ./examples/dapperish.go
 	./build/dapperish-example
