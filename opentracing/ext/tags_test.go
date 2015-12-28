@@ -3,7 +3,6 @@ package ext_test
 import (
 	"testing"
 
-	"github.com/opentracing/api-golang/examples/dapperish"
 	"github.com/opentracing/api-golang/opentracing/ext"
 	"github.com/opentracing/api-golang/opentracing/standardtracer"
 	"github.com/opentracing/api-golang/testutils"
@@ -15,7 +14,7 @@ func TestRPCTags(t *testing.T) {
 		t.Fatalf("Invalid RPCService.Key %v", ext.RPCService.Key)
 	}
 	recorder := testutils.NewInMemoryRecorder("test-process")
-	tracer := standardtracer.New(recorder, dapperish.NewTraceContextSource())
+	tracer := standardtracer.New(recorder, &testutils.SimpleTraceContextSource{})
 	span := tracer.StartTrace("my-trace")
 	ext.RPCService.Add(span, "my-service")
 	ext.RPCHostname.Add(span, "my-hostname")

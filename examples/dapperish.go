@@ -12,8 +12,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/opentracing/api-golang/opentracing"
 	"github.com/opentracing/api-golang/examples/dapperish"
+	"github.com/opentracing/api-golang/opentracing"
 )
 
 func client() {
