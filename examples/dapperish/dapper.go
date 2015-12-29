@@ -44,25 +44,8 @@ const (
 	fieldNameSampled = "Sampled"
 )
 
-// NewChild complies with the opentracing.TraceContext interface.
-func (d *TraceContext) NewChild() (opentracing.TraceContext, opentracing.Tags) {
-	d.tagLock.RLock()
-	newTags := make(map[string]string, len(d.traceTags))
-	for k, v := range d.traceTags {
-		newTags[k] = v
-	}
-	d.tagLock.RUnlock()
-
-	return &TraceContext{
-		TraceID:   d.TraceID,
-		SpanID:    randomID(),
-		Sampled:   d.Sampled,
-		traceTags: newTags,
-	}, opentracing.Tags{"parent_span_id": d.SpanID}
-}
-
 // SetTraceAttribute complies with the opentracing.TraceContext interface.
-func (d *DapperishTraceContext) SetTraceAttribute(restrictedKey, val string) opentracing.TraceContext {
+func (d *TraceContext) SetTraceAttribute(restrictedKey, val string) opentracing.TraceContext {
 	canonicalKey, valid := opentracing.CanonicalizeTraceAttributeKey(restrictedKey)
 	if !valid {
 		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
@@ -100,7 +83,7 @@ func NewTraceContextSource() *TraceContextSource {
 
 // NewRootTraceContext complies with the opentracing.TraceContextSource interface.
 func (d *TraceContextSource) NewRootTraceContext() opentracing.TraceContext {
-	return &DapperishTraceContext{
+	return &TraceContext{
 		TraceID:    randomID(),
 		SpanID:     randomID(),
 		Sampled:    randomID()%1024 == 0,
@@ -109,8 +92,10 @@ func (d *TraceContextSource) NewRootTraceContext() opentracing.TraceContext {
 }
 
 // NewChildTraceContext complies with the opentracing.TraceContextSource interface.
-func (d *DapperishTraceContextSource) NewChildTraceContext(parent opentracing.TraceContext) (opentracing.TraceContext, opentracing.Tags) {
-	dParent := parent.(*DapperishTraceContext)
+func (d *TraceContextSource) NewChildTraceContext(
+	parent opentracing.TraceContext,
+) (opentracing.TraceContext, opentracing.Tags) {
+	dParent := parent.(*TraceContext)
 	dParent.tagLock.RLock()
 	newTags := make(map[string]string, len(dParent.traceAttrs))
 	for k, v := range dParent.traceAttrs {
@@ -118,7 +103,7 @@ func (d *DapperishTraceContextSource) NewChildTraceContext(parent opentracing.Tr
 	}
 	dParent.tagLock.RUnlock()
 
-	return &DapperishTraceContext{
+	return &TraceContext{
 		TraceID:    dParent.TraceID,
 		SpanID:     randomID(),
 		Sampled:    dParent.Sampled,
@@ -200,7 +185,7 @@ func (d *TraceContextSource) UnmarshalTraceContextStringMap(
 // MarshalTraceContextBinary complies with the opentracing.TraceContextSource
 // interface.
 func (d *TraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceContext) (contextID []byte, traceAttrs []byte) {
-	dtc := ctx.(*DapperishTraceContext)
+	dtc := ctx.(*TraceContext)
 	var err error
 	buf := new(bytes.Buffer)
 	err = binary.Write(buf, binary.BigEndian, dtc.TraceID)
