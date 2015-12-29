@@ -14,10 +14,10 @@ import (
 // TraceContexts are sufficient to propagate the, well, *context* of a
 // particular trace between processes.
 //
-// TraceContext also support a simple string map of "trace tags". These trace
-// tags are special in that they are propagated *in-band*, presumably alongside
-// application data. See the documentation for SetTraceAttribute() for more
-// details and some important caveats.
+// TraceContext also support a simple string map of "trace attributes". These
+// trace attributes are special in that they are propagated *in-band*,
+// presumably alongside application data. See the documentation for
+// SetTraceAttribute() for more details and some important caveats.
 type TraceContext interface {
 	// SetTraceAttribute sets a tag on this TraceContext that also propagates
 	// to future TraceContext children per TraceContext.NewChild.
@@ -27,20 +27,20 @@ type TraceContext interface {
 	// app can make it, transparently, all the way into the depths of a storage
 	// system), and with it some powerful costs: use this feature with care.
 	//
-	// IMPORTANT NOTE #1: SetTraceAttribute() will only propagate trace tags to
-	// *future* children of the TraceContext (see NewChild()) and/or the
-	// Span that references it.
+	// IMPORTANT NOTE #1: SetTraceAttribute() will only propagate trace
+	// attributes to *future* children of the TraceContext (see NewChild())
+	// and/or the Span that references it.
 	//
 	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
 	// value is copied into every local *and remote* child of this
 	// TraceContext, and that can add up to a lot of network and cpu
 	// overhead.
 	//
-	// IMPORTANT NOTE #3: Trace tags are case-insensitive: implementations may
-	// wish to use them as HTTP header keys (or key suffixes), and of course
-	// HTTP headers are case insensitive.
+	// IMPORTANT NOTE #3: Trace attributes keys have a restricted format:
+	// implementations may wish to use them as HTTP header keys (or key
+	// suffixes), and of course HTTP headers are case insensitive.
 	//
-	// `restrictedKey` MUST match the regular expression
+	// As such, `restrictedKey` MUST match the regular expression
 	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
 	// start with a letter or number, and the remaining characters must be
 	// letters, numbers, or hyphens. See CanonicalizeTraceAttributeKey(). If
@@ -67,7 +67,7 @@ type TraceContextMarshaler interface {
 	// the core identifying information in `tc`.
 	//
 	// The second return value must represent the marshaler's serialization of
-	// the trace tags, per `SetTraceAttribute` and `TraceAttribute`.
+	// the trace attributes, per `SetTraceAttribute` and `TraceAttribute`.
 	MarshalTraceContextBinary(
 		tc TraceContext,
 	) (
@@ -82,7 +82,7 @@ type TraceContextMarshaler interface {
 	// the core identifying information in `tc`.
 	//
 	// The second return value must represent the marshaler's serialization of
-	// the trace tags, per `SetTraceAttribute` and `TraceAttribute`.
+	// the trace attributes, per `SetTraceAttribute` and `TraceAttribute`.
 	MarshalTraceContextStringMap(
 		tc TraceContext,
 	) (
@@ -101,7 +101,7 @@ type TraceContextUnmarshaler interface {
 	// identifying information in a TraceContext instance.
 	//
 	// The second parameter contains the marshaler's serialization of the trace
-	// tags (per `SetTraceAttribute` and `TraceAttribute`) attached to a
+	// attributes (per `SetTraceAttribute` and `TraceAttribute`) attached to a
 	// TraceContext instance.
 	UnmarshalTraceContextBinary(
 		traceContextID []byte,
@@ -115,7 +115,7 @@ type TraceContextUnmarshaler interface {
 	// identifying information in a TraceContext instance.
 	//
 	// The second parameter contains the marshaler's serialization of the trace
-	// tags (per `SetTraceAttribute` and `TraceAttribute`) attached to a
+	// attributes (per `SetTraceAttribute` and `TraceAttribute`) attached to a
 	// TraceContext instance.
 	//
 	// It's permissible to pass the same map to both parameters (e.g., an HTTP
