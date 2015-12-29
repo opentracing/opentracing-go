@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	dapperish "github.com/opentracing/api-golang/examples/dapperish"
+	"github.com/opentracing/api-golang/examples/dapperish"
 	"github.com/opentracing/api-golang/opentracing"
 )
 
