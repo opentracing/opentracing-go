@@ -9,8 +9,14 @@ type Span interface {
 	// Creates and starts a child span.
 	StartChild(operationName string) Span
 
-	// Adds a tag to the span. The `value` is immediately coerced into a string
-	// using fmt.Sprint().
+	// Adds a tag to the span.
+	//
+	// Tag values can be of arbitrary types, however the treatment of complex
+	// types is dependent on the underlying tracing system implementation.
+	// It is expected that most tracing systems will handle primitive types
+	// like strings and numbers. If a tracing system cannot understand how
+	// to handle a particular value type, it may ignore the tag, but shall
+	// not panic.
 	//
 	// If there is a pre-existing tag set for `key`, it is overwritten.
 	SetTag(key string, value interface{}) Span

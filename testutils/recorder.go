@@ -1,0 +1,66 @@
+package testutils
+
+import (
+	"sync"
+
+	"github.com/opentracing/api-golang/opentracing"
+)
+
+// InMemoryRecorder is a simple thread-safe implementation of opentracing.Recorder
+// that stores all reported spans in memory, accessible via reporter.GetSpans()
+type InMemoryRecorder struct {
+	processName string
+	spans       []*opentracing.RawSpan
+	tags        opentracing.Tags
+	lock        sync.Mutex
+}
+
+// NewInMemoryRecorder instantiates a new InMemoryRecorder with the given `processName`
+func NewInMemoryRecorder(processName string) *InMemoryRecorder {
+	return &InMemoryRecorder{
+		processName: processName,
+		spans:       make([]*opentracing.RawSpan, 0),
+		tags:        make(opentracing.Tags),
+	}
+}
+
+// ProcessName implements ProcessName() of opentracing.Recorder
+func (recorder *InMemoryRecorder) ProcessName() string {
+	return recorder.processName
+}
+
+// SetTag implements SetTag() of opentracing.Recorder.  Tags can be retrieved via recorder.GetTags()
+func (recorder *InMemoryRecorder) SetTag(key string, val interface{}) opentracing.ProcessIdentifier {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+	recorder.tags[key] = val
+	return recorder
+}
+
+// RecordSpan implements RecordSpan() of opentracing.Recorder.
+// The recorder spans can be retrieved via recorder.Spans slice.
+func (recorder *InMemoryRecorder) RecordSpan(span *opentracing.RawSpan) {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+	recorder.spans = append(recorder.spans, span)
+}
+
+// GetSpans returns a snapshot of spans recorded so far.
+func (recorder *InMemoryRecorder) GetSpans() []*opentracing.RawSpan {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+	spans := make([]*opentracing.RawSpan, len(recorder.spans))
+	copy(spans, recorder.spans)
+	return spans
+}
+
+// GetTags returns a snapshot of tags.
+func (recorder *InMemoryRecorder) GetTags() opentracing.Tags {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+	tags := make(opentracing.Tags)
+	for k, v := range recorder.tags {
+		tags[k] = v
+	}
+	return tags
+}
