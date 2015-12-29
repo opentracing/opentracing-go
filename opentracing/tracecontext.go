@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// Tags are a generic map from an arbitrary string key to an opaque value type.
+// The underlying tracing system is responsible for interpreting and
+// serializing the values.
+type Tags map[string]interface{}
+
 // TraceContext encpasulates the smallest amount of state needed to describe a
 // Span's identity within a larger [potentially distributed] trace. The
 // TraceContext is not intended to encode the span's operation name, timing,
@@ -156,4 +161,13 @@ func CanonicalizeTraceAttributeKey(key string) (string, bool) {
 		return "", false
 	}
 	return strings.ToLower(key), true
+}
+
+// Merge incorporates the keys and values from `other` into this `Tags`
+// instance, then returns same.
+func (t Tags) Merge(other Tags) Tags {
+	for k, v := range other {
+		t[k] = v
+	}
+	return t
 }

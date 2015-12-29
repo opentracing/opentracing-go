@@ -4,7 +4,6 @@ import "golang.org/x/net/context"
 
 type noopTraceContext struct{}
 type noopSpan struct{}
-type noopRecorder struct{}
 type noopTraceContextSource struct{}
 type noopTracer struct {
 	noopTraceContextSource
@@ -13,7 +12,6 @@ type noopTracer struct {
 var (
 	defaultNoopTraceContext       = noopTraceContext{}
 	defaultNoopSpan               = noopSpan{}
-	defaultNoopRecorder           = noopRecorder{}
 	defaultNoopTraceContextSource = noopTraceContextSource{}
 	defaultNoopTracer             = noopTracer{}
 	emptyTags                     = Tags{}
@@ -70,11 +68,6 @@ func (n noopTraceContextSource) NewRootTraceContext() TraceContext {
 func (n noopTraceContextSource) NewChildTraceContext(parent TraceContext) (TraceContext, Tags) {
 	return defaultNoopTraceContext, emptyTags
 }
-
-// noopRecorder:
-func (n noopRecorder) SetTag(key string, val interface{}) ProcessIdentifier { return n }
-func (n noopRecorder) RecordSpan(span *RawSpan)                             {}
-func (n noopRecorder) ProcessName() string                                  { return "" }
 
 // noopTracer:
 func (n noopTracer) StartTrace(operationName string) Span {

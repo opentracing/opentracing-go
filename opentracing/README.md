@@ -115,10 +115,10 @@ There should be no need for most tracing system implementors to worry about the
 `opentracing.Span` or `opentracing.Tracer` interfaces directly:
 `standardtracer.New(...)` should work well enough in most circumstances.
 
-That said, tracing system authors must provide implementations of:
+That said, tracing system authors are expected to provide implementations of:
 - `opentracing.TraceContext`
 - `opentracing.TraceContextSource`
-- `opentracing.Recorder`
+- `standardtracer.Recorder`
 
 For a small working example, see `../examples/dapperish/*.go`.
 

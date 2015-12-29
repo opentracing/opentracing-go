@@ -5,18 +5,18 @@ import (
 	"time"
 
 	"github.com/opentracing/api-golang/examples/dapperish"
-	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-golang/opentracing/standardtracer"
 	"github.com/opentracing/api-golang/testutils"
 )
 
 func TestInMemoryRecorderSpans(t *testing.T) {
 	recorder := testutils.NewInMemoryRecorder("unit-test")
-	var apiRecorder opentracing.Recorder = recorder
+	var apiRecorder standardtracer.Recorder = recorder
 	if apiRecorder.ProcessName() != "unit-test" {
 		t.Fatalf("Invalid process name")
 	}
-	span := &opentracing.RawSpan{
-		TraceContext: &dapperish.DapperishTraceContext{},
+	span := &standardtracer.RawSpan{
+		TraceContext: &dapperish.TraceContext{},
 		Operation:    "test-span",
 		Start:        time.Now(),
 		Duration:     -1,

@@ -1,4 +1,4 @@
-package opentracing
+package standardtracer
 
 // ProcessIdentifier is a thin interface that guarantees all implementors
 // represent a ProcessName and accepts arbitrary process-level tag assignment

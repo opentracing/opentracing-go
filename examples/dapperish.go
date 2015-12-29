@@ -37,7 +37,7 @@ func client() {
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
 		opentracing.AddTraceContextToHeader(
-			span.TraceContext(), httpReq.Header, opentracing.DefaultTracer())
+			span.TraceContext(), httpReq.Header, opentracing.GlobalTracer())
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.Error("error: ", err)
@@ -52,7 +52,7 @@ func client() {
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		reqCtx, err := opentracing.TraceContextFromHeader(
-			req.Header, opentracing.DefaultTracer())
+			req.Header, opentracing.GlobalTracer())
 		if err != nil {
 			panic(err)
 		}
@@ -79,7 +79,7 @@ func server() {
 }
 
 func main() {
-	opentracing.InitDefaultTracer(dapperish.NewTracer("dapperish_tester"))
+	opentracing.InitGlobalTracer(dapperish.NewTracer("dapperish_tester"))
 
 	go server()
 	go client()

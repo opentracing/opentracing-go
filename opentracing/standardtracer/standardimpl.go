@@ -13,7 +13,7 @@ import (
 
 // New creates and returns a standard Tracer which defers to `recorder` and
 // `source` as appropriate.
-func New(recorder opentracing.Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
+func New(recorder Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
 	return &standardTracer{
 		TraceContextSource: source,
 		recorder:           recorder,
@@ -25,8 +25,8 @@ func New(recorder opentracing.Recorder, source opentracing.TraceContextSource) o
 type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardTracer
-	recorder opentracing.Recorder
-	raw      opentracing.RawSpan
+	recorder Recorder
+	raw      RawSpan
 }
 
 func (s *standardSpan) StartChild(operationName string) opentracing.Span {
@@ -63,7 +63,7 @@ func (s *standardSpan) internalLog(isErr bool, message string, payload ...interf
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.raw.Logs = append(s.raw.Logs, &opentracing.RawLog{
+	s.raw.Logs = append(s.raw.Logs, &RawLog{
 		Timestamp: time.Now(),
 		Error:     isErr,
 		Message:   message,
@@ -94,7 +94,7 @@ func (s *standardSpan) AddToGoContext(ctx context.Context) (opentracing.Span, co
 type standardTracer struct {
 	opentracing.TraceContextSource
 
-	recorder opentracing.Recorder
+	recorder Recorder
 }
 
 func (s *standardTracer) StartTrace(
@@ -175,13 +175,13 @@ func (s *standardTracer) startSpanGeneric(
 	span := &standardSpan{
 		tracer:   s,
 		recorder: s.recorder,
-		raw: opentracing.RawSpan{
+		raw: RawSpan{
 			TraceContext: childCtx,
 			Operation:    operationName,
 			Start:        time.Now(),
 			Duration:     -1,
 			Tags:         tags,
-			Logs:         []*opentracing.RawLog{},
+			Logs:         []*RawLog{},
 		},
 	}
 	return span
