@@ -104,6 +104,11 @@ associated with any `opentracing.Span` instance.
         ...
     }
 
+#### Goroutine-safety
+
+The entire public API is goroutine-safe and does not require external
+synchronization.
+
 ## API pointers for those implementing a tracing system
 
 There should be no need for most tracing system implementors to worry about the
