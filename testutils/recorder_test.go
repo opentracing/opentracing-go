@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	dapperish "github.com/opentracing/api-golang/examples/dapperish"
+	"github.com/opentracing/api-golang/examples/dapperish"
 	"github.com/opentracing/api-golang/opentracing"
 	"github.com/opentracing/api-golang/opentracing/standardtracer"
 	"github.com/opentracing/api-golang/testutils"

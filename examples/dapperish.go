@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	d "github.com/opentracing/api-golang/examples/dapperish"
+	"github.com/opentracing/api-golang/examples/dapperish"
 	"github.com/opentracing/api-golang/opentracing"
 )
 
@@ -79,7 +79,7 @@ func server() {
 }
 
 func main() {
-	opentracing.InitGlobalTracer(d.NewTracer("dapperish_tester"))
+	opentracing.InitGlobalTracer(dapperish.NewTracer("dapperish_tester"))
 
 	go server()
 	go client()
