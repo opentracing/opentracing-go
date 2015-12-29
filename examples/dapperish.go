@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/opentracing/api-golang/examples/dapperish"
+	dapperish "github.com/opentracing/api-golang/examples/dapperish"
 	"github.com/opentracing/api-golang/opentracing"
 )
 
@@ -22,7 +22,7 @@ func client() {
 		span := opentracing.StartTrace("getInput")
 		ctx := opentracing.BackgroundGoContextWithSpan(span)
 		// Make sure that global trace tag propagation works.
-		span.TraceContext().SetTraceTag("User", os.Getenv("USER"))
+		span.TraceContext().SetTraceAttribute("User", os.Getenv("USER"))
 		span.Info("ctx: ", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
