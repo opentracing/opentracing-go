@@ -30,7 +30,7 @@ type standardSpan struct {
 }
 
 func (s *standardSpan) StartChild(operationName string) opentracing.Span {
-	childCtx, childTags := s.raw.TraceContext.NewChild()
+	childCtx, childTags := s.tracer.NewChildTraceContext(s.raw.TraceContext)
 	return s.tracer.startSpanGeneric(operationName, childCtx, childTags)
 }
 
@@ -107,6 +107,17 @@ func (s *standardTracer) StartTrace(
 	)
 }
 
+func (s *standardTracer) StartSpanWithContext(
+	operationName string,
+	ctx opentracing.TraceContext,
+) opentracing.Span {
+	return s.startSpanGeneric(
+		operationName,
+		ctx,
+		nil,
+	)
+}
+
 func (s *standardTracer) JoinTrace(
 	operationName string,
 	parent interface{},
@@ -125,7 +136,7 @@ func (s *standardTracer) startSpanWithGoContextParent(
 	parent context.Context,
 ) opentracing.Span {
 	if oldSpan := opentracing.SpanFromGoContext(parent); oldSpan != nil {
-		childCtx, tags := oldSpan.TraceContext().NewChild()
+		childCtx, tags := s.NewChildTraceContext(oldSpan.TraceContext())
 		return s.startSpanGeneric(
 			operationName,
 			childCtx,
@@ -144,7 +155,7 @@ func (s *standardTracer) startSpanWithTraceContextParent(
 	operationName string,
 	parent opentracing.TraceContext,
 ) opentracing.Span {
-	childCtx, tags := parent.NewChild()
+	childCtx, tags := s.NewChildTraceContext(parent)
 	return s.startSpanGeneric(
 		operationName,
 		childCtx,

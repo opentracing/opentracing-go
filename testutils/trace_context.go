@@ -7,43 +7,48 @@ import (
 // SimpleTraceContextSource is a dummy implementation of TraceContextSource.
 type SimpleTraceContextSource struct{}
 
-// NewRootTraceContext imlements NewRootTraceContext of opentracing.TraceContextSource.
+// NewRootTraceContext implements NewRootTraceContext of opentracing.TraceContextSource.
 func (source *SimpleTraceContextSource) NewRootTraceContext() opentracing.TraceContext {
 	return nil
 }
 
-// MarshalTraceContextBinary imlements MarshalTraceContextBinary of opentracing.TraceContextSource.
+// NewChildTraceContext implements NewChildTraceContext of opentracing.TraceContextSource.
+func (source *SimpleTraceContextSource) NewChildTraceContext(parent opentracing.TraceContext) (opentracing.TraceContext, opentracing.Tags) {
+	return nil, nil
+}
+
+// MarshalTraceContextBinary implements MarshalTraceContextBinary of opentracing.TraceContextSource.
 func (source *SimpleTraceContextSource) MarshalTraceContextBinary(
 	tc opentracing.TraceContext,
 ) (
 	traceContextID []byte,
-	traceTags []byte,
+	traceAttrs []byte,
 ) {
 	panic("Not implemented")
 }
 
-// MarshalTraceContextStringMap imlements MarshalTraceContextStringMap of opentracing.TraceContextSource.
+// MarshalTraceContextStringMap implements MarshalTraceContextStringMap of opentracing.TraceContextSource.
 func (source *SimpleTraceContextSource) MarshalTraceContextStringMap(
 	tc opentracing.TraceContext,
 ) (
 	traceContextID map[string]string,
-	traceTags map[string]string,
+	traceAttrs map[string]string,
 ) {
 	panic("Not implemented")
 }
 
-// UnmarshalTraceContextBinary imlements UnmarshalTraceContextBinary of opentracing.TraceContextSource.
+// UnmarshalTraceContextBinary implements UnmarshalTraceContextBinary of opentracing.TraceContextSource.
 func (source *SimpleTraceContextSource) UnmarshalTraceContextBinary(
 	traceContextID []byte,
-	traceTags []byte,
+	traceAttrs []byte,
 ) (opentracing.TraceContext, error) {
 	panic("Not implemented")
 }
 
-// UnmarshalTraceContextStringMap imlements UnmarshalTraceContextStringMap of opentracing.TraceContextSource.
+// UnmarshalTraceContextStringMap implements UnmarshalTraceContextStringMap of opentracing.TraceContextSource.
 func (source *SimpleTraceContextSource) UnmarshalTraceContextStringMap(
 	traceContextID map[string]string,
-	traceTags map[string]string,
+	traceAttrs map[string]string,
 ) (opentracing.TraceContext, error) {
 	panic("Not implemented")
 }

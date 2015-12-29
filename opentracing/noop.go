@@ -27,11 +27,8 @@ const (
 
 // noopTraceContext:
 
-func (n noopTraceContext) NewChild() (TraceContext, Tags) {
-	return defaultNoopTraceContext, emptyTags
-}
-func (n noopTraceContext) SetTraceTag(key, val string) TraceContext { return n }
-func (n noopTraceContext) TraceTag(key string) string               { return emptyString }
+func (n noopTraceContext) SetTraceAttribute(key, val string) TraceContext { return n }
+func (n noopTraceContext) TraceAttribute(key string) string               { return emptyString }
 
 // noopSpan:
 func (n noopSpan) StartChild(operationName string) Span {
@@ -57,18 +54,21 @@ func (n noopTraceContextSource) MarshalTraceContextStringMap(tcid TraceContext) 
 }
 func (n noopTraceContextSource) UnmarshalTraceContextBinary(
 	traceContextID []byte,
-	traceTags []byte,
+	traceAttrs []byte,
 ) (TraceContext, error) {
 	return defaultNoopTraceContext, nil
 }
 func (n noopTraceContextSource) UnmarshalTraceContextStringMap(
 	traceContextID map[string]string,
-	traceTags map[string]string,
+	traceAttrs map[string]string,
 ) (TraceContext, error) {
 	return defaultNoopTraceContext, nil
 }
 func (n noopTraceContextSource) NewRootTraceContext() TraceContext {
 	return defaultNoopTraceContext
+}
+func (n noopTraceContextSource) NewChildTraceContext(parent TraceContext) (TraceContext, Tags) {
+	return defaultNoopTraceContext, emptyTags
 }
 
 // noopRecorder:
@@ -78,6 +78,10 @@ func (n noopRecorder) ProcessName() string                                  { re
 
 // noopTracer:
 func (n noopTracer) StartTrace(operationName string) Span {
+	return defaultNoopSpan
+}
+
+func (n noopTracer) StartSpanWithContext(operationName string, ctx TraceContext) Span {
 	return defaultNoopSpan
 }
 

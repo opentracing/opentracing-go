@@ -23,10 +23,25 @@ type Tracer interface {
 	//
 	StartTrace(operationName string) Span
 
-	// Like `StartTrace`, but the return `Span` is made a child of `parent`.
+	// Like `StartTrace`, but the returned `Span` is made a child of `parent`.
 	//
 	// The `parent` parameter can either be a `context.Context` or an
 	// `opentracing.TraceContext`. In the former case, the implementation
 	// attempts to extract an `opentracing.Span` using `SpanFromGoContext()`.
 	JoinTrace(operationName string, parent interface{}) Span
+
+	// StartSpanWithContext returns a `Span` with the given `operationName` and
+	// an association with `ctx` (rather than creating a fresh root context
+	// like `StartTrace` or a fresh child context like `JoinTrace`).
+	//
+	// `ctx` MUST be created by the `Tracer`'s embedded `TraceContextSource`.
+	//
+	//
+	// Note that the following calls are equivalent
+	//
+	//     tracer.StartSpanWithContext(opName, tracer.NewRootTraceContext())
+	//
+	//     tracer.StartTrace(opName)
+	//
+	StartSpanWithContext(operationName string, ctx TraceContext) Span
 }

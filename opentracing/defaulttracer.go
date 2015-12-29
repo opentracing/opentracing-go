@@ -51,14 +51,14 @@ func MarshalTraceContextStringMap(ctx TraceContext) (map[string]string, map[stri
 // `TraceContextUnmarshaler.UnmarshalTraceContextBinary`.
 //
 // See `DefaultTracer()`.
-func UnmarshalTraceContextBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
-	return defaultTracer.UnmarshalTraceContextBinary(traceContextID, traceTags)
+func UnmarshalTraceContextBinary(traceContextID []byte, traceAttrs []byte) (TraceContext, error) {
+	return defaultTracer.UnmarshalTraceContextBinary(traceContextID, traceAttrs)
 }
 
 // UnmarshalTraceContextStringMap defers to
 // `TraceContextUnmarshaler.UnmarshaTraceContextStringMap`.
 //
 // See `DefaultTracer()`.
-func UnmarshalTraceContextStringMap(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
-	return defaultTracer.UnmarshalTraceContextStringMap(traceContextID, traceTags)
+func UnmarshalTraceContextStringMap(traceContextID map[string]string, traceAttrs map[string]string) (TraceContext, error) {
+	return defaultTracer.UnmarshalTraceContextStringMap(traceContextID, traceAttrs)
 }
