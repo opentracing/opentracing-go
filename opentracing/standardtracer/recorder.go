@@ -1,4 +1,6 @@
-package opentracing
+package standardtracer
+
+import "github.com/opentracing/api-golang/opentracing"
 
 // ProcessIdentifier is a thin interface that guarantees all implementors
 // represent a ProcessName and accepts arbitrary process-level tag assignment
@@ -22,7 +24,7 @@ type Recorder interface {
 	ProcessIdentifier
 
 	// Implementations must determine whether and where to store `span`.
-	RecordSpan(span *RawSpan)
+	RecordSpan(span *opentracing.RawSpan)
 }
 
 // NOTE: there should be something like a MultiplexingRecorder which

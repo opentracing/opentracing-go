@@ -4,10 +4,12 @@ import (
 	"sync"
 
 	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
 
-// InMemoryRecorder is a simple thread-safe implementation of opentracing.Recorder
-// that stores all reported spans in memory, accessible via reporter.GetSpans()
+// InMemoryRecorder is a simple thread-safe implementation of
+// standardtracer.Recorder that stores all reported spans in memory, accessible
+// via reporter.GetSpans()
 type InMemoryRecorder struct {
 	processName string
 	spans       []*opentracing.RawSpan
@@ -24,21 +26,23 @@ func NewInMemoryRecorder(processName string) *InMemoryRecorder {
 	}
 }
 
-// ProcessName implements ProcessName() of opentracing.Recorder
+// ProcessName implements ProcessName() of standardtracer.Recorder
 func (recorder *InMemoryRecorder) ProcessName() string {
 	return recorder.processName
 }
 
-// SetTag implements SetTag() of opentracing.Recorder.  Tags can be retrieved via recorder.GetTags()
-func (recorder *InMemoryRecorder) SetTag(key string, val interface{}) opentracing.ProcessIdentifier {
+// SetTag implements SetTag() of standardtracer.Recorder. Tags can be
+// retrieved via recorder.GetTags()
+func (recorder *InMemoryRecorder) SetTag(key string, val interface{}) standardtracer.ProcessIdentifier {
 	recorder.lock.Lock()
 	defer recorder.lock.Unlock()
 	recorder.tags[key] = val
 	return recorder
 }
 
-// RecordSpan implements RecordSpan() of opentracing.Recorder.
-// The recorder spans can be retrieved via recorder.Spans slice.
+// RecordSpan implements RecordSpan() of standardtracer.Recorder.
+//
+// The recorded spans can be retrieved via recorder.Spans slice.
 func (recorder *InMemoryRecorder) RecordSpan(span *opentracing.RawSpan) {
 	recorder.lock.Lock()
 	defer recorder.lock.Unlock()

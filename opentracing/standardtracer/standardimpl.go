@@ -13,7 +13,7 @@ import (
 
 // New creates and returns a standard Tracer which defers to `recorder` and
 // `source` as appropriate.
-func New(recorder opentracing.Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
+func New(recorder Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
 	return &standardTracer{
 		TraceContextSource: source,
 		recorder:           recorder,
@@ -25,7 +25,7 @@ func New(recorder opentracing.Recorder, source opentracing.TraceContextSource) o
 type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardTracer
-	recorder opentracing.Recorder
+	recorder Recorder
 	raw      opentracing.RawSpan
 }
 
@@ -94,7 +94,7 @@ func (s *standardSpan) AddToGoContext(ctx context.Context) (opentracing.Span, co
 type standardTracer struct {
 	opentracing.TraceContextSource
 
-	recorder opentracing.Recorder
+	recorder Recorder
 }
 
 func (s *standardTracer) StartTrace(
