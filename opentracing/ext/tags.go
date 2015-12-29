@@ -5,22 +5,23 @@ import (
 )
 
 var (
-	// RPC tags as symmetrical, each can be emitted by either client-side of server-side
+	// PeerXXX tags can be emitted by either client-side of server-side to describe
+	// the other side/service in a peer-to-peer communications, like an RPC call.
 
-	// RPCService records the service name of the RPC peer
-	RPCService = &stringTag{"rpc.service"}
+	// PeerService records the service name of the peer
+	PeerService = &stringTag{"peer.service"}
 
-	// RPCHostname records the host name of the RPC peer
-	RPCHostname = &stringTag{"rpc.hostname"}
+	// PeerHostname records the host name of the peer
+	PeerHostname = &stringTag{"peer.hostname"}
 
-	// RPCHostIPv4 records IP v4 host address of the RPC peer
-	RPCHostIPv4 = &uint32Tag{"rpc.ipv4"}
+	// PeerHostIPv4 records IP v4 host address of the peer
+	PeerHostIPv4 = &uint32Tag{"peer.ipv4"}
 
-	// RPCHostIPv6 records IP v6 host address of the RPC peer
-	RPCHostIPv6 = &stringTag{"rpc.ipv6"}
+	// PeerHostIPv6 records IP v6 host address of the peer
+	PeerHostIPv6 = &stringTag{"peer.ipv6"}
 
-	// RPCPort records port number of the RPC peer
-	RPCPort = &uint16Tag{"rpc.port"}
+	// PeerPort records port number of the peer
+	PeerPort = &uint16Tag{"peer.port"}
 )
 
 type stringTag struct {
