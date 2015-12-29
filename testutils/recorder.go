@@ -12,7 +12,7 @@ import (
 // via reporter.GetSpans()
 type InMemoryRecorder struct {
 	processName string
-	spans       []*opentracing.RawSpan
+	spans       []*standardtracer.RawSpan
 	tags        opentracing.Tags
 	lock        sync.Mutex
 }
@@ -21,7 +21,7 @@ type InMemoryRecorder struct {
 func NewInMemoryRecorder(processName string) *InMemoryRecorder {
 	return &InMemoryRecorder{
 		processName: processName,
-		spans:       make([]*opentracing.RawSpan, 0),
+		spans:       make([]*standardtracer.RawSpan, 0),
 		tags:        make(opentracing.Tags),
 	}
 }
@@ -43,17 +43,17 @@ func (recorder *InMemoryRecorder) SetTag(key string, val interface{}) standardtr
 // RecordSpan implements RecordSpan() of standardtracer.Recorder.
 //
 // The recorded spans can be retrieved via recorder.Spans slice.
-func (recorder *InMemoryRecorder) RecordSpan(span *opentracing.RawSpan) {
+func (recorder *InMemoryRecorder) RecordSpan(span *standardtracer.RawSpan) {
 	recorder.lock.Lock()
 	defer recorder.lock.Unlock()
 	recorder.spans = append(recorder.spans, span)
 }
 
 // GetSpans returns a snapshot of spans recorded so far.
-func (recorder *InMemoryRecorder) GetSpans() []*opentracing.RawSpan {
+func (recorder *InMemoryRecorder) GetSpans() []*standardtracer.RawSpan {
 	recorder.lock.Lock()
 	defer recorder.lock.Unlock()
-	spans := make([]*opentracing.RawSpan, len(recorder.spans))
+	spans := make([]*standardtracer.RawSpan, len(recorder.spans))
 	copy(spans, recorder.spans)
 	return spans
 }

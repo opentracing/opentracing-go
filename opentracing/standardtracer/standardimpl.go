@@ -26,7 +26,7 @@ type standardSpan struct {
 	lock     sync.Mutex
 	tracer   *standardTracer
 	recorder Recorder
-	raw      opentracing.RawSpan
+	raw      RawSpan
 }
 
 func (s *standardSpan) StartChild(operationName string) opentracing.Span {
@@ -63,7 +63,7 @@ func (s *standardSpan) internalLog(isErr bool, message string, payload ...interf
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.raw.Logs = append(s.raw.Logs, &opentracing.RawLog{
+	s.raw.Logs = append(s.raw.Logs, &RawLog{
 		Timestamp: time.Now(),
 		Error:     isErr,
 		Message:   message,
@@ -175,13 +175,13 @@ func (s *standardTracer) startSpanGeneric(
 	span := &standardSpan{
 		tracer:   s,
 		recorder: s.recorder,
-		raw: opentracing.RawSpan{
+		raw: RawSpan{
 			TraceContext: childCtx,
 			Operation:    operationName,
 			Start:        time.Now(),
 			Duration:     -1,
 			Tags:         tags,
-			Logs:         []*opentracing.RawLog{},
+			Logs:         []*RawLog{},
 		},
 	}
 	return span

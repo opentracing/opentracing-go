@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/opentracing/api-golang/opentracing"
 	"github.com/opentracing/api-golang/opentracing/standardtracer"
 )
 
@@ -32,7 +31,7 @@ func (t *TrivialRecorder) SetTag(key string, val interface{}) standardtracer.Pro
 }
 
 // RecordSpan complies with the standardtracer.Recorder interface.
-func (t *TrivialRecorder) RecordSpan(span *opentracing.RawSpan) {
+func (t *TrivialRecorder) RecordSpan(span *standardtracer.RawSpan) {
 	fmt.Printf(
 		"RecordSpan: %v[%v, %v us] --> %v logs. trace context: %v\n",
 		span.Operation, span.Start, span.Duration, len(span.Logs),

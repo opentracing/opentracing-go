@@ -1,14 +1,14 @@
-package opentracing
+package standardtracer
 
-import "time"
+import (
+	"time"
 
-// Tags is a generic map from an arbitrary string key to an opaque value type.
-// The underlying tracing system is responsible for interpreting and serializing the values.
-type Tags map[string]interface{}
+	"github.com/opentracing/api-golang/opentracing"
+)
 
 // RawSpan encapsulates all state associated with a (finished) Span.
 type RawSpan struct {
-	TraceContext
+	opentracing.TraceContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span
 	// name" in some implementations)
@@ -21,7 +21,7 @@ type RawSpan struct {
 
 	// Essentially an extension mechanism. Can be used for many purposes,
 	// not to be enumerated here.
-	Tags Tags
+	Tags opentracing.Tags
 
 	// The span's "microlog".
 	Logs []*RawLog
@@ -46,13 +46,4 @@ type RawLog struct {
 	// `Payload` can be a POD type, a string, or nested maps and slices; i.e.,
 	// it is a base type or an anonymous struct.
 	Payload interface{}
-}
-
-// Merge incorporates the keys and values from `other` into this `Tags`
-// instance, then returns same.
-func (t Tags) Merge(other Tags) Tags {
-	for k, v := range other {
-		t[k] = v
-	}
-	return t
 }
