@@ -9,44 +9,38 @@ var (
 	// the other side/service in a peer-to-peer communications, like an RPC call.
 
 	// PeerService records the service name of the peer
-	PeerService = &stringTag{"peer.service"}
+	PeerService = stringTag("peer.service")
 
 	// PeerHostname records the host name of the peer
-	PeerHostname = &stringTag{"peer.hostname"}
+	PeerHostname = stringTag("peer.hostname")
 
 	// PeerHostIPv4 records IP v4 host address of the peer
-	PeerHostIPv4 = &uint32Tag{"peer.ipv4"}
+	PeerHostIPv4 = uint32Tag("peer.ipv4")
 
 	// PeerHostIPv6 records IP v6 host address of the peer
-	PeerHostIPv6 = &stringTag{"peer.ipv6"}
+	PeerHostIPv6 = stringTag("peer.ipv6")
 
 	// PeerPort records port number of the peer
-	PeerPort = &uint16Tag{"peer.port"}
+	PeerPort = uint16Tag("peer.port")
 )
 
-type stringTag struct {
-	Key string
-}
+type stringTag string
 
 // Add adds a string tag to the `span`
-func (tag *stringTag) Add(span opentracing.Span, value string) {
-	span.SetTag(tag.Key, value)
+func (tag stringTag) Add(span opentracing.Span, value string) {
+	span.SetTag(string(tag), value)
 }
 
-type uint32Tag struct {
-	Key string
-}
+type uint32Tag string
 
 // Add adds a uint32 tag to the `span`
-func (tag *uint32Tag) Add(span opentracing.Span, value uint32) {
-	span.SetTag(tag.Key, value)
+func (tag uint32Tag) Add(span opentracing.Span, value uint32) {
+	span.SetTag(string(tag), value)
 }
 
-type uint16Tag struct {
-	Key string
-}
+type uint16Tag string
 
 // Add adds a uint16 tag to the `span`
-func (tag *uint16Tag) Add(span opentracing.Span, value uint16) {
-	span.SetTag(tag.Key, value)
+func (tag uint16Tag) Add(span opentracing.Span, value uint16) {
+	span.SetTag(string(tag), value)
 }
