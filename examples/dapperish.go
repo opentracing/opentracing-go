@@ -66,7 +66,7 @@ func server() {
 			serverSpan.Error("body read error", err)
 		}
 		serverSpan.Info("got request with body: " + string(fullBody))
-		contextIDMap, tagsMap := opentracing.MarshalTraceContextStringMap(reqCtx)
+		contextIDMap, tagsMap := opentracing.TraceContextToText(reqCtx)
 		fmt.Fprintf(
 			w,
 			"Hello: %v // %v //  %q",

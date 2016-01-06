@@ -31,34 +31,31 @@ func JoinTrace(operationName string, parent interface{}) Span {
 	return globalTracer.JoinTrace(operationName, parent)
 }
 
-// MarshalTraceContextBinary defers to
-// `TraceContextMarshaler.MarshalTraceContextBinary`.
+// TraceContextToBinary defers to `TraceContextEncoder.TraceContextToBinary`.
 //
 // See `GlobalTracer()`.
-func MarshalTraceContextBinary(ctx TraceContext) ([]byte, []byte) {
-	return globalTracer.MarshalTraceContextBinary(ctx)
+func TraceContextToBinary(ctx TraceContext) ([]byte, []byte) {
+	return globalTracer.TraceContextToBinary(ctx)
 }
 
-// MarshalTraceContextStringMap defers to
-// `TraceContextMarshaler.MarshalTraceContextStringMap`.
+// TraceContextToText defers to `TraceContextEncoder.TraceContextToText`.
 //
 // See `GlobalTracer()`.
-func MarshalTraceContextStringMap(ctx TraceContext) (map[string]string, map[string]string) {
-	return globalTracer.MarshalTraceContextStringMap(ctx)
+func TraceContextToText(ctx TraceContext) (map[string]string, map[string]string) {
+	return globalTracer.TraceContextToText(ctx)
 }
 
-// UnmarshalTraceContextBinary defers to
-// `TraceContextUnmarshaler.UnmarshalTraceContextBinary`.
+// TraceContextFromBinary defers to
+// `TraceContextDecoder.TraceContextFromBinary`.
 //
 // See `GlobalTracer()`.
-func UnmarshalTraceContextBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
-	return globalTracer.UnmarshalTraceContextBinary(traceContextID, traceTags)
+func TraceContextFromBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
+	return globalTracer.TraceContextFromBinary(traceContextID, traceTags)
 }
 
-// UnmarshalTraceContextStringMap defers to
-// `TraceContextUnmarshaler.UnmarshaTraceContextStringMap`.
+// TraceContextFromText defers to `TraceContextDecoder.TraceContextFromText`.
 //
 // See `GlobalTracer()`.
-func UnmarshalTraceContextStringMap(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
-	return globalTracer.UnmarshalTraceContextStringMap(traceContextID, traceTags)
+func TraceContextFromText(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
+	return globalTracer.TraceContextFromText(traceContextID, traceTags)
 }

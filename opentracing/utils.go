@@ -16,14 +16,14 @@ const (
 	TagsHTTPHeaderPrefix = "Open-Tracing-Trace-Tags-"
 )
 
-// AddTraceContextToHeader marshals TraceContext `ctx` to `h` as a series of
+// AddTraceContextToHeader encodes TraceContext `ctx` to `h` as a series of
 // HTTP headers. Values are URL-escaped.
 func AddTraceContextToHeader(
 	ctx TraceContext,
 	h http.Header,
-	marshaler TraceContextMarshaler,
+	encoder TraceContextEncoder,
 ) {
-	contextIDMap, tagsMap := marshaler.MarshalTraceContextStringMap(ctx)
+	contextIDMap, tagsMap := encoder.TraceContextToText(ctx)
 	for headerSuffix, val := range contextIDMap {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
@@ -32,11 +32,11 @@ func AddTraceContextToHeader(
 	}
 }
 
-// TraceContextFromHeader unmarshals a TraceContext from `h`, expecting that
+// TraceContextFromHeader decodes a TraceContext from `h`, expecting that
 // header values are URL-escpaed.
 func TraceContextFromHeader(
 	h http.Header,
-	unmarshaler TraceContextUnmarshaler,
+	decoder TraceContextDecoder,
 ) (TraceContext, error) {
 	contextIDMap := make(map[string]string)
 	tagsMap := make(map[string]string)
@@ -58,5 +58,5 @@ func TraceContextFromHeader(
 		}
 
 	}
-	return unmarshaler.UnmarshalTraceContextStringMap(contextIDMap, tagsMap)
+	return decoder.TraceContextFromText(contextIDMap, tagsMap)
 }
