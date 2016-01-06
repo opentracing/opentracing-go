@@ -17,8 +17,8 @@ func (source *SimpleTraceContextSource) NewChildTraceContext(parent opentracing.
 	return nil, nil
 }
 
-// MarshalTraceContextBinary implements MarshalTraceContextBinary of opentracing.TraceContextSource.
-func (source *SimpleTraceContextSource) MarshalTraceContextBinary(
+// SimpleTraceContextSource implements opentracing.TraceContextEncoder.
+func (source *SimpleTraceContextSource) TraceContextToBinary(
 	tc opentracing.TraceContext,
 ) (
 	traceContextID []byte,
@@ -27,8 +27,8 @@ func (source *SimpleTraceContextSource) MarshalTraceContextBinary(
 	panic("Not implemented")
 }
 
-// MarshalTraceContextStringMap implements MarshalTraceContextStringMap of opentracing.TraceContextSource.
-func (source *SimpleTraceContextSource) MarshalTraceContextStringMap(
+// SimpleTraceContextSource implements opentracing.TraceContextEncoder.
+func (source *SimpleTraceContextSource) TraceContextToText(
 	tc opentracing.TraceContext,
 ) (
 	traceContextID map[string]string,
@@ -37,16 +37,16 @@ func (source *SimpleTraceContextSource) MarshalTraceContextStringMap(
 	panic("Not implemented")
 }
 
-// UnmarshalTraceContextBinary implements UnmarshalTraceContextBinary of opentracing.TraceContextSource.
-func (source *SimpleTraceContextSource) UnmarshalTraceContextBinary(
+// SimpleTraceContextSource implements opentracing.TraceContextDecoder.
+func (source *SimpleTraceContextSource) TraceContextFromBinary(
 	traceContextID []byte,
 	traceAttrs []byte,
 ) (opentracing.TraceContext, error) {
 	panic("Not implemented")
 }
 
-// UnmarshalTraceContextStringMap implements UnmarshalTraceContextStringMap of opentracing.TraceContextSource.
-func (source *SimpleTraceContextSource) UnmarshalTraceContextStringMap(
+// SimpleTraceContextSource implements opentracing.TraceContextDecoder.
+func (source *SimpleTraceContextSource) TraceContextFromText(
 	traceContextID map[string]string,
 	traceAttrs map[string]string,
 ) (opentracing.TraceContext, error) {

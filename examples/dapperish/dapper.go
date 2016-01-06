@@ -111,9 +111,9 @@ func (d *TraceContextSource) NewChildTraceContext(
 	}, opentracing.Tags{"parent_span_id": dParent.SpanID}
 }
 
-// MarshalTraceContextStringMap complies with the
-// opentracing.TraceContextSource interface.
-func (d *TraceContextSource) MarshalTraceContextStringMap(
+// TraceContextToText complies with the
+// opentracing.TraceContextEncoder interface.
+func (d *TraceContextSource) TraceContextToText(
 	ctx opentracing.TraceContext,
 ) (contextIDMap map[string]string, tagsMap map[string]string) {
 	dctx := ctx.(*TraceContext)
@@ -131,9 +131,9 @@ func (d *TraceContextSource) MarshalTraceContextStringMap(
 	return contextIDMap, tagsMap
 }
 
-// UnmarshalTraceContextStringMap complies with the
-// opentracing.TraceContextSource interface.
-func (d *TraceContextSource) UnmarshalTraceContextStringMap(
+// TraceContextFromText complies with the
+// opentracing.TraceContextDecoder interface.
+func (d *TraceContextSource) TraceContextFromText(
 	contextIDMap map[string]string,
 	tagsMap map[string]string,
 ) (opentracing.TraceContext, error) {
@@ -182,9 +182,9 @@ func (d *TraceContextSource) UnmarshalTraceContextStringMap(
 	}, nil
 }
 
-// MarshalTraceContextBinary complies with the opentracing.TraceContextSource
+// TraceContextToBinary complies with the opentracing.TraceContextEncoder
 // interface.
-func (d *TraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceContext) (contextID []byte, traceAttrs []byte) {
+func (d *TraceContextSource) TraceContextToBinary(ctx opentracing.TraceContext) (contextID []byte, traceAttrs []byte) {
 	dtc := ctx.(*TraceContext)
 	var err error
 	buf := new(bytes.Buffer)
@@ -204,13 +204,13 @@ func (d *TraceContextSource) MarshalTraceContextBinary(ctx opentracing.TraceCont
 	if err != nil {
 		panic(err)
 	}
-	// XXX: support tags
+	// XXX: support attributes
 	return buf.Bytes(), []byte{}
 }
 
-// UnmarshalTraceContextBinary complies with the opentracing.TraceContextSource
+// TraceContextFromBinary complies with the opentracing.TraceContextSource
 // interface.
-func (d *TraceContextSource) UnmarshalTraceContextBinary(
+func (d *TraceContextSource) TraceContextFromBinary(
 	contextID []byte,
 	traceAttrs []byte,
 ) (opentracing.TraceContext, error) {
@@ -231,7 +231,7 @@ func (d *TraceContextSource) UnmarshalTraceContextBinary(
 	if err != nil {
 		return nil, err
 	}
-	// XXX: support tags
+	// XXX: support attributes
 	return &TraceContext{
 		TraceID:    traceID,
 		SpanID:     spanID,
