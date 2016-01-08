@@ -21,10 +21,6 @@ type Span interface {
 	// If there is a pre-existing tag set for `key`, it is overwritten.
 	SetTag(key string, value interface{}) Span
 
-	// SetTags adds multiple tags to this Span instance. Equivalent to calling
-	// SetTag separately for each key:value pair.
-	SetTags(tags Tags) Span
-
 	// `Message` is a format string and can refer to fields in the payload by path, like so:
 	//
 	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
