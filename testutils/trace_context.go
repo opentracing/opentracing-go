@@ -1,7 +1,7 @@
 package testutils
 
 import (
-	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-go/opentracing"
 )
 
 // SimpleTraceContextSource is a dummy implementation of TraceContextSource.

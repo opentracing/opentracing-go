@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/opentracing/api-golang/opentracing"
-	"github.com/opentracing/api-golang/opentracing/standardtracer"
+	"github.com/opentracing/api-go/opentracing"
+	"github.com/opentracing/api-go/opentracing/standardtracer"
 )
 
 // NewTracer returns a new dapperish Tracer instance.
