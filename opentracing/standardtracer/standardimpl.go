@@ -41,16 +41,6 @@ func (s *standardSpan) SetTag(key string, value interface{}) opentracing.Span {
 	return s
 }
 
-func (s *standardSpan) SetTags(tags opentracing.Tags) opentracing.Span {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	for k, v := range tags {
-		s.raw.Tags[k] = v
-	}
-	return s
-}
-
 func (s *standardSpan) Info(message string, payload ...interface{}) {
 	s.internalLog(false, message, payload...)
 }

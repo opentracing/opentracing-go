@@ -33,7 +33,6 @@ func (n noopSpan) StartChild(operationName string) Span {
 	return defaultNoopSpan
 }
 func (n noopSpan) SetTag(key string, value interface{}) Span      { return n }
-func (n noopSpan) SetTags(tags Tags) Span                         { return n }
 func (n noopSpan) Info(message string, payload ...interface{})    {}
 func (n noopSpan) Warning(message string, payload ...interface{}) {}
 func (n noopSpan) Error(message string, payload ...interface{})   {}
