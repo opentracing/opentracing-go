@@ -3,10 +3,10 @@ package ext_test
 import (
 	"testing"
 
-	"github.com/opentracing/api-golang/opentracing/ext"
-	"github.com/opentracing/api-golang/opentracing/standardtracer"
-	"github.com/opentracing/api-golang/testutils"
-	"github.com/opentracing/api-golang/testutils/assert"
+	"github.com/opentracing/api-go/opentracing/ext"
+	"github.com/opentracing/api-go/opentracing/standardtracer"
+	"github.com/opentracing/api-go/testutils"
+	"github.com/opentracing/api-go/testutils/assert"
 )
 
 func TestPeerTags(t *testing.T) {

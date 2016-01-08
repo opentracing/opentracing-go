@@ -1,8 +1,9 @@
 package assert_test
 
 import (
-	"github.com/opentracing/api-golang/testutils/assert"
 	"testing"
+
+	"github.com/opentracing/api-go/testutils/assert"
 )
 
 func TestAssert(t *testing.T) {

@@ -1,7 +1,7 @@
 package ext
 
 import (
-	"github.com/opentracing/api-golang/opentracing"
+	"github.com/opentracing/api-go/opentracing"
 )
 
 var (

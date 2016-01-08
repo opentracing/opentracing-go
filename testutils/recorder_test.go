@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opentracing/api-golang/examples/dapperish"
-	"github.com/opentracing/api-golang/opentracing/standardtracer"
-	"github.com/opentracing/api-golang/testutils"
+	"github.com/opentracing/api-go/examples/dapperish"
+	"github.com/opentracing/api-go/opentracing/standardtracer"
+	"github.com/opentracing/api-go/testutils"
 )
 
 func TestInMemoryRecorderSpans(t *testing.T) {
