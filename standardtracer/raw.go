@@ -3,7 +3,7 @@ package standardtracer
 import (
 	"time"
 
-	"github.com/opentracing/api-go/opentracing"
+	"github.com/opentracing/opentracing-go"
 )
 
 // RawSpan encapsulates all state associated with a (finished) Span.

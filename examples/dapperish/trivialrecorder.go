@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/opentracing/api-go/opentracing/standardtracer"
+	"github.com/opentracing/opentracing-go/standardtracer"
 )
 
 // TrivialRecorder implements the standardtracer.Recorder interface.

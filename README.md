@@ -15,7 +15,7 @@ demonstrating some important use cases.
 
 The simplest starting point is `./default_tracer.go`. As early as possible, call
 
-    import ".../opentracing"
+    import ".../opentracing-go"
     
     func main() {
         procRecorder := some_tracing_impl.NewRecorder(...) // tracing impl specific

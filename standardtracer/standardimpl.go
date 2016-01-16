@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/api-go/opentracing"
+	"github.com/opentracing/opentracing-go"
 
 	"golang.org/x/net/context"
 )

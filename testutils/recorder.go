@@ -3,8 +3,8 @@ package testutils
 import (
 	"sync"
 
-	"github.com/opentracing/api-go/opentracing"
-	"github.com/opentracing/api-go/opentracing/standardtracer"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/standardtracer"
 )
 
 // InMemoryRecorder is a simple thread-safe implementation of
