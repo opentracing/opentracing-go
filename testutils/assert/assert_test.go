@@ -3,7 +3,7 @@ package assert_test
 import (
 	"testing"
 
-	"github.com/opentracing/api-go/testutils/assert"
+	"github.com/opentracing/opentracing-go/testutils/assert"
 )
 
 func TestAssert(t *testing.T) {
