@@ -1,6 +1,10 @@
 package opentracing
 
-import "golang.org/x/net/context"
+import (
+	"time"
+
+	"golang.org/x/net/context"
+)
 
 // Span represents an active, un-finished span in the opentracing system.
 //
@@ -21,22 +25,6 @@ type Span interface {
 	// If there is a pre-existing tag set for `key`, it is overwritten.
 	SetTag(key string, value interface{}) Span
 
-	// `Message` is a format string and can refer to fields in the payload by path, like so:
-	//
-	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
-	//
-	// , and the payload might look something like
-	//
-	//   map[string]interface{}{
-	//       transactions: map[string]interface{}[
-	//           {amount: 10, currency: "USD"},
-	//           {amount: 11, currency: "USD"},
-	//       ]}
-	Info(message string, payload ...interface{})
-
-	// Like Info(), but for errors.
-	Error(message string, payload ...interface{})
-
 	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
 	// internally.
 	//
@@ -46,6 +34,46 @@ type Span interface {
 
 	// Suitable for serializing over the wire, etc.
 	TraceContext() TraceContext
+
+	// Log() records `data` to this Span at `timestamp`.
+	//
+	// See LogData for semantic details.
+	Log(timestamp time.Time, data LogData)
+
+	// Info() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...)})
+	//
+	Info(args ...interface{})
+
+	// Infof() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...)})
+	//
+	Infof(format string, args ...interface{})
+
+	// Error() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...), IsError: true})
+	//
+	Error(args ...interface{})
+
+	// Errorf() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...), IsError: true})
+	//
+	Errorf(format string, args ...interface{})
+
+	// RecordEvent() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Event: event})
+	//
+	// if payload is unspecified; otherwise, only one payload argument is
+	// accepted, and RecordEvent() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Event: event, Payload: payload[0]})
+	//
+	RecordEvent(event string, payload ...interface{})
 
 	// A convenience method. Equivalent to
 	//
@@ -57,4 +85,33 @@ type Span interface {
 	// NOTE: We use the term "GoContext" to minimize confusion with
 	// TraceContext.
 	AddToGoContext(goCtx context.Context) (Span, context.Context)
+}
+
+// See Span.Log(). Every LogData instance should specify at least one of
+// Message, Event, or Payload.
+type LogData struct {
+	// Event (if non-empty) should be the stable name of some notable moment in
+	// the lifetime of a Span. For instance, a Span representing a browser page
+	// load might add an Event for each of the Performance.timing moments
+	// here: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming
+	//
+	// While it is not a formal requirement, Event strings will be most useful
+	// if they are *not* unique; rather, tracing systems should be able to use
+	// them to understand how two similar Spans relate from an internal timing
+	// perspective.
+	Event string
+
+	// Message (if non-empty) is a free-form debugging string, much in keeping
+	// with general practices around console-oriented logging of human-readable
+	// messages.
+	Message string
+
+	// IsError should be true if.f. the LogData represents an error state.
+	// IsError will typically be set only if Message is non-empty, though that
+	// is not a requirement.
+	IsError bool
+
+	// Payload is a free-form potentially structured object which Tracer
+	// implementations may retain and record all, none, or part of.
+	Payload interface{}
 }
