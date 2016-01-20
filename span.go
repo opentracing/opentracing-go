@@ -64,16 +64,16 @@ type Span interface {
 	//
 	Errorf(format string, args ...interface{})
 
-	// RecordEvent() is equivalent to
+	// Event() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event})
 	//
 	// if payload is unspecified; otherwise, only one payload argument is
-	// accepted, and RecordEvent() is equivalent to
+	// accepted, and Event() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event, Payload: payload[0]})
 	//
-	RecordEvent(event string, payload ...interface{})
+	Event(event string, payload ...interface{})
 
 	// A convenience method. Equivalent to
 	//
