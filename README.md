@@ -42,7 +42,7 @@ If you prefer direct control to singletons, manage ownership of the
         ...
         sp := opentracing.StartTrace("span_name")
         defer sp.Finish()
-                sp.Info("called xyz")
+        sp.Info("called xyz")
         ...
     }
 ```
@@ -54,7 +54,7 @@ If you prefer direct control to singletons, manage ownership of the
         ...
         sp := opentracing.JoinTrace("span_name", parentSpan)
         defer sp.Finish()
-                sp.Info("called xyz")
+        sp.Info("called xyz")
         ...
     }
 ```
@@ -69,7 +69,7 @@ associated with any `opentracing.Span` instance.
         ...
         sp, goCtx := opentracing.JoinTrace("span_name", goCtx).AddToGoContext(goCtx)
         defer sp.Finish()
-                sp.Info("called xyz")
+        sp.Info("called xyz")
         ...
     }
 ```
