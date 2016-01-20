@@ -54,13 +54,13 @@ type Span interface {
 
 	// Error() is equivalent to
 	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...), IsError: true})
+	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...), Severity: ERROR})
 	//
 	Error(args ...interface{})
 
 	// Errorf() is equivalent to
 	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...), IsError: true})
+	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...), Severity: ERROR})
 	//
 	Errorf(format string, args ...interface{})
 
@@ -106,12 +106,30 @@ type LogData struct {
 	// messages.
 	Message string
 
-	// IsError should be true if.f. the LogData represents an error state.
-	// IsError will typically be set only if Message is non-empty, though that
-	// is not a requirement.
-	IsError bool
+	// Severity will most often be non-V0 when `Message` is non-empty, but that
+	// is not a formal requirement.
+	Severity Severity
 
 	// Payload is a free-form potentially structured object which Tracer
 	// implementations may retain and record all, none, or part of.
+	//
+	// If included, `Payload` should be restricted to data derived from the
+	// instrumented application; in particular, it should not be used to pass
+	// semantic flags to a Log() implementation.
 	Payload interface{}
 }
+
+type Severity int
+
+const (
+	// V0-V4 are increasingly fine-grained info/debug severities.
+	V0 Severity = 0
+	V1          = iota
+	V2          = iota
+	V3          = iota
+	V4          = iota
+
+	// WARNING and ERROR are, well, warning and error severities. :)
+	WARNING = 8
+	ERROR   = 9
+)
