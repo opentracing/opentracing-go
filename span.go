@@ -122,14 +122,8 @@ type LogData struct {
 type Severity int
 
 const (
-	// V0-V4 are increasingly fine-grained info/debug severities.
-	V0 Severity = 0
-	V1          = iota
-	V2          = iota
-	V3          = iota
-	V4          = iota
-
-	// WARNING and ERROR are, well, warning and error severities. :)
-	WARNING = 8
-	ERROR   = 9
+	// Loosely modeled after https://github.com/google/glog/blob/v0.3.4/src/glog/log_severity.h#L47
+	INFO    = 0
+	WARNING = 1
+	ERROR   = 2
 )
