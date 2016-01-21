@@ -35,10 +35,10 @@ type Span interface {
 	// Suitable for serializing over the wire, etc.
 	TraceContext() TraceContext
 
-	// Log() records `data` to this Span at `timestamp`.
+	// Log() records `data` to this Span.
 	//
 	// See LogData for semantic details.
-	Log(timestamp time.Time, data LogData)
+	Log(data LogData)
 
 	// Info() is equivalent to
 	//
@@ -90,6 +90,10 @@ type Span interface {
 // See Span.Log(). Every LogData instance should specify at least one of
 // Message, Event, or Payload.
 type LogData struct {
+	// The timestamp of the log event; if set to the default value (the unix
+	// epoch), implementations should use time.Now() implicitly.
+	Timestamp time.Time
+
 	// Event (if non-empty) should be the stable name of some notable moment in
 	// the lifetime of a Span. For instance, a Span representing a browser page
 	// load might add an Event for each of the Performance.timing moments
