@@ -39,12 +39,13 @@ type Span interface {
 	//
 	//   Log(time.Now(), LogData{Event: event})
 	//
-	// if payload is unspecified; otherwise, only one payload argument is
-	// accepted, and Event() is equivalent to
+	LogEvent(event string)
+
+	// EventWithPayload() is equivalent to
 	//
-	//   Log(time.Now(), LogData{Event: event, Payload: payload[0]})
+	//   Log(time.Now(), LogData{Event: event, Payload: payload0})
 	//
-	Event(event string, payload ...interface{})
+	LogEventWithPayload(event string, payload interface{})
 
 	// Log() records `data` to this Span.
 	//
