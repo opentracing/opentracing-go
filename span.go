@@ -35,35 +35,6 @@ type Span interface {
 	// Suitable for serializing over the wire, etc.
 	TraceContext() TraceContext
 
-	// Log() records `data` to this Span.
-	//
-	// See LogData for semantic details.
-	Log(data LogData)
-
-	// Info() is equivalent to
-	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...)})
-	//
-	Info(args ...interface{})
-
-	// Infof() is equivalent to
-	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...)})
-	//
-	Infof(format string, args ...interface{})
-
-	// Error() is equivalent to
-	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprint(args...), Severity: ERROR})
-	//
-	Error(args ...interface{})
-
-	// Errorf() is equivalent to
-	//
-	//   Log(time.Now(), LogData{Message: fmt.Sprintf(format, args...), Severity: ERROR})
-	//
-	Errorf(format string, args ...interface{})
-
 	// Event() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event})
@@ -74,6 +45,11 @@ type Span interface {
 	//   Log(time.Now(), LogData{Event: event, Payload: payload[0]})
 	//
 	Event(event string, payload ...interface{})
+
+	// Log() records `data` to this Span.
+	//
+	// See LogData for semantic details.
+	Log(data LogData)
 
 	// A convenience method. Equivalent to
 	//
@@ -87,10 +63,10 @@ type Span interface {
 	AddToGoContext(goCtx context.Context) (Span, context.Context)
 }
 
-// See Span.Log(). Every LogData instance should specify at least one of
-// Message, Event, or Payload.
+// See Span.Log(). Every LogData instance should specify at least one of Event
+// and/or Payload.
 type LogData struct {
-	// The timestamp of the log event; if set to the default value (the unix
+	// The timestamp of the log record; if set to the default value (the unix
 	// epoch), implementations should use time.Now() implicitly.
 	Timestamp time.Time
 
@@ -105,15 +81,6 @@ type LogData struct {
 	// perspective.
 	Event string
 
-	// Message (if non-empty) is a free-form debugging string, much in keeping
-	// with general practices around console-oriented logging of human-readable
-	// messages.
-	Message string
-
-	// Severity will most often be non-V0 when `Message` is non-empty, but that
-	// is not a formal requirement.
-	Severity Severity
-
 	// Payload is a free-form potentially structured object which Tracer
 	// implementations may retain and record all, none, or part of.
 	//
@@ -122,12 +89,3 @@ type LogData struct {
 	// semantic flags to a Log() implementation.
 	Payload interface{}
 }
-
-type Severity int
-
-const (
-	// Loosely modeled after https://github.com/google/glog/blob/v0.3.4/src/glog/log_severity.h#L47
-	INFO    = 0
-	WARNING = 1
-	ERROR   = 2
-)
