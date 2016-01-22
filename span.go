@@ -35,13 +35,13 @@ type Span interface {
 	// Suitable for serializing over the wire, etc.
 	TraceContext() TraceContext
 
-	// Event() is equivalent to
+	// LogEvent() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event})
 	//
 	LogEvent(event string)
 
-	// EventWithPayload() is equivalent to
+	// LogEventWithPayload() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event, Payload: payload0})
 	//
@@ -88,5 +88,11 @@ type LogData struct {
 	// If included, `Payload` should be restricted to data derived from the
 	// instrumented application; in particular, it should not be used to pass
 	// semantic flags to a Log() implementation.
+	//
+	// For example, an RPC system could log the wire contents in both
+	// directions, or a SQL library could log the query (with or without
+	// parameter bindings); tracing implementations may truncate or otherwise
+	// record only a snippet of these payloads (or may strip out PII, etc,
+	// etc).
 	Payload interface{}
 }
