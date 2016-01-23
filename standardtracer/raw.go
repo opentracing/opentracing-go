@@ -8,7 +8,7 @@ import (
 
 // RawSpan encapsulates all state associated with a (finished) Span.
 type RawSpan struct {
-	opentracing.TraceContext
+	*StandardContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span
 	// name" in some implementations)

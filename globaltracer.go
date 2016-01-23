@@ -1,7 +1,7 @@
 package opentracing
 
 var (
-	globalTracer Tracer = noopTracer{noopTraceContextSource{}}
+	globalTracer Tracer = noopTracer{}
 )
 
 // InitGlobalTracer sets the [singleton] opentracing.Tracer returned by
@@ -31,6 +31,7 @@ func JoinTrace(operationName string, parent interface{}) Span {
 	return globalTracer.JoinTrace(operationName, parent)
 }
 
+/*
 // TraceContextToBinary defers to `TraceContextEncoder.TraceContextToBinary`.
 //
 // See `GlobalTracer()`.
@@ -59,3 +60,4 @@ func TraceContextFromBinary(traceContextID []byte, traceTags []byte) (TraceConte
 func TraceContextFromText(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
 	return globalTracer.TraceContextFromText(traceContextID, traceTags)
 }
+*/

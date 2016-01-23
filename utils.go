@@ -16,14 +16,14 @@ const (
 	TagsHTTPHeaderPrefix = "Open-Tracing-Trace-Tags-"
 )
 
-// AddTraceContextToHeader encodes TraceContext `ctx` to `h` as a series of
+// PropagateSpanInHeader encodes Span `ctx` to `h` as a series of
 // HTTP headers. Values are URL-escaped.
-func AddTraceContextToHeader(
-	ctx TraceContext,
+func PropagateSpanInHeader(
+	sp Span,
 	h http.Header,
-	encoder TraceContextEncoder,
+	encoder PropagationEncoder,
 ) {
-	contextIDMap, tagsMap := encoder.TraceContextToText(ctx)
+	contextIDMap, tagsMap := encoder.PropagateSpanAsText(sp)
 	for headerSuffix, val := range contextIDMap {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
@@ -34,10 +34,11 @@ func AddTraceContextToHeader(
 
 // TraceContextFromHeader decodes a TraceContext from `h`, expecting that
 // header values are URL-escpaed.
-func TraceContextFromHeader(
+func NewSpanFromHeader(
+	operationName string,
 	h http.Header,
-	decoder TraceContextDecoder,
-) (TraceContext, error) {
+	decoder PropagationDecoder,
+) (Span, error) {
 	contextIDMap := make(map[string]string)
 	tagsMap := make(map[string]string)
 	for key, val := range h {
@@ -56,7 +57,6 @@ func TraceContextFromHeader(
 			}
 			tagsMap[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
-
 	}
-	return decoder.TraceContextFromText(contextIDMap, tagsMap)
+	return decoder.NewSpanFromText(operationName, contextIDMap, tagsMap)
 }

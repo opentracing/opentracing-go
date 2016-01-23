@@ -33,9 +33,9 @@ func (t *TrivialRecorder) SetTag(key string, val interface{}) standardtracer.Pro
 // RecordSpan complies with the standardtracer.Recorder interface.
 func (t *TrivialRecorder) RecordSpan(span *standardtracer.RawSpan) {
 	fmt.Printf(
-		"RecordSpan: %v[%v, %v us] --> %v logs. trace context: %v\n",
+		"RecordSpan: %v[%v, %v us] --> %v logs. std context: %v\n",
 		span.Operation, span.Start, span.Duration, len(span.Logs),
-		span.TraceContext)
+		span.StandardContext)
 	for i, l := range span.Logs {
 		fmt.Printf(
 			"    log %v @ %v: %v --> %v\n", i, l.Timestamp, l.Event, reflect.TypeOf(l.Payload))

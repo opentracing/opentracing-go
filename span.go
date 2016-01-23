@@ -1,9 +1,9 @@
 package opentracing
 
 import (
+	"regexp"
+	"strings"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 // Span represents an active, un-finished span in the opentracing system.
@@ -32,9 +32,6 @@ type Span interface {
 	// otherwise leads to undefined behavior.
 	Finish()
 
-	// Suitable for serializing over the wire, etc.
-	TraceContext() TraceContext
-
 	// LogEvent() is equivalent to
 	//
 	//   Log(time.Now(), LogData{Event: event})
@@ -52,16 +49,65 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// A convenience method. Equivalent to
+	// SetTraceAttribute sets a key:value pair on this Span that also
+	// propagates to future Span children.
 	//
-	//    var goCtx context.Context = ...
-	//    var span Span = ...
-	//    goCtx := opentracing.GoContextWithSpan(ctx, span)
+	// SetTraceAttribute() enables powerful functionality given a full-stack
+	// opentracing integration (e.g., arbitrary application data from a mobile
+	// app can make it, transparently, all the way into the depths of a storage
+	// system), and with it some powerful costs: use this feature with care.
 	//
+	// IMPORTANT NOTE #1: SetTraceAttribute() will only propagate trace
+	// attributes to *future* children of the Span.
 	//
-	// NOTE: We use the term "GoContext" to minimize confusion with
-	// TraceContext.
-	AddToGoContext(goCtx context.Context) (Span, context.Context)
+	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
+	// value is copied into every local *and remote* child of this Span, and
+	// that can add up to a lot of network and cpu overhead.
+	//
+	// IMPORTANT NOTE #3: Trace attributes keys have a restricted format:
+	// implementations may wish to use them as HTTP header keys (or key
+	// suffixes), and of course HTTP headers are case insensitive.
+	//
+	// As such, `restrictedKey` MUST match the regular expression
+	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
+	// start with a letter or number, and the remaining characters must be
+	// letters, numbers, or hyphens. See CanonicalizeTraceAttributeKey(). If
+	// `restrictedKey` does not meet these criteria, SetTraceAttribute()
+	// results in undefined behavior.
+	//
+	// Returns a reference to this Span for chaining, etc.
+	SetTraceAttribute(restrictedKey, value string) Span
+
+	// Gets the value for a trace tag given its key. Returns the empty string
+	// if the value isn't found in this Span.
+	//
+	// See the `SetTraceAttribute` notes about `restrictedKey`.
+	TraceAttribute(restrictedKey string) string
+}
+
+// Tags are a generic map from an arbitrary string key to an opaque value type.
+// The underlying tracing system is responsible for interpreting and
+// serializing the values.
+type Tags map[string]interface{}
+
+// Merge incorporates the keys and values from `other` into this `Tags`
+// instance, then returns same.
+func (t Tags) Merge(other Tags) Tags {
+	for k, v := range other {
+		t[k] = v
+	}
+	return t
+}
+
+var regexTraceAttribute = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
+
+// CanonicalizeTraceAttributeKey returns the canonicalized version of trace tag
+// key `key`, and true if and only if the key was valid.
+func CanonicalizeTraceAttributeKey(key string) (string, bool) {
+	if !regexTraceAttribute.MatchString(key) {
+		return "", false
+	}
+	return strings.ToLower(key), true
 }
 
 // See Span.Log(). Every LogData instance should specify at least one of Event

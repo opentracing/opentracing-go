@@ -1,8 +1,13 @@
 package standardtracer
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"reflect"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,10 +18,34 @@ import (
 
 // New creates and returns a standard Tracer which defers to `recorder` and
 // `source` as appropriate.
-func New(recorder Recorder, source opentracing.TraceContextSource) opentracing.Tracer {
+func New(recorder Recorder) opentracing.Tracer {
 	return &standardTracer{
-		TraceContextSource: source,
-		recorder:           recorder,
+		recorder: recorder,
+	}
+}
+
+type StandardContext struct {
+	// A probabilistically unique identifier for a [multi-span] trace.
+	TraceID int64
+
+	// A probabilistically unique identifier for a span.
+	SpanID int64
+
+	// Whether the trace is sampled.
+	Sampled bool
+
+	// `tagLock` protects the `traceAttrs` map, which in turn supports
+	// `SetTraceAttribute` and `TraceAttribute`.
+	tagLock    sync.RWMutex
+	traceAttrs map[string]string
+}
+
+func NewRootStandardContext() *StandardContext {
+	return &StandardContext{
+		TraceID:    randomID(),
+		SpanID:     randomID(),
+		Sampled:    randomID()%64 == 0,
+		traceAttrs: make(map[string]string),
 	}
 }
 
@@ -29,8 +58,26 @@ type standardSpan struct {
 	raw      RawSpan
 }
 
+func newChildContext(
+	stdCtx *StandardContext,
+) (*StandardContext, opentracing.Tags) {
+	stdCtx.tagLock.RLock()
+	newTags := make(map[string]string, len(stdCtx.traceAttrs))
+	for k, v := range stdCtx.traceAttrs {
+		newTags[k] = v
+	}
+	stdCtx.tagLock.RUnlock()
+
+	return &StandardContext{
+		TraceID:    stdCtx.TraceID,
+		SpanID:     randomID(),
+		Sampled:    stdCtx.Sampled,
+		traceAttrs: newTags,
+	}, opentracing.Tags{"parent_span_id": stdCtx.SpanID}
+}
+
 func (s *standardSpan) StartChild(operationName string) opentracing.Span {
-	childCtx, childTags := s.tracer.NewChildTraceContext(s.raw.TraceContext)
+	childCtx, childTags := newChildContext(s.raw.StandardContext)
 	return s.tracer.startSpanGeneric(operationName, childCtx, childTags)
 }
 
@@ -73,20 +120,8 @@ func (s *standardSpan) Finish() {
 	s.recorder.RecordSpan(&s.raw)
 }
 
-func (s *standardSpan) TraceContext() opentracing.TraceContext {
-	// No need for a lock since s.raw.TraceContext is not modified after
-	// initialization.
-	return s.raw.TraceContext
-}
-
-func (s *standardSpan) AddToGoContext(ctx context.Context) (opentracing.Span, context.Context) {
-	return s, opentracing.GoContextWithSpan(ctx, s)
-}
-
 // Implements the `Tracer` interface.
 type standardTracer struct {
-	opentracing.TraceContextSource
-
 	recorder Recorder
 }
 
@@ -95,18 +130,7 @@ func (s *standardTracer) StartTrace(
 ) opentracing.Span {
 	return s.startSpanGeneric(
 		operationName,
-		s.NewRootTraceContext(),
-		nil,
-	)
-}
-
-func (s *standardTracer) StartSpanWithContext(
-	operationName string,
-	ctx opentracing.TraceContext,
-) opentracing.Span {
-	return s.startSpanGeneric(
-		operationName,
-		ctx,
+		NewRootStandardContext(),
 		nil,
 	)
 }
@@ -117,8 +141,8 @@ func (s *standardTracer) JoinTrace(
 ) opentracing.Span {
 	if goCtx, ok := parent.(context.Context); ok {
 		return s.startSpanWithGoContextParent(operationName, goCtx)
-	} else if traceCtx, ok := parent.(opentracing.TraceContext); ok {
-		return s.startSpanWithTraceContextParent(operationName, traceCtx)
+	} else if span, ok := parent.(opentracing.Span); ok {
+		return s.startSpanWithSpanParent(operationName, span)
 	} else {
 		panic(fmt.Errorf("Invalid parent type: %v", reflect.TypeOf(parent)))
 	}
@@ -129,7 +153,9 @@ func (s *standardTracer) startSpanWithGoContextParent(
 	parent context.Context,
 ) opentracing.Span {
 	if oldSpan := opentracing.SpanFromGoContext(parent); oldSpan != nil {
-		childCtx, tags := s.NewChildTraceContext(oldSpan.TraceContext())
+		// XXX: unchecked cast
+		stdSpan := oldSpan.(*standardSpan)
+		childCtx, tags := newChildContext(stdSpan.raw.StandardContext)
 		return s.startSpanGeneric(
 			operationName,
 			childCtx,
@@ -139,16 +165,16 @@ func (s *standardTracer) startSpanWithGoContextParent(
 
 	return s.startSpanGeneric(
 		operationName,
-		s.NewRootTraceContext(),
+		NewRootStandardContext(),
 		nil,
 	)
 }
 
-func (s *standardTracer) startSpanWithTraceContextParent(
+func (s *standardTracer) startSpanWithSpanParent(
 	operationName string,
-	parent opentracing.TraceContext,
+	parent opentracing.Span,
 ) opentracing.Span {
-	childCtx, tags := s.NewChildTraceContext(parent)
+	childCtx, tags := newChildContext(parent.(*standardSpan).raw.StandardContext)
 	return s.startSpanGeneric(
 		operationName,
 		childCtx,
@@ -159,7 +185,7 @@ func (s *standardTracer) startSpanWithTraceContextParent(
 // A helper for standardSpan creation.
 func (s *standardTracer) startSpanGeneric(
 	operationName string,
-	childCtx opentracing.TraceContext,
+	childCtx *StandardContext,
 	tags opentracing.Tags,
 ) opentracing.Span {
 	if tags == nil {
@@ -169,13 +195,195 @@ func (s *standardTracer) startSpanGeneric(
 		tracer:   s,
 		recorder: s.recorder,
 		raw: RawSpan{
-			TraceContext: childCtx,
-			Operation:    operationName,
-			Start:        time.Now(),
-			Duration:     -1,
-			Tags:         tags,
-			Logs:         []*opentracing.LogData{},
+			StandardContext: childCtx,
+			Operation:       operationName,
+			Start:           time.Now(),
+			Duration:        -1,
+			Tags:            tags,
+			Logs:            []*opentracing.LogData{},
 		},
 	}
 	return span
+}
+
+func (s *standardTracer) PropagateSpanAsText(
+	sp opentracing.Span,
+) (
+	contextIDMap map[string]string,
+	attrsMap map[string]string,
+) {
+	sc := sp.(*standardSpan).raw.StandardContext
+	contextIDMap = map[string]string{
+		fieldNameTraceID: strconv.FormatInt(sc.TraceID, 10),
+		fieldNameSpanID:  strconv.FormatInt(sc.SpanID, 10),
+		fieldNameSampled: strconv.FormatBool(sc.Sampled),
+	}
+	sc.tagLock.RLock()
+	attrsMap = make(map[string]string, len(sc.traceAttrs))
+	for k, v := range sc.traceAttrs {
+		attrsMap[k] = v
+	}
+	sc.tagLock.RUnlock()
+	return contextIDMap, attrsMap
+}
+
+func (s *standardTracer) PropagateSpanAsBinary(
+	sp opentracing.Span,
+) (
+	traceContextID []byte,
+	traceAttrs []byte,
+) {
+	sc := sp.(*standardSpan).raw.StandardContext
+	var err error
+	buf := new(bytes.Buffer)
+	err = binary.Write(buf, binary.BigEndian, sc.TraceID)
+	if err != nil {
+		panic(err)
+	}
+	err = binary.Write(buf, binary.BigEndian, sc.SpanID)
+	if err != nil {
+		panic(err)
+	}
+	var sampledByte byte
+	if sc.Sampled {
+		sampledByte = 1
+	}
+	err = binary.Write(buf, binary.BigEndian, sampledByte)
+	if err != nil {
+		panic(err)
+	}
+	// XXX: support attributes
+	return buf.Bytes(), []byte{}
+}
+
+func (s *standardTracer) NewSpanFromBinary(
+	operationName string,
+	traceContextID []byte,
+	traceAttrs []byte,
+) (opentracing.Span, error) {
+	var err error
+	reader := bytes.NewReader(traceContextID)
+	var traceID, spanID int64
+	var sampledByte byte
+
+	err = binary.Read(reader, binary.BigEndian, &traceID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Read(reader, binary.BigEndian, &spanID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Read(reader, binary.BigEndian, &sampledByte)
+	if err != nil {
+		return nil, err
+	}
+	// XXX: support attributes
+	return s.startSpanGeneric(
+			operationName,
+			&StandardContext{
+				TraceID:    traceID,
+				SpanID:     spanID,
+				Sampled:    sampledByte != 0,
+				traceAttrs: make(map[string]string),
+			},
+			opentracing.Tags{}),
+		nil
+}
+
+func (s *standardTracer) NewSpanFromText(
+	operationName string,
+	contextIDMap map[string]string,
+	tagsMap map[string]string,
+) (opentracing.Span, error) {
+	requiredFieldCount := 0
+	var traceID, spanID int64
+	var sampled bool
+	var err error
+	for k, v := range contextIDMap {
+		switch strings.ToLower(k) {
+		case fieldNameTraceID:
+			traceID, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSpanID:
+			spanID, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSampled:
+			sampled, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		default:
+			return nil, fmt.Errorf("Unknown contextIDMap field: %v", k)
+		}
+	}
+	if requiredFieldCount < 3 {
+		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
+	}
+
+	lowercaseTagsMap := make(map[string]string, len(tagsMap))
+	for k, v := range tagsMap {
+		lowercaseTagsMap[strings.ToLower(k)] = v
+	}
+
+	return s.startSpanGeneric(
+			operationName,
+			&StandardContext{
+				TraceID:    traceID,
+				SpanID:     spanID,
+				Sampled:    sampled,
+				traceAttrs: lowercaseTagsMap,
+			},
+			opentracing.Tags{}),
+		nil
+}
+
+const (
+	fieldNameTraceID = "traceid"
+	fieldNameSpanID  = "spanid"
+	fieldNameSampled = "sampled"
+)
+
+func (s *standardSpan) SetTraceAttribute(restrictedKey, val string) opentracing.Span {
+	canonicalKey, valid := opentracing.CanonicalizeTraceAttributeKey(restrictedKey)
+	if !valid {
+		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
+	}
+
+	s.raw.StandardContext.tagLock.Lock()
+	defer s.raw.StandardContext.tagLock.Unlock()
+
+	s.raw.StandardContext.traceAttrs[canonicalKey] = val
+	return s
+}
+
+func (s *standardSpan) TraceAttribute(restrictedKey string) string {
+	canonicalKey, valid := opentracing.CanonicalizeTraceAttributeKey(restrictedKey)
+	if !valid {
+		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
+	}
+
+	s.raw.StandardContext.tagLock.RLock()
+	defer s.raw.StandardContext.tagLock.RUnlock()
+
+	return s.raw.StandardContext.traceAttrs[canonicalKey]
+}
+
+var (
+	seededIDGen  = rand.New(rand.NewSource(time.Now().UnixNano()))
+	seededIDLock sync.Mutex
+)
+
+func randomID() int64 {
+	// The golang rand generators are *not* intrinsically thread-safe.
+	seededIDLock.Lock()
+	defer seededIDLock.Unlock()
+	return seededIDGen.Int63()
 }
