@@ -6,16 +6,22 @@ type contextKey int
 
 const activeSpanKey contextKey = iota
 
-// ContextWithSpan seturns a new `context.Context` that holds a reference to
+// ContextWithSpan returns a new `context.Context` that holds a reference to
 // the given `Span`.
-func ContextWithSpan(ctx context.Context, span Span) context.Context {
-	return context.WithValue(ctx, activeSpanKey, span)
+//
+// The second return value is simply the `span` passed in:
+// this can save some typing and is only provided as a convenience.
+func ContextWithSpan(ctx context.Context, span Span) (context.Context, Span) {
+	return context.WithValue(ctx, activeSpanKey, span), span
 }
 
 // BackgroundContextWithSpan is a convenience wrapper around
 // `ContextWithSpan(context.BackgroundContext(), ...)`.
-func BackgroundContextWithSpan(span Span) context.Context {
-	return context.WithValue(context.Background(), activeSpanKey, span)
+//
+// The second return value is simply the `span` passed in:
+// this can save some typing and is only provided as a convenience.
+func BackgroundContextWithSpan(span Span) (context.Context, Span) {
+	return context.WithValue(context.Background(), activeSpanKey, span), span
 }
 
 // SpanFromContext returns the `Span` previously associated with `ctx`, or

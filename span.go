@@ -83,6 +83,22 @@ type Span interface {
 	//
 	// See the `SetTraceAttribute` notes about `restrictedKey`.
 	TraceAttribute(restrictedKey string) string
+
+	// `Message` is a format string and can refer to fields in the payload by path, like so:
+	//
+	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
+	//
+	// , and the payload might look something like
+	//
+	//   map[string]interface{}{
+	//       transactions: map[string]interface{}[
+	//           {amount: 10, currency: "USD"},
+	//           {amount: 11, currency: "USD"},
+	//       ]}
+	Info(message string, payload ...interface{})
+
+	// Like Info(), but for errors.
+	Error(message string, payload ...interface{})
 }
 
 // Tags are a generic map from an arbitrary string key to an opaque value type.

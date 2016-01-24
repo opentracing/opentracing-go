@@ -17,8 +17,8 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span := opentracing.StartTrace("getInput")
-		ctx := opentracing.BackgroundContextWithSpan(span)
+		ctx, span := opentracing.BackgroundContextWithSpan(
+			opentracing.StartTrace("getInput"))
 		// Make sure that global trace tag propagation works.
 		span.SetTraceAttribute("User", os.Getenv("USER"))
 		span.LogEventWithPayload("ctx", ctx)
@@ -49,7 +49,7 @@ func client() {
 
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		serverSpan, err := opentracing.NewSpanFromHeader(
+		serverSpan, err := opentracing.JoinTraceFromHeader(
 			"serverSpan", req.Header, opentracing.GlobalTracer())
 		if err != nil {
 			panic(err)
