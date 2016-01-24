@@ -32,8 +32,8 @@ func PropagateSpanInHeader(
 	}
 }
 
-// TraceContextFromHeader decodes a TraceContext from `h`, expecting that
-// header values are URL-escpaed.
+// NewSpanFromHeader decodes a Span with operation name `operationName` from
+// `h`, expecting that header values are URL-escpaed.
 func NewSpanFromHeader(
 	operationName string,
 	h http.Header,

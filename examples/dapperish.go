@@ -18,7 +18,7 @@ func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		span := opentracing.StartTrace("getInput")
-		ctx := opentracing.BackgroundGoContextWithSpan(span)
+		ctx := opentracing.BackgroundContextWithSpan(span)
 		// Make sure that global trace tag propagation works.
 		span.SetTraceAttribute("User", os.Getenv("USER"))
 		span.LogEventWithPayload("ctx", ctx)

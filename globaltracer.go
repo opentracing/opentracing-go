@@ -31,33 +31,5 @@ func JoinTrace(operationName string, parent interface{}) Span {
 	return globalTracer.JoinTrace(operationName, parent)
 }
 
-/*
-// TraceContextToBinary defers to `TraceContextEncoder.TraceContextToBinary`.
-//
-// See `GlobalTracer()`.
-func TraceContextToBinary(ctx TraceContext) ([]byte, []byte) {
-	return globalTracer.TraceContextToBinary(ctx)
-}
-
-// TraceContextToText defers to `TraceContextEncoder.TraceContextToText`.
-//
-// See `GlobalTracer()`.
-func TraceContextToText(ctx TraceContext) (map[string]string, map[string]string) {
-	return globalTracer.TraceContextToText(ctx)
-}
-
-// TraceContextFromBinary defers to
-// `TraceContextDecoder.TraceContextFromBinary`.
-//
-// See `GlobalTracer()`.
-func TraceContextFromBinary(traceContextID []byte, traceTags []byte) (TraceContext, error) {
-	return globalTracer.TraceContextFromBinary(traceContextID, traceTags)
-}
-
-// TraceContextFromText defers to `TraceContextDecoder.TraceContextFromText`.
-//
-// See `GlobalTracer()`.
-func TraceContextFromText(traceContextID map[string]string, traceTags map[string]string) (TraceContext, error) {
-	return globalTracer.TraceContextFromText(traceContextID, traceTags)
-}
-*/
+// XXX: delegate the remainder of the Tracer interface, including
+// SpanPropagator.

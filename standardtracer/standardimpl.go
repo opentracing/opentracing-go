@@ -140,7 +140,7 @@ func (s *standardTracer) JoinTrace(
 	parent interface{},
 ) opentracing.Span {
 	if goCtx, ok := parent.(context.Context); ok {
-		return s.startSpanWithGoContextParent(operationName, goCtx)
+		return s.startSpanWithContextParent(operationName, goCtx)
 	} else if span, ok := parent.(opentracing.Span); ok {
 		return s.startSpanWithSpanParent(operationName, span)
 	} else {
@@ -148,11 +148,11 @@ func (s *standardTracer) JoinTrace(
 	}
 }
 
-func (s *standardTracer) startSpanWithGoContextParent(
+func (s *standardTracer) startSpanWithContextParent(
 	operationName string,
 	parent context.Context,
 ) opentracing.Span {
-	if oldSpan := opentracing.SpanFromGoContext(parent); oldSpan != nil {
+	if oldSpan := opentracing.SpanFromContext(parent); oldSpan != nil {
 		// XXX: unchecked cast
 		stdSpan := oldSpan.(*standardSpan)
 		childCtx, tags := newChildContext(stdSpan.raw.StandardContext)

@@ -27,6 +27,6 @@ type Tracer interface {
 	//
 	// The `parent` parameter can either be a `context.Context` or an
 	// `opentracing.Span`. In the former case, the implementation attempts to
-	// extract an `opentracing.Span` using `SpanFromGoContext()`.
+	// extract an `opentracing.Span` using `SpanFromContext()`.
 	JoinTrace(operationName string, parent interface{}) Span
 }
