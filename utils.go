@@ -21,9 +21,9 @@ const (
 func PropagateSpanInHeader(
 	sp Span,
 	h http.Header,
-	encoder PropagationEncoder,
+	propagator SpanPropagator,
 ) {
-	contextIDMap, tagsMap := encoder.PropagateSpanAsText(sp)
+	contextIDMap, tagsMap := propagator.PropagateSpanAsText(sp)
 	for headerSuffix, val := range contextIDMap {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
@@ -37,7 +37,7 @@ func PropagateSpanInHeader(
 func NewSpanFromHeader(
 	operationName string,
 	h http.Header,
-	decoder PropagationDecoder,
+	propagator SpanPropagator,
 ) (Span, error) {
 	contextIDMap := make(map[string]string)
 	tagsMap := make(map[string]string)
@@ -58,5 +58,5 @@ func NewSpanFromHeader(
 			tagsMap[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
-	return decoder.NewSpanFromText(operationName, contextIDMap, tagsMap)
+	return propagator.JoinTraceFromText(operationName, contextIDMap, tagsMap)
 }

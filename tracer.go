@@ -5,8 +5,7 @@ package opentracing
 // A straightforward implementation is available via the
 // `opentracing/standardtracer` package's `standardtracer.New()'.
 type Tracer interface {
-	PropagationEncoder
-	PropagationDecoder
+	SpanPropagator
 
 	// Create, start, and return a new Span with the given `operationName`, all
 	// without specifying a parent Span that can be used to incorporate the

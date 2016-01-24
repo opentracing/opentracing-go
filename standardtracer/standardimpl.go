@@ -256,7 +256,7 @@ func (s *standardTracer) PropagateSpanAsBinary(
 	return buf.Bytes(), []byte{}
 }
 
-func (s *standardTracer) NewSpanFromBinary(
+func (s *standardTracer) JoinTraceFromBinary(
 	operationName string,
 	traceContextID []byte,
 	traceAttrs []byte,
@@ -291,7 +291,7 @@ func (s *standardTracer) NewSpanFromBinary(
 		nil
 }
 
-func (s *standardTracer) NewSpanFromText(
+func (s *standardTracer) JoinTraceFromText(
 	operationName string,
 	contextIDMap map[string]string,
 	tagsMap map[string]string,

@@ -1,16 +1,16 @@
 package opentracing
 
-// PropagationEncoder is a simple interface to encode a Span *for propagation*
-// as a binary byte array or a string-to-string text map.
+// SpanPropagator is an interface both to encode a Span *for propagation* (in-band
+// with application data) and to join back to that trace given the encoded
+// data. There are two supported encodings: binary byte arrays and
+// string-to-string text maps.
 //
-// The encoder should only represent state from the Span that needs to cross
-// process boundaries: e.g., a unique id for the larger distributed trace, a
-// unique id for the span itself, and any trace annotations (per
-// Span.SetTraceAttribute).
-//
-// The encoded form of a propagate span is divided into two components: the
-// core identifying information for the Span and any trace attributes.
-type PropagationEncoder interface {
+// The encoded form of a propagated span is divided into two components: the
+// core identifying information for the Span and any trace attributes. (These
+// are separated for a variety of reasons, though the most important is to
+// allow OpenTracing users to opt out of trace attribute propagation entirely
+// if they deem it a stability risk)
+type SpanPropagator interface {
 	// Represents the Span for propagation as encoded binary data (see
 	// PropagationDecoder.NewSpanFromBinary()).
 	//
@@ -41,11 +41,7 @@ type PropagationEncoder interface {
 		traceContextID map[string]string,
 		traceAttrs map[string]string,
 	)
-}
 
-// PropagationDecoder is a simple interface to decode a binary byte
-// array or a string-to-string text map into a TraceContext.
-type PropagationDecoder interface {
 	// Converts the encoded binary data (see
 	// PropagationEncoder.TraceContextToBinary()) into a TraceContext.
 	//
@@ -55,7 +51,7 @@ type PropagationDecoder interface {
 	// The second parameter contains the encoder's serialization of the trace
 	// attributes (per `SetTraceAttribute` and `TraceAttribute`) attached to a
 	// TraceContext instance.
-	NewSpanFromBinary(
+	JoinTraceFromBinary(
 		operationName string,
 		traceContextID []byte,
 		traceAttrs []byte,
@@ -74,7 +70,7 @@ type PropagationDecoder interface {
 	// It's permissible to pass the same map to both parameters (e.g., an HTTP
 	// request headers map): the implementation should only decode the subset
 	// it's interested in.
-	NewSpanFromText(
+	JoinTraceFromText(
 		operationName string,
 		traceContextID map[string]string,
 		traceAttrs map[string]string,

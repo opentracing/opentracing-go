@@ -34,14 +34,14 @@ func (n noopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {
 func (n noopTracer) PropagateSpanAsText(tcid Span) (map[string]string, map[string]string) {
 	return emptyStringMap, emptyStringMap
 }
-func (n noopTracer) NewSpanFromBinary(
+func (n noopTracer) JoinTraceFromBinary(
 	op string,
 	traceContextID []byte,
 	traceAttrs []byte,
 ) (Span, error) {
 	return defaultNoopSpan, nil
 }
-func (n noopTracer) NewSpanFromText(
+func (n noopTracer) JoinTraceFromText(
 	op string,
 	traceContextID map[string]string,
 	traceAttrs map[string]string,
