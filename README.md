@@ -79,13 +79,13 @@ associated with any `opentracing.Span` instance.
 
 ```go
     func makeSomeRequest(ctx context.Context) ... {
-        if span := opentracing.SpanFromGoContext(ctx); span != nil {
+        if span := opentracing.SpanFromContext(ctx); span != nil {
             httpClient := &http.Client{}
             httpReq, _ := http.NewRequest("GET", "http://myservice/", nil)
 
             // Transmit the span's TraceContext as an HTTP header on our
             // outbound request.
-            opentracing.PropagateSpanInHeader(
+            opentracing.GlobalTracer().PropagateSpanInHeader(
                 span,
                 httpReq.Header,
                 opentracing.DefaultTracer())
@@ -101,14 +101,14 @@ associated with any `opentracing.Span` instance.
 
 ```go
     http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		// Join the trace in the HTTP header using the opentracing helper.
-        serverSpan, err := opentracing.JoinTraceFromHeader(
+        // Join the trace in the HTTP header using the opentracing helper.
+        serverSpan, err := opentracing.GlobalTracer().JoinTraceFromHeader(
                 "serverSpan", req.Header, opentracing.GlobalTracer())
         if err != nil {
             serverSpan = opentracing.StartTrace("serverSpan")
         }
         var goCtx context.Context = ...
-		goCtx, _ = opentracing.ContextWithSpan(goCtx, serverSpan)
+        goCtx, _ = opentracing.ContextWithSpan(goCtx, serverSpan)
         defer serverSpan.Finish()
         ...
     }
@@ -121,16 +121,4 @@ synchronization.
 
 ## API pointers for those implementing a tracing system
 
-XXX: rewrite this.
-
-> There should be no need for most tracing system implementors to worry about the
-> `opentracing.Span` or `opentracing.Tracer` interfaces directly:
-> `standardtracer.New(...)` should work well enough in most circumstances.
-> 
-> In order to integrate with `standardtracer`, tracing system authors are
-> expected to provide implementations of:
-> - `opentracing.TraceContext`
-> - `opentracing.TraceContextSource`
-> - `standardtracer.Recorder`
-> 
-> For a small working example, see `../examples/dapperish/*.go`.
+Tracing system implementors may be able to reuse or copy-paste-modify the `./standardtracer` package. In particular, see `standardtracer.New(...)`.

@@ -13,8 +13,8 @@ func TestPeerTags(t *testing.T) {
 	if ext.PeerService != "peer.service" {
 		t.Fatalf("Invalid PeerService %v", ext.PeerService)
 	}
-	recorder := testutils.NewInMemoryRecorder("test-process")
-	tracer := standardtracer.New(recorder, &testutils.SimpleTraceContextSource{})
+	recorder := testutils.NewInMemoryRecorder()
+	tracer := standardtracer.New(recorder)
 	span := tracer.StartTrace("my-trace")
 	ext.PeerService.Add(span, "my-service")
 	ext.PeerHostname.Add(span, "my-hostname")

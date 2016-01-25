@@ -25,6 +25,3 @@ func GlobalTracer() Tracer {
 func StartTrace(operationName string) Span {
 	return globalTracer.StartTrace(operationName)
 }
-
-// XXX: delegate the remainder of the Tracer interface, including
-// SpanPropagator.
