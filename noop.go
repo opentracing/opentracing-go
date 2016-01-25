@@ -26,6 +26,7 @@ func (n noopSpan) TraceAttribute(key string) string                      { retur
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
+func (n noopSpan) SetOperationName(operationName string) Span            { return n }
 
 // noopTracer:
 func (n noopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {

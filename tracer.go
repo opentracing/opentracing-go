@@ -9,7 +9,8 @@ type Tracer interface {
 
 	// Create, start, and return a new Span with the given `operationName`, all
 	// without specifying a parent Span that can be used to incorporate the
-	// newly-returned Span into an existing trace.
+	// newly-returned Span into an existing trace. (I.e., the returned Span is
+	// the "root" of its trace).
 	//
 	// Examples:
 	//
@@ -22,11 +23,4 @@ type Tracer interface {
 	//         SetTag("lucky_number", 42)
 	//
 	StartTrace(operationName string) Span
-
-	// Like `StartTrace`, but the returned `Span` is made a child of `parent`.
-	//
-	// The `parent` parameter can either be a `context.Context` or an
-	// `opentracing.Span`. In the former case, the implementation attempts to
-	// extract an `opentracing.Span` using `SpanFromContext()`.
-	JoinTrace(operationName string, parent interface{}) Span
 }

@@ -57,6 +57,9 @@ type SpanPropagator interface {
 	// JoinTraceFromBinary starts a new Span with the given `operationName`
 	// that's joined to the Span that was binary-encoded as traceContextID and
 	// traceAttrs (see SpanPropagator.PropagateSpanAsBinary()).
+	//
+	// If `operationName` is empty, the caller must later call
+	// `Span.SetOperationName` on the returned `Span`.
 	JoinTraceFromBinary(
 		operationName string,
 		traceContextID []byte,
@@ -66,6 +69,9 @@ type SpanPropagator interface {
 	// JoinTraceFromBinary starts a new Span with the given `operationName`
 	// that's joined to the Span that was text-encoded as traceContextID and
 	// traceAttrs (see SpanPropagator.PropagateSpanAsBinary()).
+	//
+	// If `operationName` is empty, the caller must later call
+	// `Span.SetOperationName` on the returned `Span`.
 	//
 	// It's permissible to pass the same map to both parameters (e.g., an HTTP
 	// request headers map): the implementation should only decode the subset

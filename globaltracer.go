@@ -26,10 +26,5 @@ func StartTrace(operationName string) Span {
 	return globalTracer.StartTrace(operationName)
 }
 
-// JoinTrace defers to `Tracer.JoinTrace`. See `GlobalTracer()`.
-func JoinTrace(operationName string, parent interface{}) Span {
-	return globalTracer.JoinTrace(operationName, parent)
-}
-
 // XXX: delegate the remainder of the Tracer interface, including
 // SpanPropagator.

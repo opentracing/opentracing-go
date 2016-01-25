@@ -81,6 +81,13 @@ func (s *standardSpan) StartChild(operationName string) opentracing.Span {
 	return s.tracer.startSpanGeneric(operationName, childCtx, childTags)
 }
 
+func (s *standardSpan) SetOperationName(operationName string) opentracing.Span {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.raw.Operation = operationName
+	return s
+}
+
 func (s *standardSpan) SetTag(key string, value interface{}) opentracing.Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()

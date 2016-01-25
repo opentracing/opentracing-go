@@ -34,6 +34,9 @@ func PropagateSpanInHeader(
 
 // NewSpanFromHeader decodes a Span with operation name `operationName` from
 // `h`, expecting that header values are URL-escpaed.
+//
+// If `operationName` is empty, the caller must later call
+// `Span.SetOperationName` on the returned `Span`.
 func JoinTraceFromHeader(
 	operationName string,
 	h http.Header,

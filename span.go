@@ -10,6 +10,9 @@ import (
 //
 // Spans are created by the Tracer interface and Span.StartChild.
 type Span interface {
+	// Sets or changes the operation name.
+	SetOperationName(operationName string) Span
+
 	// Creates and starts a child span.
 	StartChild(operationName string) Span
 
