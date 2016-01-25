@@ -8,6 +8,8 @@ import (
 
 // RawSpan encapsulates all state associated with a (finished) Span.
 type RawSpan struct {
+	// The RawSpan embeds its StandardContext. Those recording the RawSpan
+	// should also record the contents of its StandardContext.
 	*StandardContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span

@@ -9,11 +9,11 @@ import (
 )
 
 // Implements the `Span` interface. Created via tracerImpl (see
-// `NewStandardTracer()`).
+// `standardtracer.New()`).
 type spanImpl struct {
 	lock     sync.Mutex
 	tracer   *tracerImpl
-	recorder Recorder
+	recorder SpanRecorder
 	raw      RawSpan
 }
 

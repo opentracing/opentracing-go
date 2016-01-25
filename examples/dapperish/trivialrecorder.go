@@ -21,11 +21,9 @@ func NewTrivialRecorder(processName string) *TrivialRecorder {
 	}
 }
 
-// ProcessName complies with the standardtracer.ProcessIdentifier interface.
 func (t *TrivialRecorder) ProcessName() string { return t.processName }
 
-// SetTag complies with the standardtracer.ProcessIdentifier interface.
-func (t *TrivialRecorder) SetTag(key string, val interface{}) standardtracer.ProcessIdentifier {
+func (t *TrivialRecorder) SetTag(key string, val interface{}) *TrivialRecorder {
 	t.tags[key] = fmt.Sprint(val)
 	return t
 }

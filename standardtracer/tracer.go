@@ -6,9 +6,9 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
-// New creates and returns a standard Tracer which defers to `recorder` and
-// `source` as appropriate.
-func New(recorder Recorder) opentracing.Tracer {
+// New creates and returns a standard Tracer which defers to `recorder` after
+// RawSpans have been assembled.
+func New(recorder SpanRecorder) opentracing.Tracer {
 	return &tracerImpl{
 		recorder: recorder,
 	}
@@ -16,7 +16,7 @@ func New(recorder Recorder) opentracing.Tracer {
 
 // Implements the `Tracer` interface.
 type tracerImpl struct {
-	recorder Recorder
+	recorder SpanRecorder
 }
 
 func (s *tracerImpl) StartTrace(
