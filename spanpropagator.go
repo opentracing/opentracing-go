@@ -27,48 +27,48 @@ type SpanPropagator interface {
 	// Represents the Span for propagation as opaque binary data (see
 	// JoinTraceFromBinary()).
 	//
-	// The first return value must represent the SpanPropagator's encoding of
-	// the core identifying information in `sp`.
+	// The first return value (contextSnapshot) must represent the
+	// SpanPropagator's encoding of the core identifying information in `sp`.
 	//
-	// The second return value must represent the SpanPropagator's encoding of
-	// trace attributes, per `Span.SetTraceAttribute`.
+	// The second return value (traceAttrs) must represent the SpanPropagator's
+	// encoding of trace attributes, per `Span.SetTraceAttribute`.
 	PropagateSpanAsBinary(
 		sp Span,
 	) (
-		traceContextID []byte,
+		contextSnapshot []byte,
 		traceAttrs []byte,
 	)
 
 	// Represents the Span for propagation as string:string text maps (see
 	// JoinTraceFromText()).
 	//
-	// The first return value must represent the SpanPropagator's encoding of
-	// the core identifying information in `sp`.
+	// The first return value (contextSnapshot) must represent the
+	// SpanPropagator's encoding of the core identifying information in `sp`.
 	//
-	// The second return value must represent the SpanPropagator's encoding of
-	// trace attributes, per `Span.SetTraceAttribute`.
+	// The second return value (traceAttrs) must represent the SpanPropagator's
+	// encoding of trace attributes, per `Span.SetTraceAttribute`.
 	PropagateSpanAsText(
 		sp Span,
 	) (
-		traceContextID map[string]string,
+		contextSnapshot map[string]string,
 		traceAttrs map[string]string,
 	)
 
 	// JoinTraceFromBinary starts a new Span with the given `operationName`
-	// that's joined to the Span that was binary-encoded as traceContextID and
-	// traceAttrs (see SpanPropagator.PropagateSpanAsBinary()).
+	// that's joined to the Span that was binary-encoded as `contextSnapshot` and
+	// `traceAttrs` (see SpanPropagator.PropagateSpanAsBinary()).
 	//
 	// If `operationName` is empty, the caller must later call
 	// `Span.SetOperationName` on the returned `Span`.
 	JoinTraceFromBinary(
 		operationName string,
-		traceContextID []byte,
+		contextSnapshot []byte,
 		traceAttrs []byte,
 	) (Span, error)
 
 	// JoinTraceFromBinary starts a new Span with the given `operationName`
-	// that's joined to the Span that was text-encoded as traceContextID and
-	// traceAttrs (see SpanPropagator.PropagateSpanAsBinary()).
+	// that's joined to the Span that was text-encoded as `contextSnapshot` and
+	// `traceAttrs` (see SpanPropagator.PropagateSpanAsBinary()).
 	//
 	// If `operationName` is empty, the caller must later call
 	// `Span.SetOperationName` on the returned `Span`.
@@ -78,7 +78,7 @@ type SpanPropagator interface {
 	// of keys it's interested in.
 	JoinTraceFromText(
 		operationName string,
-		traceContextID map[string]string,
+		contextSnapshot map[string]string,
 		traceAttrs map[string]string,
 	) (Span, error)
 }
