@@ -37,13 +37,13 @@ type Span interface {
 
 	// LogEvent() is equivalent to
 	//
-	//   Log(time.Now(), LogData{Event: event})
+	//   Log(LogData{Event: event})
 	//
 	LogEvent(event string)
 
 	// LogEventWithPayload() is equivalent to
 	//
-	//   Log(time.Now(), LogData{Event: event, Payload: payload0})
+	//   Log(LogData{Event: event, Payload: payload0})
 	//
 	LogEventWithPayload(event string, payload interface{})
 
