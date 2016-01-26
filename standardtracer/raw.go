@@ -24,26 +24,5 @@ type RawSpan struct {
 	Tags opentracing.Tags
 
 	// The span's "microlog".
-	Logs []*RawLog
-}
-
-// RawLog encapsolutes all state associated with a log element in a Span.
-type RawLog struct {
-	Timestamp time.Time
-
-	// Self-explanatory :)
-	Error bool
-
-	// `Message` is a format string and can refer to fields in the payload by path, like so:
-	//
-	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
-	//
-	// , and the payload might look something like
-	//
-	//   {transactions: [{amount: 10, currency: "USD"}, {amount: 11, currency: "USD"}]}
-	Message string
-
-	// `Payload` can be a POD type, a string, or nested maps and slices; i.e.,
-	// it is a base type or an anonymous struct.
-	Payload interface{}
+	Logs []*opentracing.LogData
 }

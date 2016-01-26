@@ -23,7 +23,7 @@ func client() {
 		ctx := opentracing.BackgroundGoContextWithSpan(span)
 		// Make sure that global trace tag propagation works.
 		span.TraceContext().SetTraceAttribute("User", os.Getenv("USER"))
-		span.Info("ctx: ", ctx)
+		span.LogEventWithPayload("ctx", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
 		text = strings.TrimSpace(text)
@@ -32,7 +32,7 @@ func client() {
 			os.Exit(0)
 		}
 
-		span.Info(text)
+		span.LogEvent(text)
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
@@ -40,9 +40,9 @@ func client() {
 			span.TraceContext(), httpReq.Header, opentracing.GlobalTracer())
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
-			span.Error("error: ", err)
+			span.LogEventWithPayload("error", err)
 		} else {
-			span.Info("got response: ", resp)
+			span.LogEventWithPayload("got response", resp)
 		}
 
 		span.Finish()
@@ -63,9 +63,9 @@ func server() {
 		defer serverSpan.Finish()
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			serverSpan.Error("body read error", err)
+			serverSpan.LogEventWithPayload("body read error", err)
 		}
-		serverSpan.Info("got request with body: " + string(fullBody))
+		serverSpan.LogEventWithPayload("got request with body", string(fullBody))
 		contextIDMap, tagsMap := opentracing.TraceContextToText(reqCtx)
 		fmt.Fprintf(
 			w,

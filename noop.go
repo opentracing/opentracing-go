@@ -32,15 +32,15 @@ func (n noopTraceContext) TraceAttribute(key string) string               { retu
 func (n noopSpan) StartChild(operationName string) Span {
 	return defaultNoopSpan
 }
-func (n noopSpan) SetTag(key string, value interface{}) Span      { return n }
-func (n noopSpan) Info(message string, payload ...interface{})    {}
-func (n noopSpan) Warning(message string, payload ...interface{}) {}
-func (n noopSpan) Error(message string, payload ...interface{})   {}
-func (n noopSpan) Finish()                                        {}
-func (n noopSpan) TraceContext() TraceContext                     { return defaultNoopTraceContext }
+func (n noopSpan) SetTag(key string, value interface{}) Span { return n }
+func (n noopSpan) Finish()                                   {}
+func (n noopSpan) TraceContext() TraceContext                { return defaultNoopTraceContext }
 func (n noopSpan) AddToGoContext(ctx context.Context) (Span, context.Context) {
 	return n, GoContextWithSpan(ctx, n)
 }
+func (n noopSpan) LogEvent(event string)                                 {}
+func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
+func (n noopSpan) Log(data LogData)                                      {}
 
 // noopTraceContextSource:
 func (n noopTraceContextSource) TraceContextToBinary(tcid TraceContext) ([]byte, []byte) {
