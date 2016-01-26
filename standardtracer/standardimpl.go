@@ -41,24 +41,27 @@ func (s *standardSpan) SetTag(key string, value interface{}) opentracing.Span {
 	return s
 }
 
-func (s *standardSpan) Info(message string, payload ...interface{}) {
-	s.internalLog(false, message, payload...)
+func (s *standardSpan) LogEvent(event string) {
+	s.Log(opentracing.LogData{
+		Event: event,
+	})
 }
 
-func (s *standardSpan) Error(message string, payload ...interface{}) {
-	s.internalLog(true, message, payload...)
+func (s *standardSpan) LogEventWithPayload(event string, payload interface{}) {
+	s.Log(opentracing.LogData{
+		Event:   event,
+		Payload: payload,
+	})
 }
 
-func (s *standardSpan) internalLog(isErr bool, message string, payload ...interface{}) {
+func (s *standardSpan) Log(ld opentracing.LogData) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.raw.Logs = append(s.raw.Logs, &RawLog{
-		Timestamp: time.Now(),
-		Error:     isErr,
-		Message:   message,
-		Payload:   payload,
-	})
+	if ld.Timestamp.IsZero() {
+		ld.Timestamp = time.Now()
+	}
+	s.raw.Logs = append(s.raw.Logs, &ld)
 }
 
 func (s *standardSpan) Finish() {
@@ -171,7 +174,7 @@ func (s *standardTracer) startSpanGeneric(
 			Start:        time.Now(),
 			Duration:     -1,
 			Tags:         tags,
-			Logs:         []*RawLog{},
+			Logs:         []*opentracing.LogData{},
 		},
 	}
 	return span

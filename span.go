@@ -1,6 +1,10 @@
 package opentracing
 
-import "golang.org/x/net/context"
+import (
+	"time"
+
+	"golang.org/x/net/context"
+)
 
 // Span represents an active, un-finished span in the opentracing system.
 //
@@ -21,22 +25,6 @@ type Span interface {
 	// If there is a pre-existing tag set for `key`, it is overwritten.
 	SetTag(key string, value interface{}) Span
 
-	// `Message` is a format string and can refer to fields in the payload by path, like so:
-	//
-	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
-	//
-	// , and the payload might look something like
-	//
-	//   map[string]interface{}{
-	//       transactions: map[string]interface{}[
-	//           {amount: 10, currency: "USD"},
-	//           {amount: 11, currency: "USD"},
-	//       ]}
-	Info(message string, payload ...interface{})
-
-	// Like Info(), but for errors.
-	Error(message string, payload ...interface{})
-
 	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
 	// internally.
 	//
@@ -46,6 +34,23 @@ type Span interface {
 
 	// Suitable for serializing over the wire, etc.
 	TraceContext() TraceContext
+
+	// LogEvent() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Event: event})
+	//
+	LogEvent(event string)
+
+	// LogEventWithPayload() is equivalent to
+	//
+	//   Log(time.Now(), LogData{Event: event, Payload: payload0})
+	//
+	LogEventWithPayload(event string, payload interface{})
+
+	// Log() records `data` to this Span.
+	//
+	// See LogData for semantic details.
+	Log(data LogData)
 
 	// A convenience method. Equivalent to
 	//
@@ -57,4 +62,37 @@ type Span interface {
 	// NOTE: We use the term "GoContext" to minimize confusion with
 	// TraceContext.
 	AddToGoContext(goCtx context.Context) (Span, context.Context)
+}
+
+// See Span.Log(). Every LogData instance should specify at least one of Event
+// and/or Payload.
+type LogData struct {
+	// The timestamp of the log record; if set to the default value (the unix
+	// epoch), implementations should use time.Now() implicitly.
+	Timestamp time.Time
+
+	// Event (if non-empty) should be the stable name of some notable moment in
+	// the lifetime of a Span. For instance, a Span representing a browser page
+	// load might add an Event for each of the Performance.timing moments
+	// here: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming
+	//
+	// While it is not a formal requirement, Event strings will be most useful
+	// if they are *not* unique; rather, tracing systems should be able to use
+	// them to understand how two similar Spans relate from an internal timing
+	// perspective.
+	Event string
+
+	// Payload is a free-form potentially structured object which Tracer
+	// implementations may retain and record all, none, or part of.
+	//
+	// If included, `Payload` should be restricted to data derived from the
+	// instrumented application; in particular, it should not be used to pass
+	// semantic flags to a Log() implementation.
+	//
+	// For example, an RPC system could log the wire contents in both
+	// directions, or a SQL library could log the query (with or without
+	// parameter bindings); tracing implementations may truncate or otherwise
+	// record only a snippet of these payloads (or may strip out PII, etc,
+	// etc).
+	Payload interface{}
 }

@@ -38,6 +38,6 @@ func (t *TrivialRecorder) RecordSpan(span *standardtracer.RawSpan) {
 		span.TraceContext)
 	for i, l := range span.Logs {
 		fmt.Printf(
-			"    log %v: %v --> %v\n", i, l.Message, reflect.TypeOf(l.Payload))
+			"    log %v @ %v: %v --> %v\n", i, l.Timestamp, l.Event, reflect.TypeOf(l.Payload))
 	}
 }
