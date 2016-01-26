@@ -53,7 +53,7 @@ func (s *tracerImpl) startSpanGeneric(
 			Start:           time.Now(),
 			Duration:        -1,
 			Tags:            opentracing.Tags{},
-			Logs:            []*RawLog{},
+			Logs:            []*opentracing.LogData{},
 		},
 	}
 	return span

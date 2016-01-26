@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/examples/dapperish"
 )
 

@@ -86,47 +86,6 @@ type Span interface {
 	//
 	// See the `SetTraceAttribute` notes about `restrictedKey`.
 	TraceAttribute(restrictedKey string) string
-
-	// `Message` is a format string and can refer to fields in the payload by path, like so:
-	//
-	//   "first transaction is worth ${transactions[0].amount} ${transactions[0].currency}"
-	//
-	// , and the payload might look something like
-	//
-	//   map[string]interface{}{
-	//       transactions: map[string]interface{}[
-	//           {amount: 10, currency: "USD"},
-	//           {amount: 11, currency: "USD"},
-	//       ]}
-	Info(message string, payload ...interface{})
-
-	// Like Info(), but for errors.
-	Error(message string, payload ...interface{})
-}
-
-// Tags are a generic map from an arbitrary string key to an opaque value type.
-// The underlying tracing system is responsible for interpreting and
-// serializing the values.
-type Tags map[string]interface{}
-
-// Merge incorporates the keys and values from `other` into this `Tags`
-// instance, then returns same.
-func (t Tags) Merge(other Tags) Tags {
-	for k, v := range other {
-		t[k] = v
-	}
-	return t
-}
-
-var regexTraceAttribute = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
-
-// CanonicalizeTraceAttributeKey returns the canonicalized version of trace tag
-// key `key`, and true if and only if the key was valid.
-func CanonicalizeTraceAttributeKey(key string) (string, bool) {
-	if !regexTraceAttribute.MatchString(key) {
-		return "", false
-	}
-	return strings.ToLower(key), true
 }
 
 // See Span.Log(). Every LogData instance should specify at least one of Event
@@ -160,4 +119,29 @@ type LogData struct {
 	// record only a snippet of these payloads (or may strip out PII, etc,
 	// etc).
 	Payload interface{}
+}
+
+// Tags are a generic map from an arbitrary string key to an opaque value type.
+// The underlying tracing system is responsible for interpreting and
+// serializing the values.
+type Tags map[string]interface{}
+
+// Merge incorporates the keys and values from `other` into this `Tags`
+// instance, then returns same.
+func (t Tags) Merge(other Tags) Tags {
+	for k, v := range other {
+		t[k] = v
+	}
+	return t
+}
+
+var regexTraceAttribute = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
+
+// CanonicalizeTraceAttributeKey returns the canonicalized version of trace tag
+// key `key`, and true if and only if the key was valid.
+func CanonicalizeTraceAttributeKey(key string) (string, bool) {
+	if !regexTraceAttribute.MatchString(key) {
+		return "", false
+	}
+	return strings.ToLower(key), true
 }
