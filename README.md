@@ -19,7 +19,7 @@ demonstrating some important use cases.
 
 The simplest starting point is `./default_tracer.go`. As early as possible, call
 
-```
+```go
     import ".../opentracing-go"
     import ".../some_tracing_impl"
     
@@ -37,7 +37,7 @@ If you prefer direct control to singletons, manage ownership of the
 
 #### Starting an empty trace by creating a "root span"
 
-```
+```go
     func xyz() {
         ...
         sp := opentracing.StartTrace("span_name")
@@ -49,7 +49,7 @@ If you prefer direct control to singletons, manage ownership of the
 
 #### Creating a Span given an existing Span
 
-```
+```go
     func xyz(parentSpan opentracing.Span, ...) {
         ...
         sp := opentracing.JoinTrace("span_name", parentSpan)
@@ -64,10 +64,11 @@ If you prefer direct control to singletons, manage ownership of the
 Additionally, this example demonstrates how to get a `context.Context`
 associated with any `opentracing.Span` instance.
 
-```
+```go
     func xyz(goCtx context.Context, ...) {
         ...
-        sp, goCtx := opentracing.JoinTrace("span_name", goCtx).AddToGoContext(goCtx)
+        goCtx, sp := opentracing.ContextWithSpan(
+            goCtx, opentracing.JoinTrace("span_name", goCtx))
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -76,16 +77,16 @@ associated with any `opentracing.Span` instance.
 
 #### Serializing to the wire
 
-```
+```go
     func makeSomeRequest(ctx context.Context) ... {
-        if span := opentracing.SpanFromGoContext(ctx); span != nil {
+        if span := opentracing.SpanFromContext(ctx); span != nil {
             httpClient := &http.Client{}
             httpReq, _ := http.NewRequest("GET", "http://myservice/", nil)
 
             // Transmit the span's TraceContext as an HTTP header on our
             // outbound request.
-            opentracing.AddTraceContextToHeader(
-                span.TraceContext(),
+            opentracing.GlobalTracer().PropagateSpanInHeader(
+                span,
                 httpReq.Header,
                 opentracing.DefaultTracer())
 
@@ -98,23 +99,16 @@ associated with any `opentracing.Span` instance.
 
 #### Deserializing from the wire
 
-```
+```go
     http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-        // Grab the TraceContext from the HTTP header using the
-        // opentracing helper.
-        reqTraceCtx, err := opentracing.TraceContextFromHeader(
-                req.Header, opentracing.GlobalTracer())
-        var serverSpan opentracing.Span
-        var goCtx context.Context = ...
+        // Join the trace in the HTTP header using the opentracing helper.
+        serverSpan, err := opentracing.GlobalTracer().JoinTraceFromHeader(
+                "serverSpan", req.Header, opentracing.GlobalTracer())
         if err != nil {
-            // Just make a root span.
-            serverSpan, goCtx = opentracing.StartTrace("serverSpan").AddToGoContext(goCtx)
-        } else {
-            // Make a new server-side span that's a child of the span/context sent
-            // over the wire.
-            serverSpan, goCtx = opentracing.JoinTrace(
-                "serverSpan", reqTraceCtx).AddToGoContext(goCtx)
+            serverSpan = opentracing.StartTrace("serverSpan")
         }
+        var goCtx context.Context = ...
+        goCtx, _ = opentracing.ContextWithSpan(goCtx, serverSpan)
         defer serverSpan.Finish()
         ...
     }
@@ -127,14 +121,4 @@ synchronization.
 
 ## API pointers for those implementing a tracing system
 
-There should be no need for most tracing system implementors to worry about the
-`opentracing.Span` or `opentracing.Tracer` interfaces directly:
-`standardtracer.New(...)` should work well enough in most circumstances.
-
-In order to integrate with `standardtracer`, tracing system authors are
-expected to provide implementations of:
-- `opentracing.TraceContext`
-- `opentracing.TraceContextSource`
-- `standardtracer.Recorder`
-
-For a small working example, see `../examples/dapperish/*.go`.
+Tracing system implementors may be able to reuse or copy-paste-modify the `./standardtracer` package. In particular, see `standardtracer.New(...)`.

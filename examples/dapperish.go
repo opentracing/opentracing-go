@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"html"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,10 +18,10 @@ import (
 func client() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		span := opentracing.StartTrace("getInput")
-		ctx := opentracing.BackgroundGoContextWithSpan(span)
+		ctx, span := opentracing.BackgroundContextWithSpan(
+			opentracing.StartTrace("getInput"))
 		// Make sure that global trace tag propagation works.
-		span.TraceContext().SetTraceAttribute("User", os.Getenv("USER"))
+		span.SetTraceAttribute("User", os.Getenv("USER"))
 		span.LogEventWithPayload("ctx", ctx)
 		fmt.Print("\n\nEnter text (empty string to exit): ")
 		text, _ := reader.ReadString('\n')
@@ -36,8 +35,8 @@ func client() {
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
-		opentracing.AddTraceContextToHeader(
-			span.TraceContext(), httpReq.Header, opentracing.GlobalTracer())
+		opentracing.PropagateSpanInHeader(
+			span, httpReq.Header, opentracing.GlobalTracer())
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.LogEventWithPayload("error", err)
@@ -51,28 +50,19 @@ func client() {
 
 func server() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		reqCtx, err := opentracing.TraceContextFromHeader(
-			req.Header, opentracing.GlobalTracer())
+		serverSpan, err := opentracing.JoinTraceFromHeader(
+			"serverSpan", req.Header, opentracing.GlobalTracer())
 		if err != nil {
 			panic(err)
 		}
-
-		serverSpan := opentracing.JoinTrace(
-			"serverSpan", reqCtx,
-		).SetTag("component", "server")
+		serverSpan.SetTag("component", "server")
 		defer serverSpan.Finish()
+
 		fullBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			serverSpan.LogEventWithPayload("body read error", err)
 		}
 		serverSpan.LogEventWithPayload("got request with body", string(fullBody))
-		contextIDMap, tagsMap := opentracing.TraceContextToText(reqCtx)
-		fmt.Fprintf(
-			w,
-			"Hello: %v // %v //  %q",
-			contextIDMap,
-			tagsMap,
-			html.EscapeString(req.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
