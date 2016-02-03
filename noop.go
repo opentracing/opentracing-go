@@ -1,11 +1,14 @@
 package opentracing
 
+// A NoopTracer is a trivial implementation of Tracer for which all operations
+// are no-ops.
+type NoopTracer struct{}
+
 type noopSpan struct{}
-type noopTracer struct{}
 
 var (
 	defaultNoopSpan   = noopSpan{}
-	defaultNoopTracer = noopTracer{}
+	defaultNoopTracer = NoopTracer{}
 	emptyTags         = Tags{}
 	emptyBytes        = []byte{}
 	emptyStringMap    = map[string]string{}
@@ -28,21 +31,27 @@ func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
 func (n noopSpan) SetOperationName(operationName string) Span            { return n }
 
-// noopTracer:
-func (n noopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {
+// PropagateSpanAsBinary belongs to the Tracer interface.
+func (n NoopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {
 	return emptyBytes, emptyBytes
 }
-func (n noopTracer) PropagateSpanAsText(tcid Span) (map[string]string, map[string]string) {
+
+// PropagateSpanAsText belongs to the Tracer interface.
+func (n NoopTracer) PropagateSpanAsText(tcid Span) (map[string]string, map[string]string) {
 	return emptyStringMap, emptyStringMap
 }
-func (n noopTracer) JoinTraceFromBinary(
+
+// JoinTraceFromBinary belongs to the Tracer interface.
+func (n NoopTracer) JoinTraceFromBinary(
 	op string,
 	traceContextID []byte,
 	traceAttrs []byte,
 ) (Span, error) {
 	return defaultNoopSpan, nil
 }
-func (n noopTracer) JoinTraceFromText(
+
+// JoinTraceFromText belongs to the Tracer interface.
+func (n NoopTracer) JoinTraceFromText(
 	op string,
 	traceContextID map[string]string,
 	traceAttrs map[string]string,
@@ -50,10 +59,12 @@ func (n noopTracer) JoinTraceFromText(
 	return defaultNoopSpan, nil
 }
 
-func (n noopTracer) StartTrace(operationName string) Span {
+// StartTrace belongs to the Tracer interface.
+func (n NoopTracer) StartTrace(operationName string) Span {
 	return defaultNoopSpan
 }
 
-func (n noopTracer) JoinTrace(operationName string, parent interface{}) Span {
+// JoinTrace belongs to the Tracer interface.
+func (n NoopTracer) JoinTrace(operationName string, parent interface{}) Span {
 	return defaultNoopSpan
 }
