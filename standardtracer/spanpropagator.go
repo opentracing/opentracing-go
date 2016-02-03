@@ -59,16 +59,16 @@ func (s *tracerImpl) PropagateSpanAsBinary(
 
 	// Handle the attributes.
 	attrsBuf := new(bytes.Buffer)
-	err = binary.Write(attrsBuf, binary.BigEndian, len(sc.traceAttrs))
+	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.traceAttrs)))
 	if err != nil {
 		panic(err)
 	}
 	for k, v := range sc.traceAttrs {
 		keyBytes := []byte(k)
-		err = binary.Write(attrsBuf, binary.BigEndian, len(keyBytes))
+		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(keyBytes)))
 		err = binary.Write(attrsBuf, binary.BigEndian, keyBytes)
 		valBytes := []byte(v)
-		err = binary.Write(attrsBuf, binary.BigEndian, len(valBytes))
+		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(valBytes)))
 		err = binary.Write(attrsBuf, binary.BigEndian, valBytes)
 	}
 
@@ -96,14 +96,15 @@ func (s *tracerImpl) JoinTraceFromBinary(
 
 	// Handle the attributes.
 	attrsReader := bytes.NewReader(traceAttrs)
-	var numAttrs int
+	var numAttrs int32
 	err = binary.Read(attrsReader, binary.BigEndian, &numAttrs)
 	if err != nil {
 		return nil, err
 	}
-	attrMap := make(map[string]string, numAttrs)
-	for i := 0; i < numAttrs; i++ {
-		var keyLen int
+	iNumAttrs := int(numAttrs)
+	attrMap := make(map[string]string, iNumAttrs)
+	for i := 0; i < iNumAttrs; i++ {
+		var keyLen int32
 		err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
 		if err != nil {
 			return nil, err
@@ -114,7 +115,7 @@ func (s *tracerImpl) JoinTraceFromBinary(
 			return nil, err
 		}
 
-		var valLen int
+		var valLen int32
 		err = binary.Read(attrsReader, binary.BigEndian, &valLen)
 		if err != nil {
 			return nil, err
@@ -135,7 +136,7 @@ func (s *tracerImpl) JoinTraceFromBinary(
 				SpanID:       randomID(),
 				ParentSpanID: propagatedSpanID,
 				Sampled:      sampledByte != 0,
-				traceAttrs:   make(map[string]string),
+				traceAttrs:   attrMap,
 			}),
 		nil
 }
@@ -146,7 +147,7 @@ func (s *tracerImpl) JoinTraceFromText(
 	attrsMap map[string]string,
 ) (opentracing.Span, error) {
 	requiredFieldCount := 0
-	var traceID, spanID int64
+	var traceID, propagatedSpanID int64
 	var sampled bool
 	var err error
 	for k, v := range contextIDMap {
@@ -158,7 +159,7 @@ func (s *tracerImpl) JoinTraceFromText(
 			}
 			requiredFieldCount++
 		case fieldNameSpanID:
-			spanID, err = strconv.ParseInt(v, 10, 64)
+			propagatedSpanID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return nil, err
 			}
@@ -185,10 +186,11 @@ func (s *tracerImpl) JoinTraceFromText(
 	return s.startSpanGeneric(
 			operationName,
 			&StandardContext{
-				TraceID:    traceID,
-				SpanID:     spanID,
-				Sampled:    sampled,
-				traceAttrs: lcAttrsMap,
+				TraceID:      traceID,
+				SpanID:       randomID(),
+				ParentSpanID: propagatedSpanID,
+				Sampled:      sampled,
+				traceAttrs:   lcAttrsMap,
 			}),
 		nil
 }
