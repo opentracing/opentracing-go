@@ -2,9 +2,9 @@ package opentracing
 
 import "golang.org/x/net/context"
 
-type contextKey int
+type contextKey struct{}
 
-const activeSpanKey contextKey = iota
+var activeSpanKey = contextKey{}
 
 // ContextWithSpan returns a new `context.Context` that holds a reference to
 // the given `Span`.
