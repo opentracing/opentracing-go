@@ -178,11 +178,6 @@ func (s *tracerImpl) JoinTraceFromText(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
-	lcAttrsMap := make(map[string]string, len(attrsMap))
-	for k, v := range attrsMap {
-		lcAttrsMap[strings.ToLower(k)] = v
-	}
-
 	return s.startSpanGeneric(
 			operationName,
 			&StandardContext{
@@ -190,7 +185,7 @@ func (s *tracerImpl) JoinTraceFromText(
 				SpanID:       randomID(),
 				ParentSpanID: propagatedSpanID,
 				Sampled:      sampled,
-				traceAttrs:   lcAttrsMap,
+				traceAttrs:   attrsMap,
 			}),
 		nil
 }
