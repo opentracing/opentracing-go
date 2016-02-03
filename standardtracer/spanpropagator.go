@@ -143,7 +143,7 @@ func (s *tracerImpl) JoinTraceFromBinary(
 func (s *tracerImpl) JoinTraceFromText(
 	operationName string,
 	contextIDMap map[string]string,
-	tagsMap map[string]string,
+	attrsMap map[string]string,
 ) (opentracing.Span, error) {
 	requiredFieldCount := 0
 	var traceID, spanID int64
@@ -177,9 +177,9 @@ func (s *tracerImpl) JoinTraceFromText(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
-	lowercaseTagsMap := make(map[string]string, len(tagsMap))
-	for k, v := range tagsMap {
-		lowercaseTagsMap[strings.ToLower(k)] = v
+	lcAttrsMap := make(map[string]string, len(attrsMap))
+	for k, v := range attrsMap {
+		lcAttrsMap[strings.ToLower(k)] = v
 	}
 
 	return s.startSpanGeneric(
@@ -188,7 +188,7 @@ func (s *tracerImpl) JoinTraceFromText(
 				TraceID:    traceID,
 				SpanID:     spanID,
 				Sampled:    sampled,
-				traceAttrs: lowercaseTagsMap,
+				traceAttrs: lcAttrsMap,
 			}),
 		nil
 }
