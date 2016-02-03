@@ -45,14 +45,24 @@ func (s *tracerImpl) PropagateSpanAsBinary(
 ) {
 	sc := sp.(*spanImpl).raw.StandardContext
 	var err error
+	var sampledByte byte = 0
+	if !sc.Sampled {
+		sampledByte = 1
+	}
 
-	// Handle the trace and span ids.
+	// Handle the trace and span ids, and sampled status.
 	contextBuf := new(bytes.Buffer)
 	err = binary.Write(contextBuf, binary.BigEndian, sc.TraceID)
 	if err != nil {
 		panic(err)
 	}
+
 	err = binary.Write(contextBuf, binary.BigEndian, sc.SpanID)
+	if err != nil {
+		panic(err)
+	}
+
+	err = binary.Write(contextBuf, binary.BigEndian, sampledByte)
 	if err != nil {
 		panic(err)
 	}
@@ -81,15 +91,20 @@ func (s *tracerImpl) JoinTraceFromBinary(
 	traceAttrs []byte,
 ) (opentracing.Span, error) {
 	var err error
-	// Handle the trace and span ids.
+	// Handle the trace, span ids, and sampled status.
 	contextReader := bytes.NewReader(traceContextID)
 	var traceID, propagatedSpanID int64
 	var sampledByte byte
+
 	err = binary.Read(contextReader, binary.BigEndian, &traceID)
 	if err != nil {
 		return nil, err
 	}
 	err = binary.Read(contextReader, binary.BigEndian, &propagatedSpanID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Read(contextReader, binary.BigEndian, &sampledByte)
 	if err != nil {
 		return nil, err
 	}
