@@ -88,8 +88,8 @@ type Span interface {
 	TraceAttribute(restrictedKey string) string
 }
 
-// See Span.Log(). Every LogData instance should specify at least one of Event
-// and/or Payload.
+// LogData is data associated to a Span. Every LogData instance should specify
+// at least one of Event and/or Payload.
 type LogData struct {
 	// The timestamp of the log record; if set to the default value (the unix
 	// epoch), implementations should use time.Now() implicitly.

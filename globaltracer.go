@@ -1,7 +1,7 @@
 package opentracing
 
 var (
-	globalTracer Tracer = noopTracer{}
+	globalTracer Tracer = NoopTracer{}
 )
 
 // InitGlobalTracer sets the [singleton] opentracing.Tracer returned by
