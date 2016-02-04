@@ -46,7 +46,7 @@ func (s *tracerImpl) PropagateSpanAsBinary(
 	sc := sp.(*spanImpl).raw.StandardContext
 	var err error
 	var sampledByte byte = 0
-	if !sc.Sampled {
+	if sc.Sampled {
 		sampledByte = 1
 	}
 
