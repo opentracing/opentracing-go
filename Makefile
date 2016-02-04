@@ -9,6 +9,8 @@ test:
 .PHONY: lint
 lint:
 	golint ./...
+	@# Run again with magic to exit non-zero if golint outputs anything.
+	@! (golint ./... | read)
 
 .PHONY: vet
 vet:

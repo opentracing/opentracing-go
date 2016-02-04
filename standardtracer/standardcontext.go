@@ -2,6 +2,7 @@ package standardtracer
 
 import "sync"
 
+// StandardContext holds the basic Span metadata.
 type StandardContext struct {
 	// A probabilistically unique identifier for a [multi-span] trace.
 	TraceID int64
@@ -17,10 +18,12 @@ type StandardContext struct {
 
 	// `tagLock` protects the `traceAttrs` map, which in turn supports
 	// `SetTraceAttribute` and `TraceAttribute`.
-	tagLock    sync.RWMutex
+	attrMu     sync.RWMutex
 	traceAttrs map[string]string
 }
 
+// NewRootStandardContext creates a StandardContext corresponding to a root
+// span.
 func NewRootStandardContext() *StandardContext {
 	return &StandardContext{
 		TraceID:    randomID(),
@@ -30,13 +33,14 @@ func NewRootStandardContext() *StandardContext {
 	}
 }
 
+// NewChild creates a new child StandardContext.
 func (c *StandardContext) NewChild() *StandardContext {
-	c.tagLock.RLock()
+	c.attrMu.RLock()
 	newTags := make(map[string]string, len(c.traceAttrs))
 	for k, v := range c.traceAttrs {
 		newTags[k] = v
 	}
-	c.tagLock.RUnlock()
+	c.attrMu.RUnlock()
 
 	return &StandardContext{
 		TraceID:      c.TraceID,
