@@ -1,3 +1,9 @@
 language: go
 
-install: go get -d -t github.com/opentracing/opentracing-go/...
+install:
+  - go get -d -t github.com/opentracing/opentracing-go/...
+  - go get -u github.com/golang/lint
+  - go get -u golang.org/cmd/vet/
+script:
+  - make test lint vet
+  - go build ./...

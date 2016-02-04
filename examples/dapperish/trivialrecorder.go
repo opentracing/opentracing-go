@@ -21,8 +21,10 @@ func NewTrivialRecorder(processName string) *TrivialRecorder {
 	}
 }
 
+// ProcessName returns the process name.
 func (t *TrivialRecorder) ProcessName() string { return t.processName }
 
+// SetTag sets a tag.
 func (t *TrivialRecorder) SetTag(key string, val interface{}) *TrivialRecorder {
 	t.tags[key] = fmt.Sprint(val)
 	return t

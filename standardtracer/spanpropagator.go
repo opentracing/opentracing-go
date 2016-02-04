@@ -28,12 +28,12 @@ func (s *tracerImpl) PropagateSpanAsText(
 		fieldNameSpanID:  strconv.FormatInt(sc.SpanID, 10),
 		fieldNameSampled: strconv.FormatBool(sc.Sampled),
 	}
-	sc.tagLock.RLock()
+	sc.attrMu.RLock()
 	attrsMap = make(map[string]string, len(sc.traceAttrs))
 	for k, v := range sc.traceAttrs {
 		attrsMap[k] = v
 	}
-	sc.tagLock.RUnlock()
+	sc.attrMu.RUnlock()
 	return contextIDMap, attrsMap
 }
 
@@ -45,7 +45,7 @@ func (s *tracerImpl) PropagateSpanAsBinary(
 ) {
 	sc := sp.(*spanImpl).raw.StandardContext
 	var err error
-	var sampledByte byte = 0
+	var sampledByte byte
 	if sc.Sampled {
 		sampledByte = 1
 	}

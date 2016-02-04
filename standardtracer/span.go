@@ -75,8 +75,8 @@ func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span
 		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
 	}
 
-	s.raw.StandardContext.tagLock.Lock()
-	defer s.raw.StandardContext.tagLock.Unlock()
+	s.raw.StandardContext.attrMu.Lock()
+	defer s.raw.StandardContext.attrMu.Unlock()
 
 	s.raw.StandardContext.traceAttrs[canonicalKey] = val
 	return s
@@ -88,8 +88,8 @@ func (s *spanImpl) TraceAttribute(restrictedKey string) string {
 		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
 	}
 
-	s.raw.StandardContext.tagLock.RLock()
-	defer s.raw.StandardContext.tagLock.RUnlock()
+	s.raw.StandardContext.attrMu.RLock()
+	defer s.raw.StandardContext.attrMu.RUnlock()
 
 	return s.raw.StandardContext.traceAttrs[canonicalKey]
 }
