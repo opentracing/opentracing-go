@@ -2,10 +2,10 @@ package opentracing
 
 // SpanPropagator is responsible (a) for encoding Span instances in a manner
 // suitable for propagation, and (b) for taking that encoded data and using it
-// to generate Span instances that are place appropriately in the overarching
+// to generate Span instances that are placed appropriately in the overarching
 // Trace. Typically the propagation will take place across an RPC boundary, but
-// message queues and other IPC mechanisms are also good places to use
-// SpanPropagator.
+// message queues and other IPC mechanisms are also reasonable places to use
+// a SpanPropagator.
 //
 // The encoded form of a propagated span is divided into two components:
 //
@@ -14,7 +14,7 @@ package opentracing
 //      the sampling status for the given trace)
 //   2) Any trace attributes (per Span.SetTraceAttribute)
 //
-// The encoded data is separated in this way for a variety of reasons; the the
+// The encoded data is separated in this way for a variety of reasons; the
 // most important is to give OpenTracing users a portable way to opt out of
 // Trace Attribute propagation entirely if they deem it a stability risk.
 //
