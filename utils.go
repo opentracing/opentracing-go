@@ -1,6 +1,7 @@
 package opentracing
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,18 +17,20 @@ const (
 	TagsHTTPHeaderPrefix = "Open-Tracing-Trace-Tags-"
 )
 
-// PropagateSpanInHeader encodes Span `ctx` to `h` as a series of
-// HTTP headers. Values are URL-escaped.
-func PropagateSpanInHeader(
+// InjectSpanInHeader encodes Span `sp` in `h` as a series of HTTP headers.
+// Values are URL-escaped.
+func InjectSpanInHeader(
 	sp Span,
 	h http.Header,
-	propagator SpanPropagator,
-) {
-	contextIDMap, tagsMap := propagator.PropagateSpanAsText(sp)
-	for headerSuffix, val := range contextIDMap {
+) error {
+	var traceState, attrs map[string]string
+	if err := InjectSpan(sp, WIRE_ENCODING_SPLIT_TEXT, &traceState, &attrs); err != nil {
+		return err
+	}
+	for headerSuffix, val := range traceState {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
-	for headerSuffix, val := range tagsMap {
+	for headerSuffix, val := range attrs {
 		h.Add(TagsHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 }
@@ -40,8 +43,13 @@ func PropagateSpanInHeader(
 func JoinTraceFromHeader(
 	operationName string,
 	h http.Header,
-	propagator SpanPropagator,
+	tracer Tracer,
 ) (Span, error) {
+	extractor := tracer.WireExtractorForEncoding(WIRE_ENCODING_SPLIT_TEXT)
+	if extractor == nil {
+		return nil, errors.New("No WireExtractor for WIRE_ENCODING_SPLIT_TEXT")
+	}
+
 	contextIDMap := make(map[string]string)
 	tagsMap := make(map[string]string)
 	for key, val := range h {
@@ -61,5 +69,5 @@ func JoinTraceFromHeader(
 			tagsMap[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
-	return propagator.JoinTraceFromText(operationName, contextIDMap, tagsMap)
+	return extractor.ExtractSpan(operationName, contextIDMap, tagsMap)
 }

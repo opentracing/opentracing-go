@@ -7,8 +7,6 @@ import "time"
 // A straightforward implementation is available via the
 // `opentracing/standardtracer` package's `standardtracer.New()'.
 type Tracer interface {
-	SpanPropagator
-
 	// Create, start, and return a new Span with the given `operationName`, all
 	// without specifying a parent Span that can be used to incorporate the
 	// newly-returned Span into an existing trace. (I.e., the returned Span is
@@ -28,6 +26,10 @@ type Tracer interface {
 	//
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
+
+	// Return a WireExtractor for the given WireEncoding, or nil if the Tracer
+	// does not support such an encoding.
+	WireExtractorForEncoding(enc WireEncoding) WireExtractor
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
