@@ -53,9 +53,9 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// Return a WireInjector for the given WireEncoding, or nil if the Span
-	// does not support such an encoding.
-	WireInjectorForEncoding(enc WireEncoding) WireInjector
+	// Return a PropagationInjector for the given PropagationFormat, or nil if the Span
+	// does not support such a format.
+	PropagationInjectorForFormat(format PropagationFormat) PropagationInjector
 
 	// SetTraceAttribute sets a key:value pair on this Span that also
 	// propagates to future Span children.
@@ -186,10 +186,10 @@ func StartChildSpan(parent Span, operationName string) Span {
 }
 
 // InjectSpan is a helper that takes some of the stuttering out of the common
-// Span.WireInjectorForEncoding calling pattern.
-func InjectSpan(sp Span, enc WireEncoding, carrier ...interface{}) error {
-	if inj := sp.WireInjectorForEncoding(enc); inj == nil {
-		return fmt.Errorf("Unsupported WireEncoding: %v", enc)
+// Span.PropagationInjectorForFormat calling pattern.
+func InjectSpan(sp Span, format PropagationFormat, carrier ...interface{}) error {
+	if inj := sp.PropagationInjectorForFormat(format); inj == nil {
+		return fmt.Errorf("Unsupported PropagationFormat: %v", format)
 	}
 	inj.InjectSpan(sp, carrier...)
 	return nil

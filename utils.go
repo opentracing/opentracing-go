@@ -24,7 +24,7 @@ func InjectSpanInHeader(
 	h http.Header,
 ) error {
 	var traceState, attrs map[string]string
-	if err := InjectSpan(sp, WIRE_ENCODING_SPLIT_TEXT, &traceState, &attrs); err != nil {
+	if err := InjectSpan(sp, PROPAGATION_FORMAT_SPLIT_TEXT, &traceState, &attrs); err != nil {
 		return err
 	}
 	for headerSuffix, val := range traceState {
@@ -45,9 +45,9 @@ func JoinTraceFromHeader(
 	h http.Header,
 	tracer Tracer,
 ) (Span, error) {
-	extractor := tracer.WireExtractorForEncoding(WIRE_ENCODING_SPLIT_TEXT)
+	extractor := tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT)
 	if extractor == nil {
-		return nil, errors.New("No WireExtractor for WIRE_ENCODING_SPLIT_TEXT")
+		return nil, errors.New("No PropagationExtractor for PROPAGATION_FORMAT_SPLIT_TEXT")
 	}
 
 	contextIDMap := make(map[string]string)

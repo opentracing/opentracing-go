@@ -27,9 +27,9 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Return a WireExtractor for the given WireEncoding, or nil if the Tracer
-	// does not support such an encoding.
-	WireExtractorForEncoding(enc WireEncoding) WireExtractor
+	// Return a PropagationExtractor for the given PropagationFormat, or nil if the Tracer
+	// does not support such a format.
+	PropagationExtractorForFormat(format PropagationFormat) PropagationExtractor
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
