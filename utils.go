@@ -23,14 +23,22 @@ func InjectSpanInHeader(
 	sp Span,
 	h http.Header,
 ) error {
-	var traceState, attrs map[string]string
-	if err := InjectSpan(sp, PROPAGATION_FORMAT_SPLIT_TEXT, &traceState, &attrs); err != nil {
-		return err
+	// First, look for a PROPAGATION_FORMAT_GO_HTTP_HEADER injector (our preference).
+	injector := sp.PropagationInjectorForFormat(PROPAGATION_FORMAT_GO_HTTP_HEADER)
+	if injector != nil {
+		return injector.InjectSpan(sp, h)
 	}
-	for headerSuffix, val := range traceState {
+
+	// Else, fall back on PROPAGATION_FORMAT_SPLIT_TEXT.
+	if injector = sp.PropagationInjectorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT); injector == nil {
+		return errors.New("No suitable injector")
+	}
+	carrier := NewTextCarrier()
+	inject.InjectSpan(sp, carrier)
+	for headerSuffix, val := range carrier.TracerState {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
-	for headerSuffix, val := range attrs {
+	for headerSuffix, val := range carrier.TraceAttributes {
 		h.Add(TagsHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 }
@@ -45,13 +53,19 @@ func JoinTraceFromHeader(
 	h http.Header,
 	tracer Tracer,
 ) (Span, error) {
-	extractor := tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT)
-	if extractor == nil {
-		return nil, errors.New("No PropagationExtractor for PROPAGATION_FORMAT_SPLIT_TEXT")
+	// First, look for a PROPAGATION_FORMAT_GO_HTTP_HEADER extractor (our
+	// preference).
+	extractor := tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_GO_HTTP_HEADER)
+	if extractor != nil {
+		return extractor.ExtractSpan(operationName, h)
 	}
 
-	contextIDMap := make(map[string]string)
-	tagsMap := make(map[string]string)
+	// Else, fall back on PROPAGATION_FORMAT_SPLIT_TEXT.
+	if extractor = tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT); extractor == nil {
+		return nil, errors.New("No suitable extractor")
+	}
+
+	carrier := NewTextCarrier()
 	for key, val := range h {
 		if strings.HasPrefix(key, ContextIDHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:
@@ -59,15 +73,15 @@ func JoinTraceFromHeader(
 			if err != nil {
 				return nil, err
 			}
-			contextIDMap[strings.TrimPrefix(key, ContextIDHTTPHeaderPrefix)] = unescaped
+			carrier.TracerState[strings.TrimPrefix(key, ContextIDHTTPHeaderPrefix)] = unescaped
 		} else if strings.HasPrefix(key, TagsHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:
 			unescaped, err := url.QueryUnescape(val[0])
 			if err != nil {
 				return nil, err
 			}
-			tagsMap[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
+			carrier.TraceAttributes[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
-	return extractor.ExtractSpan(operationName, contextIDMap, tagsMap)
+	return extractor.ExtractSpan(operationName, carrier)
 }

@@ -27,8 +27,22 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Return a PropagationExtractor for the given PropagationFormat, or nil if the Tracer
-	// does not support such a format.
+	// Return a PropagationExtractor for the given `format` value, or nil if the
+	// Span does not support such a format.
+	//
+	// OpenTracing defines a common set of `format` values (see
+	// BuiltinPropagationFormat), and each has an expected carrier type.
+	//
+	// Other packages may declare their own `format` values, much like the keys
+	// used by the `net.Context` package (see
+	// https://godoc.org/golang.org/x/net/context#WithValue).
+	//
+	// Example usage (sans error handling):
+	//
+	//     span.PropagationInjectorForFormat(
+	//         opentracing.PROPAGATION_FORMAT_GO_HTTP_HEADER).InjectSpan(
+	//         span, httpReq.Header)
+	//
 	PropagationExtractorForFormat(format PropagationFormat) PropagationExtractor
 }
 
