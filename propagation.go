@@ -28,30 +28,33 @@ type Extractor interface {
 // BUILTIN PROPAGATION FORMATS:
 ///////////////////////////////////////////////////////////////////////////////
 
-// BuiltinFormat is the shared type for builtin OpenTracing in-band
-// propagation formats.
-type BuiltinFormat int
+// SplitBinaryType only exists for the single SplitBinary value.
+type SplitBinaryType struct{}
 
-const (
-	// SplitBinary encodes the Span in a BinaryCarrier instance.
-	//
-	// The `carrier` for injection and extraction must be a `*BinaryCarrier`
-	// instance.
-	SplitBinary BuiltinFormat = iota
+// SplitBinary encodes the Span in a BinaryCarrier instance.
+//
+// The `carrier` for injection and extraction must be a `*BinaryCarrier`
+// instance.
+const SplitBinary = SplitBinaryType{}
 
-	// SplitText encodes the Span in a TextCarrier instance.
-	//
-	// The `carrier` for injection and extraction must be a `*TextCarrier`
-	// instance.
-	SplitText
+// SplitTextType only exists for the single SplitText value.
+type SplitTextType struct{}
 
-	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
-	// tracer state and any Trace Attributes).
-	//
-	// The `carrier` for both injection and extraction must be an http.Header
-	// instance.
-	GoHTTPHeader
-)
+// SplitText encodes the Span in a TextCarrier instance.
+//
+// The `carrier` for injection and extraction must be a `*TextCarrier`
+// instance.
+const SplitText = SplitTextType{}
+
+// GoHTTPHeaderType only exists for the single GoHTTPHeader value.
+type GoHTTPHeaderType struct{}
+
+// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
+// tracer state and any Trace Attributes).
+//
+// The `carrier` for both injection and extraction must be an http.Header
+// instance.
+var GoHTTPHeader = GoHTTPHeader{}
 
 // TextCarrier breaks a propagated Span into two pieces.
 //
