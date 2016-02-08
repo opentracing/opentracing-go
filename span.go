@@ -53,11 +53,11 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// Return a PropagationInjector for the given `format` value, or nil if the
-	// Span does not support such a format.
+	// Return an Injector for the given `format` value, or nil if the Span does
+	// not support such a format.
 	//
 	// OpenTracing defines a common set of `format` values (see
-	// BuiltinPropagationFormat), and each has an expected carrier type.
+	// BuiltinFormat), and each has an expected carrier type.
 	//
 	// Other packages may declare their own `format` values, much like the keys
 	// used by the `net.Context` package (see
@@ -65,11 +65,11 @@ type Span interface {
 	//
 	// Example usage (sans error handling):
 	//
-	//     span.PropagationInjectorForFormat(
-	//         opentracing.PROPAGATION_FORMAT_GO_HTTP_HEADER).InjectSpan(
+	//     span.Injector(
+	//         opentracing.GoHTTPHeader).InjectSpan(
 	//         span, httpReq.Header)
 	//
-	PropagationInjectorForFormat(format interface{}) PropagationInjector
+	Injector(format interface{}) Injector
 
 	// SetTraceAttribute sets a key:value pair on this Span that also
 	// propagates to future Span children.

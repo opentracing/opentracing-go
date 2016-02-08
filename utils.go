@@ -23,24 +23,27 @@ func InjectSpanInHeader(
 	sp Span,
 	h http.Header,
 ) error {
-	// First, look for a PROPAGATION_FORMAT_GO_HTTP_HEADER injector (our preference).
-	injector := sp.PropagationInjectorForFormat(PROPAGATION_FORMAT_GO_HTTP_HEADER)
+	// First, look for a GoHTTPHeader injector (our preference).
+	injector := sp.Injector(GoHTTPHeader)
 	if injector != nil {
 		return injector.InjectSpan(sp, h)
 	}
 
-	// Else, fall back on PROPAGATION_FORMAT_SPLIT_TEXT.
-	if injector = sp.PropagationInjectorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT); injector == nil {
+	// Else, fall back on SplitText.
+	if injector = sp.Injector(SplitText); injector == nil {
 		return errors.New("No suitable injector")
 	}
 	carrier := NewTextCarrier()
-	inject.InjectSpan(sp, carrier)
+	if err := injector.InjectSpan(sp, carrier); err != nil {
+		return err
+	}
 	for headerSuffix, val := range carrier.TracerState {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 	for headerSuffix, val := range carrier.TraceAttributes {
 		h.Add(TagsHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
+	return nil
 }
 
 // JoinTraceFromHeader decodes a Span with operation name `operationName` from
@@ -53,15 +56,15 @@ func JoinTraceFromHeader(
 	h http.Header,
 	tracer Tracer,
 ) (Span, error) {
-	// First, look for a PROPAGATION_FORMAT_GO_HTTP_HEADER extractor (our
+	// First, look for a GoHTTPHeader extractor (our
 	// preference).
-	extractor := tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_GO_HTTP_HEADER)
+	extractor := tracer.Extractor(GoHTTPHeader)
 	if extractor != nil {
-		return extractor.ExtractSpan(operationName, h)
+		return extractor.JoinTrace(operationName, h)
 	}
 
-	// Else, fall back on PROPAGATION_FORMAT_SPLIT_TEXT.
-	if extractor = tracer.PropagationExtractorForFormat(PROPAGATION_FORMAT_SPLIT_TEXT); extractor == nil {
+	// Else, fall back on SplitText.
+	if extractor = tracer.Extractor(SplitText); extractor == nil {
 		return nil, errors.New("No suitable extractor")
 	}
 
@@ -83,5 +86,5 @@ func JoinTraceFromHeader(
 			carrier.TraceAttributes[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
-	return extractor.ExtractSpan(operationName, carrier)
+	return extractor.JoinTrace(operationName, carrier)
 }

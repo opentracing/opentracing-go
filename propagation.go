@@ -4,56 +4,53 @@ package opentracing
 // CORE PROPAGATION INTERFACES:
 ///////////////////////////////////////////////////////////////////////////////
 
-// PropagationInjector is responsible for injecting Span instances in a manner
-// suitable for propagation via a format-specific "carrier" object. Typically
-// the injection will take place across an RPC boundary, but message queues and
-// other IPC mechanisms are also reasonable places to use a
-// PropagationInjector.
+// Injector is responsible for injecting Span instances in a manner suitable
+// for propagation via a format-specific "carrier" object. Typically the
+// injection will take place across an RPC boundary, but message queues and
+// other IPC mechanisms are also reasonable places to use a Injector.
 //
-// See PropagationExtractor and Span.PropagationInjectorForFormat.
-type PropagationInjector interface {
-	InjectSpan(span Span, carrier interface{})
+// See Extractor and Span.Injector.
+type Injector interface {
+	InjectSpan(span Span, carrier interface{}) error
 }
 
-// PropagationExtractor is responsible for extracting Span instances from an
+// Extractor is responsible for extracting Span instances from an
 // format-specific "carrier" object. Typically the extraction will take place
 // on the server side of an RPC boundary, but message queues and other IPC
-// mechanisms are also reasonable places to use a PropagationExtractor.
+// mechanisms are also reasonable places to use a Extractor.
 //
-// See PropagationInjector and Tracer.PropagationExtractorForFormat.
-type PropagationExtractor interface {
-	ExtractSpan(operationName string, carrier interface{}) (Span, error)
+// See Injector and Tracer.Extractor.
+type Extractor interface {
+	JoinTrace(operationName string, carrier interface{}) (Span, error)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // BUILTIN PROPAGATION FORMATS:
 ///////////////////////////////////////////////////////////////////////////////
 
-// BuiltinPropagationFormat is the shared type for builtin OpenTracing in-band
+// BuiltinFormat is the shared type for builtin OpenTracing in-band
 // propagation formats.
-type BuiltinPropagationFormat int
+type BuiltinFormat int
 
 const (
-	// PROPAGATION_FORMAT_SPLIT_BINARY encodes the Span in a BinaryCarrier
-	// instance.
+	// SplitBinary encodes the Span in a BinaryCarrier instance.
 	//
 	// The `carrier` for injection and extraction must be a `*BinaryCarrier`
 	// instance.
-	PROPAGATION_FORMAT_SPLIT_BINARY BuiltinPropagationFormat = iota
+	SplitBinary BuiltinFormat = iota
 
-	// PROPAGATION_FORMAT_SPLIT_BINARY encodes the Span in a TextCarrier
-	// instance.
+	// SplitText encodes the Span in a TextCarrier instance.
 	//
 	// The `carrier` for injection and extraction must be a `*TextCarrier`
 	// instance.
-	PROPAGATION_FORMAT_SPLIT_TEXT
+	SplitText
 
-	// PROPAGATION_FORMAT_GO_HTTP_HEADER encodes the Span into a Go http.Header
-	// instance (both the tracer state and any Trace Attributes).
+	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
+	// tracer state and any Trace Attributes).
 	//
 	// The `carrier` for both injection and extraction must be an http.Header
 	// instance.
-	PROPAGATION_FORMAT_GO_HTTP_HEADER
+	GoHTTPHeader
 )
 
 // TextCarrier breaks a propagated Span into two pieces.
