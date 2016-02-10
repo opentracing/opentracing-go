@@ -27,7 +27,7 @@ type Tracer interface {
 	//     })
 	//
 	StartSpan(operationName string) Span
-	StartSpanWithOptions(opts SpanOptions) Span
+	StartSpanWithOptions(opts StartSpanOptions) Span
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the

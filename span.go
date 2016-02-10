@@ -144,7 +144,7 @@ type FinishOptions struct {
 	//
 	// If specified, the caller hands off ownership of BulkLogData at
 	// FinishWithOptions() invocation time.
-	BulkLogData []LogData
+	BulkLogData []*LogData
 }
 
 // Tags are a generic map from an arbitrary string key to an opaque value type.
@@ -174,7 +174,7 @@ func CanonicalizeTraceAttributeKey(key string) (string, bool) {
 
 // StartChildSpan is a simple helper to start a child span given only its parent (per StartSpanOptions.Parent) and an operation name per Span.SetOperationName.
 func StartChildSpan(parent Span, operationName string) Span {
-	return parent.Tracer.StartSpanWithOptions(SpanOptions{
+	return parent.Tracer().StartSpanWithOptions(StartSpanOptions{
 		OperationName: operationName,
 		Parent:        parent,
 	})

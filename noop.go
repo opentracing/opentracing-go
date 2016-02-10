@@ -19,17 +19,17 @@ const (
 )
 
 // noopSpan:
-func (n noopSpan) StartChild(operationName string) Span {
-	return defaultNoopSpan
-}
+func (n noopSpan) StartChild(operationName string) Span                  { return defaultNoopSpan }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
+func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
 func (n noopSpan) SetTraceAttribute(key, val string) Span                { return n }
 func (n noopSpan) TraceAttribute(key string) string                      { return emptyString }
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
 func (n noopSpan) SetOperationName(operationName string) Span            { return n }
+func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 
 // PropagateSpanAsBinary belongs to the Tracer interface.
 func (n NoopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {
@@ -59,8 +59,13 @@ func (n NoopTracer) JoinTraceFromText(
 	return defaultNoopSpan, nil
 }
 
-// StartTrace belongs to the Tracer interface.
-func (n NoopTracer) StartTrace(operationName string) Span {
+// StartSpan belongs to the Tracer interface.
+func (n NoopTracer) StartSpan(operationName string) Span {
+	return defaultNoopSpan
+}
+
+// StartSpanWithOptions belongs to the Tracer interface.
+func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 	return defaultNoopSpan
 }
 

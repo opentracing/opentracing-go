@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/opentracing/opentracing-go"
 )
@@ -16,7 +17,7 @@ const (
 	fieldNameSampled = "sampled"
 )
 
-func (s *tracerImpl) PropagateSpanAsText(
+func (t *tracerImpl) PropagateSpanAsText(
 	sp opentracing.Span,
 ) (
 	contextIDMap map[string]string,
@@ -37,7 +38,7 @@ func (s *tracerImpl) PropagateSpanAsText(
 	return contextIDMap, attrsMap
 }
 
-func (s *tracerImpl) PropagateSpanAsBinary(
+func (t *tracerImpl) PropagateSpanAsBinary(
 	sp opentracing.Span,
 ) (
 	traceContextID []byte,
@@ -85,7 +86,7 @@ func (s *tracerImpl) PropagateSpanAsBinary(
 	return contextBuf.Bytes(), attrsBuf.Bytes()
 }
 
-func (s *tracerImpl) JoinTraceFromBinary(
+func (t *tracerImpl) JoinTraceFromBinary(
 	operationName string,
 	traceContextID []byte,
 	traceAttrs []byte,
@@ -144,19 +145,21 @@ func (s *tracerImpl) JoinTraceFromBinary(
 		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
-	return s.startSpanGeneric(
-			operationName,
-			&StandardContext{
-				TraceID:      traceID,
-				SpanID:       randomID(),
-				ParentSpanID: propagatedSpanID,
-				Sampled:      sampledByte != 0,
-				traceAttrs:   attrMap,
-			}),
-		nil
+	return t.startSpanInternal(
+		&StandardContext{
+			TraceID:      traceID,
+			SpanID:       randomID(),
+			ParentSpanID: propagatedSpanID,
+			Sampled:      sampledByte != 0,
+			traceAttrs:   attrMap,
+		},
+		operationName,
+		time.Now(),
+		opentracing.Tags{},
+	), nil
 }
 
-func (s *tracerImpl) JoinTraceFromText(
+func (t *tracerImpl) JoinTraceFromText(
 	operationName string,
 	contextIDMap map[string]string,
 	attrsMap map[string]string,
@@ -193,14 +196,16 @@ func (s *tracerImpl) JoinTraceFromText(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
-	return s.startSpanGeneric(
-			operationName,
-			&StandardContext{
-				TraceID:      traceID,
-				SpanID:       randomID(),
-				ParentSpanID: propagatedSpanID,
-				Sampled:      sampled,
-				traceAttrs:   attrsMap,
-			}),
-		nil
+	return t.startSpanInternal(
+		&StandardContext{
+			TraceID:      traceID,
+			SpanID:       randomID(),
+			ParentSpanID: propagatedSpanID,
+			Sampled:      sampled,
+			traceAttrs:   attrsMap,
+		},
+		operationName,
+		time.Now(),
+		opentracing.Tags{},
+	), nil
 }

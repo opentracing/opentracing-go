@@ -16,7 +16,7 @@ func TestSpanPropagator(t *testing.T) {
 	recorder := testutils.NewInMemoryRecorder()
 	tracer := standardtracer.New(recorder)
 
-	sp := tracer.StartTrace(op)
+	sp := tracer.StartSpan(op)
 	sp.SetTraceAttribute("foo", "bar")
 
 	textCtx, textAttrs := tracer.PropagateSpanAsText(sp)

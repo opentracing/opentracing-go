@@ -19,42 +19,62 @@ type tracerImpl struct {
 	recorder SpanRecorder
 }
 
-func (s *tracerImpl) StartTrace(
+func (t *tracerImpl) StartSpan(
 	operationName string,
 ) opentracing.Span {
-	return s.startSpanGeneric(
-		operationName,
-		NewRootStandardContext(),
+	return t.StartSpanWithOptions(
+		opentracing.StartSpanOptions{
+			OperationName: operationName,
+		})
+}
+
+func (t *tracerImpl) StartSpanWithOptions(
+	opts opentracing.StartSpanOptions,
+) opentracing.Span {
+	// Start time.
+	startTime := opts.StartTime
+	if startTime.IsZero() {
+		startTime = time.Now()
+	}
+
+	// Tags.
+	tags := opts.Tags
+	if tags == nil {
+		tags = opentracing.Tags{}
+	}
+
+	// The context for the new span.
+	var newCtx *StandardContext
+	if opts.Parent == nil {
+		newCtx = NewRootStandardContext()
+	} else {
+		newCtx = opts.Parent.(*spanImpl).raw.StandardContext.NewChild()
+	}
+
+	return t.startSpanInternal(
+		newCtx,
+		opts.OperationName,
+		startTime,
+		tags,
 	)
 }
 
-func (s *tracerImpl) startSpanWithSpanParent(
+func (t *tracerImpl) startSpanInternal(
+	newCtx *StandardContext,
 	operationName string,
-	parent opentracing.Span,
+	startTime time.Time,
+	tags opentracing.Tags,
 ) opentracing.Span {
-	childCtx := parent.(*spanImpl).raw.StandardContext.NewChild()
-	return s.startSpanGeneric(
-		operationName,
-		childCtx,
-	)
-}
-
-// A helper for spanImpl creation.
-func (s *tracerImpl) startSpanGeneric(
-	operationName string,
-	childCtx *StandardContext,
-) opentracing.Span {
-	span := &spanImpl{
-		tracer:   s,
-		recorder: s.recorder,
+	return &spanImpl{
+		tracer:   t,
+		recorder: t.recorder,
 		raw: RawSpan{
-			StandardContext: childCtx,
+			StandardContext: newCtx,
 			Operation:       operationName,
-			Start:           time.Now(),
+			Start:           startTime,
 			Duration:        -1,
-			Tags:            opentracing.Tags{},
+			Tags:            tags,
 			Logs:            []*opentracing.LogData{},
 		},
 	}
-	return span
 }
