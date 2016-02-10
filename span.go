@@ -33,7 +33,7 @@ type Span interface {
 	Finish()
 	// FinishWithOptions is like Finish() but with explicit control over
 	// timestamps and log data.
-	FinishWithOptions(opts *FinishOptions)
+	FinishWithOptions(opts FinishOptions)
 
 	// LogEvent() is equivalent to
 	//
@@ -129,10 +129,21 @@ type LogData struct {
 type FinishOptions struct {
 	// FinishTime overrides the Span's finish time, or implicitly becomes
 	// time.Now() if FinishTime.IsZero().
+	//
+	// FinishTime must resolve to a timestamp that's >= the Span's StartTime
+	// (per StartSpanOptions).
 	FinishTime time.Time
 
 	// BulkLogData allows the caller to specify the contents of many Log()
 	// calls with a single slice. May be nil.
+	//
+	// None of the LogData.Timestamp values may be .IsZero() (i.e., they must
+	// be set explicitly). Also, they must be >= the Span's start timestamp and
+	// <= the FinishTime (or time.Now() if FinishTime.IsZero()). Otherwise the
+	// behavior of FinishWithOptions() is undefined.
+	//
+	// If specified, the caller hands off ownership of BulkLogData at
+	// FinishWithOptions() invocation time.
 	BulkLogData []LogData
 }
 

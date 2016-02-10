@@ -27,7 +27,7 @@ type Tracer interface {
 	//     })
 	//
 	StartSpan(operationName string) Span
-	StartSpanWithOptions(opts *SpanOptions) Span
+	StartSpanWithOptions(opts SpanOptions) Span
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
@@ -38,14 +38,19 @@ type StartSpanOptions struct {
 	OperationName string
 
 	// Parent may specify Span instance that caused the new (child) Span to be
-	// created. May be nil.
+	// created.
+	//
+	// If nil, start a "root" span (i.e., start a new trace).
 	Parent Span
 
 	// StartTime overrides the Span's start time, or implicitly becomes
 	// time.Now() if StartTime.IsZero().
 	StartTime time.Time
 
-	// Zero or more Tags. The restrictions on map values are identical to those
-	// for Span.SetTag(). May be nil.
+	// Tags may have zero or more entries; the restrictions on map values are
+	// identical to those for Span.SetTag(). May be nil.
+	//
+	// If specified, the caller hands off ownership of Tags at
+	// StartSpanWithOptions() invocation time.
 	Tags map[string]interface{}
 }
