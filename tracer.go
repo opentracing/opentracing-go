@@ -41,3 +41,9 @@ type ImplementationID struct {
 	// encouraged.
 	Version string
 }
+
+const (
+	// OpenTracingSemVer identifies the semantic version (http://semver.org/)
+	// of the OpenTracing Go library itself.
+	OpenTracingSemVer = "0.9.0"
+)
