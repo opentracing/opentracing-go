@@ -14,7 +14,7 @@ import (
 func TestSpanPropagator(t *testing.T) {
 	const op = "test"
 	recorder := testutils.NewInMemoryRecorder()
-	tracer := standardtracer.New(recorder)
+	tracer := standardtracer.New(recorder, &opentracing.ImplementationID{})
 
 	sp := tracer.StartTrace(op)
 	sp.SetTraceAttribute("foo", "bar")

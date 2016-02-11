@@ -9,9 +9,13 @@ type noopSpan struct{}
 var (
 	defaultNoopSpan   = noopSpan{}
 	defaultNoopTracer = NoopTracer{}
-	emptyTags         = Tags{}
-	emptyBytes        = []byte{}
-	emptyStringMap    = map[string]string{}
+	noopImplID        = &ImplementationID{
+		Name:    "noop",
+		Version: "1.0.0",
+	}
+	emptyTags      = Tags{}
+	emptyBytes     = []byte{}
+	emptyStringMap = map[string]string{}
 )
 
 const (
@@ -67,4 +71,9 @@ func (n NoopTracer) StartTrace(operationName string) Span {
 // JoinTrace belongs to the Tracer interface.
 func (n NoopTracer) JoinTrace(operationName string, parent interface{}) Span {
 	return defaultNoopSpan
+}
+
+// ImplementationID belongs to the Tracer interface.
+func (n NoopTracer) ImplementationID() *ImplementationID {
+	return noopImplID
 }

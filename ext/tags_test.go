@@ -3,6 +3,7 @@ package ext_test
 import (
 	"testing"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/standardtracer"
 	"github.com/opentracing/opentracing-go/testutils"
@@ -14,7 +15,7 @@ func TestPeerTags(t *testing.T) {
 		t.Fatalf("Invalid PeerService %v", ext.PeerService)
 	}
 	recorder := testutils.NewInMemoryRecorder()
-	tracer := standardtracer.New(recorder)
+	tracer := standardtracer.New(recorder, &opentracing.ImplementationID{})
 	span := tracer.StartTrace("my-trace")
 	ext.PeerService.Add(span, "my-service")
 	ext.PeerHostname.Add(span, "my-hostname")
