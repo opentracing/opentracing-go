@@ -23,27 +23,13 @@ type Tracer interface {
 	//         SetTag("lucky_number", 42)
 	//
 	StartTrace(operationName string) Span
-
-	// ImplementationID returns information about the OpenTracing
-	// implementation backing the Tracer. The return value should not change
-	// over the life of a particular Tracer instance.
-	ImplementationID() *ImplementationID
-}
-
-// ImplementationID is a simple, extensible struct that describes an
-// OpenTracing implementation.
-type ImplementationID struct {
-	// The (stable) name of the implementation. E.g., "Dapper" or "Zipkin". The
-	// Name should not reflect the host language or platform.
-	Name string
-
-	// Version may take any form, but SemVer (http://semver.org/) is strongly
-	// encouraged.
-	Version string
 }
 
 const (
-	// OpenTracingSemVer identifies the semantic version (http://semver.org/)
-	// of the OpenTracing Go library itself.
+	// OpenTracingGoAPISemVer is, well,tThe OpenTracing Go API's SemVer
+	// (http://semver.org/). Note that each OpenTracing platform API has its
+	// own semver (which has more to do with refactors or other compatibility
+	// changes and less to do with the platform-independent OpenTracing
+	// semantic specification).
 	OpenTracingSemVer = "0.9.0"
 )

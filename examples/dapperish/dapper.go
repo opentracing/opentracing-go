@@ -7,10 +7,5 @@ import (
 
 // NewTracer returns a new dapperish Tracer instance.
 func NewTracer(processName string) opentracing.Tracer {
-	return standardtracer.New(
-		NewTrivialRecorder(processName),
-		&opentracing.ImplementationID{
-			Name:    "dapperish",
-			Version: "0.1.0",
-		})
+	return standardtracer.New(NewTrivialRecorder(processName))
 }

@@ -8,17 +8,15 @@ import (
 
 // New creates and returns a standard Tracer which defers to `recorder` after
 // RawSpans have been assembled.
-func New(recorder SpanRecorder, implID *opentracing.ImplementationID) opentracing.Tracer {
+func New(recorder SpanRecorder) opentracing.Tracer {
 	return &tracerImpl{
 		recorder: recorder,
-		implID:   implID,
 	}
 }
 
 // Implements the `Tracer` interface.
 type tracerImpl struct {
 	recorder SpanRecorder
-	implID   *opentracing.ImplementationID
 }
 
 func (s *tracerImpl) StartTrace(
@@ -59,8 +57,4 @@ func (s *tracerImpl) startSpanGeneric(
 		},
 	}
 	return span
-}
-
-func (t *tracerImpl) ImplementationID() *opentracing.ImplementationID {
-	return t.implID
 }
