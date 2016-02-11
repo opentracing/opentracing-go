@@ -124,3 +124,7 @@ synchronization.
 ## API pointers for those implementing a tracing system
 
 Tracing system implementors may be able to reuse or copy-paste-modify the `./standardtracer` package. In particular, see `standardtracer.New(...)`.
+
+## API compatibility
+
+For the time being, "mild" backwards-incompatible changes may be made without changing the major version number. As OpenTracing and `opentracing-go` mature, backwards compatibility will become more of a priority.
