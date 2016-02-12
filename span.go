@@ -53,24 +53,6 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// Return an Injector for the given `format` value, or nil if the Span does
-	// not support such a format.
-	//
-	// OpenTracing defines a common set of `format` values (see
-	// BuiltinFormat), and each has an expected carrier type.
-	//
-	// Other packages may declare their own `format` values, much like the keys
-	// used by the `net.Context` package (see
-	// https://godoc.org/golang.org/x/net/context#WithValue).
-	//
-	// Example usage (sans error handling):
-	//
-	//     span.Injector(
-	//         opentracing.GoHTTPHeader).InjectSpan(
-	//         span, httpReq.Header)
-	//
-	Injector(format interface{}) Injector
-
 	// SetTraceAttribute sets a key:value pair on this Span that also
 	// propagates to future Span children.
 	//
@@ -199,12 +181,13 @@ func StartChildSpan(parent Span, operationName string) Span {
 	})
 }
 
-// InjectSpan is a helper that takes some of the stuttering out of the common
-// Span.PropagationInjectorForFormat calling pattern.
-func InjectSpan(sp Span, format PropagationFormat, carrier ...interface{}) error {
-	if inj := sp.PropagationInjectorForFormat(format); inj == nil {
+// InjectSpan is a helper that injects a Span instance into a carrier.
+//
+// See Tracer.Injector() and Injector.InjectSpan().
+func InjectSpan(sp Span, format PropagationFormat, carrier interface{}) error {
+	if inj := sp.Tracer().Injector(format); inj == nil {
 		return fmt.Errorf("Unsupported PropagationFormat: %v", format)
 	}
-	inj.InjectSpan(sp, carrier...)
+	inj.InjectSpan(sp, carrier)
 	return nil
 }
