@@ -9,7 +9,7 @@ package opentracing
 // injection will take place across an RPC boundary, but message queues and
 // other IPC mechanisms are also reasonable places to use a Injector.
 //
-// See Extractor and Span.Injector.
+// See Extractor and Tracer.Injector.
 type Injector interface {
 	InjectSpan(span Span, carrier interface{}) error
 }

@@ -39,7 +39,7 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
-	//     span.Injector(
+	//     tracer.Injector(
 	//         opentracing.GoHTTPHeader).InjectSpan(
 	//         span, httpReq.Header)
 	//

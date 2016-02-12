@@ -2,8 +2,10 @@ package standardtracer
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +18,9 @@ type splitTextPropagator struct {
 }
 type splitBinaryPropagator struct {
 	tracer *tracerImpl
+}
+type goHTTPPropagator struct {
+	splitBinaryPropagator
 }
 
 const (
@@ -215,4 +220,54 @@ func (p splitBinaryPropagator) JoinTrace(
 		time.Now(),
 		opentracing.Tags{},
 	), nil
+}
+
+const (
+	tracerStateHeaderName = "Tracer-State"
+	traceAttrsHeaderName  = "Trace-Attributes"
+)
+
+func (p goHTTPPropagator) InjectSpan(
+	sp opentracing.Span,
+	carrier interface{},
+) error {
+	// Defer to SplitBinary for the real work.
+	splitBinaryCarrier := opentracing.NewSplitBinaryCarrier()
+	if err := p.splitBinaryPropagator.InjectSpan(sp, splitBinaryCarrier); err != nil {
+		return err
+	}
+
+	// Encode into the HTTP header as two base64 strings.
+	header := carrier.(http.Header)
+	header.Add(tracerStateHeaderName, base64.StdEncoding.EncodeToString(
+		splitBinaryCarrier.TracerState))
+	header.Add(traceAttrsHeaderName, base64.StdEncoding.EncodeToString(
+		splitBinaryCarrier.TraceAttributes))
+
+	return nil
+}
+
+func (p goHTTPPropagator) JoinTrace(
+	operationName string,
+	carrier interface{},
+) (opentracing.Span, error) {
+	// Decode the two base64-encoded data blobs from the HTTP header.
+	header := carrier.(http.Header)
+	tracerStateBinary, err := base64.StdEncoding.DecodeString(
+		header.Get(tracerStateHeaderName))
+	if err != nil {
+		return nil, err
+	}
+	traceAttrsBinary, err := base64.StdEncoding.DecodeString(
+		header.Get(traceAttrsHeaderName))
+	if err != nil {
+		return nil, err
+	}
+
+	// Defer to SplitBinary for the real work.
+	splitBinaryCarrier := &opentracing.SplitBinaryCarrier{
+		TracerState:     tracerStateBinary,
+		TraceAttributes: traceAttrsBinary,
+	}
+	return p.splitBinaryPropagator.JoinTrace(operationName, splitBinaryCarrier)
 }

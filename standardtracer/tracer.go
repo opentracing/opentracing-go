@@ -14,6 +14,7 @@ func New(recorder SpanRecorder) opentracing.Tracer {
 	}
 	rval.textPropagator = splitTextPropagator{rval}
 	rval.binaryPropagator = splitBinaryPropagator{rval}
+	rval.goHTTPPropagator = goHTTPPropagator{rval.binaryPropagator}
 	return rval
 }
 
@@ -22,6 +23,7 @@ type tracerImpl struct {
 	recorder         SpanRecorder
 	textPropagator   splitTextPropagator
 	binaryPropagator splitBinaryPropagator
+	goHTTPPropagator goHTTPPropagator
 }
 
 func (t *tracerImpl) StartSpan(
@@ -91,6 +93,7 @@ func (t *tracerImpl) Extractor(format interface{}) opentracing.Extractor {
 	case opentracing.SplitBinary:
 		return t.binaryPropagator
 	case opentracing.GoHTTPHeader:
+		return t.goHTTPPropagator
 	}
 	return nil
 }
@@ -102,6 +105,7 @@ func (t *tracerImpl) Injector(format interface{}) opentracing.Injector {
 	case opentracing.SplitBinary:
 		return t.binaryPropagator
 	case opentracing.GoHTTPHeader:
+		return t.goHTTPPropagator
 	}
 	return nil
 }
