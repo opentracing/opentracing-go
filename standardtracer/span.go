@@ -17,13 +17,6 @@ type spanImpl struct {
 	raw      RawSpan
 }
 
-func (s *spanImpl) StartChild(operationName string) opentracing.Span {
-	return s.tracer.StartSpanWithOptions(opentracing.StartSpanOptions{
-		OperationName: operationName,
-		Parent:        s,
-	})
-}
-
 func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()

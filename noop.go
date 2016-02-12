@@ -19,7 +19,6 @@ const (
 )
 
 // noopSpan:
-func (n noopSpan) StartChild(operationName string) Span                  { return defaultNoopSpan }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
