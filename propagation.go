@@ -28,40 +28,38 @@ type Extractor interface {
 // BUILTIN PROPAGATION FORMATS:
 ///////////////////////////////////////////////////////////////////////////////
 
-// SplitBinaryType only exists for the single SplitBinary value.
-type SplitBinaryType struct{}
+// BuiltinFormat is used to demarcate the values within package `opentracing`
+// that are intended for use with the Tracer.Injector() and Tracer.Extractor()
+// methods.
+type BuiltinFormat byte
 
-// SplitBinary encodes the Span in a BinaryCarrier instance.
-//
-// The `carrier` for injection and extraction must be a `*BinaryCarrier`
-// instance.
-const SplitBinary = SplitBinaryType{}
+const (
+	// SplitBinary encodes the Span in a SplitBinaryCarrier instance.
+	//
+	// The `carrier` for injection and extraction must be a
+	// `*SplitBinaryCarrier` instance.
+	SplitBinary BuiltinFormat = iota
 
-// SplitTextType only exists for the single SplitText value.
-type SplitTextType struct{}
+	// SplitText encodes the Span in a SplitTextCarrier instance.
+	//
+	// The `carrier` for injection and extraction must be a `*SplitTextCarrier`
+	// instance.
+	SplitText
 
-// SplitText encodes the Span in a TextCarrier instance.
-//
-// The `carrier` for injection and extraction must be a `*TextCarrier`
-// instance.
-const SplitText = SplitTextType{}
+	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
+	// tracer state and any Trace Attributes).
+	//
+	// The `carrier` for both injection and extraction must be an http.Header
+	// instance.
+	GoHTTPHeader
+)
 
-// GoHTTPHeaderType only exists for the single GoHTTPHeader value.
-type GoHTTPHeaderType struct{}
-
-// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
-// tracer state and any Trace Attributes).
-//
-// The `carrier` for both injection and extraction must be an http.Header
-// instance.
-var GoHTTPHeader = GoHTTPHeader{}
-
-// TextCarrier breaks a propagated Span into two pieces.
+// SplitTextCarrier breaks a propagated Span into two pieces.
 //
 // The Span is separated in this way for a variety of reasons; the most
 // important is to give OpenTracing users a portable way to opt out of Trace
 // Attribute propagation entirely if they deem it a stability risk.
-type TextCarrier struct {
+type SplitTextCarrier struct {
 	// TracerState is Tracer-specific context that must cross process
 	// boundaries. For example, in Dapper this would include a trace_id, a
 	// span_id, and a bitmask representing the sampling status for the given
@@ -72,19 +70,19 @@ type TextCarrier struct {
 	TraceAttributes map[string]string
 }
 
-func NewTextCarrier() *TextCarrier {
-	return &TextCarrier{
+func NewSplitTextCarrier() *SplitTextCarrier {
+	return &SplitTextCarrier{
 		TracerState:     make(map[string]string),
 		TraceAttributes: make(map[string]string),
 	}
 }
 
-// BinaryCarrier breaks a propagated Span into two pieces.
+// SplitBinaryCarrier breaks a propagated Span into two pieces.
 //
 // The Span is separated in this way for a variety of reasons; the most
 // important is to give OpenTracing users a portable way to opt out of Trace
 // Attribute propagation entirely if they deem it a stability risk.
-type BinaryCarrier struct {
+type SplitBinaryCarrier struct {
 	// TracerState is Tracer-specific context that must cross process
 	// boundaries. For example, in Dapper this would include a trace_id, a
 	// span_id, and a bitmask representing the sampling status for the given
@@ -95,9 +93,9 @@ type BinaryCarrier struct {
 	TraceAttributes []byte
 }
 
-func NewBinaryCarrier() *BinaryCarrier {
-	return &BinaryCarrier{
-		TracerState:     make([]byte),
-		TraceAttributes: make([]byte),
+func NewSplitBinaryCarrier() *SplitBinaryCarrier {
+	return &SplitBinaryCarrier{
+		TracerState:     []byte{},
+		TraceAttributes: []byte{},
 	}
 }

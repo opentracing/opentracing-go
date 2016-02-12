@@ -11,40 +11,96 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
+type splitTextPropagator struct {
+	tracer *tracerImpl
+}
+type splitBinaryPropagator struct {
+	tracer *tracerImpl
+}
+
 const (
 	fieldNameTraceID = "traceid"
 	fieldNameSpanID  = "spanid"
 	fieldNameSampled = "sampled"
 )
 
-func (t *tracerImpl) PropagateSpanAsText(
+func (p splitTextPropagator) InjectSpan(
 	sp opentracing.Span,
-) (
-	contextIDMap map[string]string,
-	attrsMap map[string]string,
-) {
+	carrier interface{},
+) error {
 	sc := sp.(*spanImpl).raw.StandardContext
-	contextIDMap = map[string]string{
+	splitTextCarrier := carrier.(*opentracing.SplitTextCarrier)
+	splitTextCarrier.TracerState = map[string]string{
 		fieldNameTraceID: strconv.FormatInt(sc.TraceID, 10),
 		fieldNameSpanID:  strconv.FormatInt(sc.SpanID, 10),
 		fieldNameSampled: strconv.FormatBool(sc.Sampled),
 	}
 	sc.attrMu.RLock()
-	attrsMap = make(map[string]string, len(sc.traceAttrs))
+	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.traceAttrs))
 	for k, v := range sc.traceAttrs {
-		attrsMap[k] = v
+		splitTextCarrier.TraceAttributes[k] = v
 	}
 	sc.attrMu.RUnlock()
-	return contextIDMap, attrsMap
+	return nil
 }
 
-func (t *tracerImpl) PropagateSpanAsBinary(
+func (p splitTextPropagator) JoinTrace(
+	operationName string,
+	carrier interface{},
+) (opentracing.Span, error) {
+	splitTextCarrier := carrier.(*opentracing.SplitTextCarrier)
+	requiredFieldCount := 0
+	var traceID, propagatedSpanID int64
+	var sampled bool
+	var err error
+	for k, v := range splitTextCarrier.TracerState {
+		switch strings.ToLower(k) {
+		case fieldNameTraceID:
+			traceID, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSpanID:
+			propagatedSpanID, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		case fieldNameSampled:
+			sampled, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, err
+			}
+			requiredFieldCount++
+		default:
+			return nil, fmt.Errorf("Unknown TracerState field: %v", k)
+		}
+	}
+	if requiredFieldCount < 3 {
+		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
+	}
+
+	return p.tracer.startSpanInternal(
+		&StandardContext{
+			TraceID:      traceID,
+			SpanID:       randomID(),
+			ParentSpanID: propagatedSpanID,
+			Sampled:      sampled,
+			traceAttrs:   splitTextCarrier.TraceAttributes,
+		},
+		operationName,
+		time.Now(),
+		opentracing.Tags{},
+	), nil
+}
+
+func (p splitBinaryPropagator) InjectSpan(
 	sp opentracing.Span,
-) (
-	traceContextID []byte,
-	traceAttrs []byte,
-) {
+	carrier interface{},
+) error {
 	sc := sp.(*spanImpl).raw.StandardContext
+	splitBinaryCarrier := carrier.(*opentracing.SplitBinaryCarrier)
 	var err error
 	var sampledByte byte
 	if sc.Sampled {
@@ -55,24 +111,24 @@ func (t *tracerImpl) PropagateSpanAsBinary(
 	contextBuf := new(bytes.Buffer)
 	err = binary.Write(contextBuf, binary.BigEndian, sc.TraceID)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = binary.Write(contextBuf, binary.BigEndian, sc.SpanID)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = binary.Write(contextBuf, binary.BigEndian, sampledByte)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Handle the attributes.
 	attrsBuf := new(bytes.Buffer)
 	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.traceAttrs)))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	for k, v := range sc.traceAttrs {
 		keyBytes := []byte(k)
@@ -83,17 +139,19 @@ func (t *tracerImpl) PropagateSpanAsBinary(
 		err = binary.Write(attrsBuf, binary.BigEndian, valBytes)
 	}
 
-	return contextBuf.Bytes(), attrsBuf.Bytes()
+	splitBinaryCarrier.TracerState = contextBuf.Bytes()
+	splitBinaryCarrier.TraceAttributes = attrsBuf.Bytes()
+	return nil
 }
 
-func (t *tracerImpl) JoinTraceFromBinary(
+func (p splitBinaryPropagator) JoinTrace(
 	operationName string,
-	traceContextID []byte,
-	traceAttrs []byte,
+	carrier interface{},
 ) (opentracing.Span, error) {
 	var err error
+	splitBinaryCarrier := carrier.(*opentracing.SplitBinaryCarrier)
 	// Handle the trace, span ids, and sampled status.
-	contextReader := bytes.NewReader(traceContextID)
+	contextReader := bytes.NewReader(splitBinaryCarrier.TracerState)
 	var traceID, propagatedSpanID int64
 	var sampledByte byte
 
@@ -111,7 +169,7 @@ func (t *tracerImpl) JoinTraceFromBinary(
 	}
 
 	// Handle the attributes.
-	attrsReader := bytes.NewReader(traceAttrs)
+	attrsReader := bytes.NewReader(splitBinaryCarrier.TraceAttributes)
 	var numAttrs int32
 	err = binary.Read(attrsReader, binary.BigEndian, &numAttrs)
 	if err != nil {
@@ -145,64 +203,13 @@ func (t *tracerImpl) JoinTraceFromBinary(
 		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
-	return t.startSpanInternal(
+	return p.tracer.startSpanInternal(
 		&StandardContext{
 			TraceID:      traceID,
 			SpanID:       randomID(),
 			ParentSpanID: propagatedSpanID,
 			Sampled:      sampledByte != 0,
 			traceAttrs:   attrMap,
-		},
-		operationName,
-		time.Now(),
-		opentracing.Tags{},
-	), nil
-}
-
-func (t *tracerImpl) JoinTraceFromText(
-	operationName string,
-	contextIDMap map[string]string,
-	attrsMap map[string]string,
-) (opentracing.Span, error) {
-	requiredFieldCount := 0
-	var traceID, propagatedSpanID int64
-	var sampled bool
-	var err error
-	for k, v := range contextIDMap {
-		switch strings.ToLower(k) {
-		case fieldNameTraceID:
-			traceID, err = strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			requiredFieldCount++
-		case fieldNameSpanID:
-			propagatedSpanID, err = strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			requiredFieldCount++
-		case fieldNameSampled:
-			sampled, err = strconv.ParseBool(v)
-			if err != nil {
-				return nil, err
-			}
-			requiredFieldCount++
-		default:
-			return nil, fmt.Errorf("Unknown contextIDMap field: %v", k)
-		}
-	}
-	if requiredFieldCount < 3 {
-		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
-	}
-
-	return t.startSpanInternal(
-		&StandardContext{
-			TraceID:      traceID,
-			SpanID:       randomID(),
-			ParentSpanID: propagatedSpanID,
-			Sampled:      sampled,
-			traceAttrs:   attrsMap,
 		},
 		operationName,
 		time.Now(),

@@ -27,24 +27,6 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Return a Extractor for the given `format` value, or nil if the Tracer
-	// does not support such a format.
-	//
-	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
-	// and each has an expected carrier type.
-	//
-	// Other packages may declare their own `format` values, much like the keys
-	// used by the `net.Context` package (see
-	// https://godoc.org/golang.org/x/net/context#WithValue).
-	//
-	// Example usage (sans error handling):
-	//
-	//     span, err := tracer.Extractor(
-	//         opentracing.GoHTTPHeader).JoinTrace(
-	//         operationName, httpReq.Header)
-	//
-	Extractor(format interface{}) Extractor
-
 	// Return an Injector for the given `format` value, or nil if the Tracer
 	// does not support such a format.
 	//
@@ -62,6 +44,24 @@ type Tracer interface {
 	//         span, httpReq.Header)
 	//
 	Injector(format interface{}) Injector
+
+	// Return a Extractor for the given `format` value, or nil if the Tracer
+	// does not support such a format.
+	//
+	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
+	// and each has an expected carrier type.
+	//
+	// Other packages may declare their own `format` values, much like the keys
+	// used by the `net.Context` package (see
+	// https://godoc.org/golang.org/x/net/context#WithValue).
+	//
+	// Example usage (sans error handling):
+	//
+	//     span, err := tracer.Extractor(
+	//         opentracing.GoHTTPHeader).JoinTrace(
+	//         operationName, httpReq.Header)
+	//
+	Extractor(format interface{}) Extractor
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the

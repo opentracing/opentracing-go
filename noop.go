@@ -5,13 +5,15 @@ package opentracing
 type NoopTracer struct{}
 
 type noopSpan struct{}
+type noopInjectorExtractor struct{}
 
 var (
-	defaultNoopSpan   = noopSpan{}
-	defaultNoopTracer = NoopTracer{}
-	emptyTags         = Tags{}
-	emptyBytes        = []byte{}
-	emptyStringMap    = map[string]string{}
+	defaultNoopSpan              = noopSpan{}
+	defaultNoopInjectorExtractor = noopInjectorExtractor{}
+	defaultNoopTracer            = NoopTracer{}
+	emptyTags                    = Tags{}
+	emptyBytes                   = []byte{}
+	emptyStringMap               = map[string]string{}
 )
 
 const (
@@ -68,7 +70,25 @@ func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 	return defaultNoopSpan
 }
 
+// Extractor belongs to the Tracer interface.
+func (n NoopTracer) Extractor(format interface{}) Extractor {
+	return defaultNoopInjectorExtractor
+}
+
+// Injector belongs to the Tracer interface.
+func (n NoopTracer) Injector(format interface{}) Injector {
+	return defaultNoopInjectorExtractor
+}
+
 // JoinTrace belongs to the Tracer interface.
 func (n NoopTracer) JoinTrace(operationName string, parent interface{}) Span {
 	return defaultNoopSpan
+}
+
+func (n noopInjectorExtractor) InjectSpan(span Span, carrier interface{}) error {
+	return nil
+}
+
+func (n noopInjectorExtractor) JoinTrace(operationName string, carrier interface{}) (Span, error) {
+	return nil, nil
 }

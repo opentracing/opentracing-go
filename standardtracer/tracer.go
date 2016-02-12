@@ -9,14 +9,19 @@ import (
 // New creates and returns a standard Tracer which defers to `recorder` after
 // RawSpans have been assembled.
 func New(recorder SpanRecorder) opentracing.Tracer {
-	return &tracerImpl{
+	rval := &tracerImpl{
 		recorder: recorder,
 	}
+	rval.textPropagator = splitTextPropagator{rval}
+	rval.binaryPropagator = splitBinaryPropagator{rval}
+	return rval
 }
 
 // Implements the `Tracer` interface.
 type tracerImpl struct {
-	recorder SpanRecorder
+	recorder         SpanRecorder
+	textPropagator   splitTextPropagator
+	binaryPropagator splitBinaryPropagator
 }
 
 func (t *tracerImpl) StartSpan(
@@ -77,4 +82,26 @@ func (t *tracerImpl) startSpanInternal(
 			Logs:            []*opentracing.LogData{},
 		},
 	}
+}
+
+func (t *tracerImpl) Extractor(format interface{}) opentracing.Extractor {
+	switch format {
+	case opentracing.SplitText:
+		return t.textPropagator
+	case opentracing.SplitBinary:
+		return t.binaryPropagator
+	case opentracing.GoHTTPHeader:
+	}
+	return nil
+}
+
+func (t *tracerImpl) Injector(format interface{}) opentracing.Injector {
+	switch format {
+	case opentracing.SplitText:
+		return t.textPropagator
+	case opentracing.SplitBinary:
+		return t.binaryPropagator
+	case opentracing.GoHTTPHeader:
+	}
+	return nil
 }

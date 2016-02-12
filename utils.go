@@ -24,16 +24,16 @@ func InjectSpanInHeader(
 	h http.Header,
 ) error {
 	// First, look for a GoHTTPHeader injector (our preference).
-	injector := sp.Injector(GoHTTPHeader)
+	injector := sp.Tracer().Injector(GoHTTPHeader)
 	if injector != nil {
 		return injector.InjectSpan(sp, h)
 	}
 
 	// Else, fall back on SplitText.
-	if injector = sp.Injector(SplitText); injector == nil {
+	if injector = sp.Tracer().Injector(SplitText); injector == nil {
 		return errors.New("No suitable injector")
 	}
-	carrier := NewTextCarrier()
+	carrier := NewSplitTextCarrier()
 	if err := injector.InjectSpan(sp, carrier); err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func JoinTraceFromHeader(
 		return nil, errors.New("No suitable extractor")
 	}
 
-	carrier := NewTextCarrier()
+	carrier := NewSplitTextCarrier()
 	for key, val := range h {
 		if strings.HasPrefix(key, ContextIDHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:

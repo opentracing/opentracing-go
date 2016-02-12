@@ -35,8 +35,7 @@ func client() {
 
 		httpClient := &http.Client{}
 		httpReq, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewReader([]byte(text)))
-		opentracing.PropagateSpanInHeader(
-			span, httpReq.Header, opentracing.GlobalTracer())
+		opentracing.InjectSpanInHeader(span, httpReq.Header)
 		resp, err := httpClient.Do(httpReq)
 		if err != nil {
 			span.LogEventWithPayload("error", err)

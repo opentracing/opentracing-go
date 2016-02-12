@@ -184,8 +184,9 @@ func StartChildSpan(parent Span, operationName string) Span {
 // InjectSpan is a helper that injects a Span instance into a carrier.
 //
 // See Tracer.Injector() and Injector.InjectSpan().
-func InjectSpan(sp Span, format PropagationFormat, carrier interface{}) error {
-	if inj := sp.Tracer().Injector(format); inj == nil {
+func InjectSpan(sp Span, format interface{}, carrier interface{}) error {
+	var inj Injector
+	if inj = sp.Tracer().Injector(format); inj == nil {
 		return fmt.Errorf("Unsupported PropagationFormat: %v", format)
 	}
 	inj.InjectSpan(sp, carrier)
