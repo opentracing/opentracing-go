@@ -1,5 +1,7 @@
 package opentracing
 
+import "time"
+
 // Tracer is a simple, thin interface for Span creation.
 //
 // A straightforward implementation is available via the
@@ -14,13 +16,41 @@ type Tracer interface {
 	//
 	// Examples:
 	//
-	//     var tracer Tracer = ...
+	//     var tracer opentracing.Tracer = ...
 	//
-	//     sp := tracer.StartTrace("GetFeed")
+	//     sp := tracer.StartSpan("GetFeed")
 	//
-	//     sp := tracer.StartTrace("HandleHTTPRequest").
-	//         SetTag("user_agent", req.UserAgent).
-	//         SetTag("lucky_number", 42)
+	//     sp := tracer.StartSpanWithOptions(opentracing.SpanOptions{
+	//         OperationName: "LoggedHTTPRequest",
+	//         Tags: opentracing.Tags{"user_agent", loggedReq.UserAgent},
+	//         StartTime: loggedReq.Timestamp,
+	//     })
 	//
-	StartTrace(operationName string) Span
+	StartSpan(operationName string) Span
+	StartSpanWithOptions(opts StartSpanOptions) Span
+}
+
+// StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
+// start timestamp, specify a parent Span, and make sure that Tags are
+// available at Span initialization time.
+type StartSpanOptions struct {
+	// OperationName may be empty (and set later via Span.SetOperationName)
+	OperationName string
+
+	// Parent may specify Span instance that caused the new (child) Span to be
+	// created.
+	//
+	// If nil, start a "root" span (i.e., start a new trace).
+	Parent Span
+
+	// StartTime overrides the Span's start time, or implicitly becomes
+	// time.Now() if StartTime.IsZero().
+	StartTime time.Time
+
+	// Tags may have zero or more entries; the restrictions on map values are
+	// identical to those for Span.SetTag(). May be nil.
+	//
+	// If specified, the caller hands off ownership of Tags at
+	// StartSpanWithOptions() invocation time.
+	Tags map[string]interface{}
 }

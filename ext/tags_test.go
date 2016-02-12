@@ -15,7 +15,7 @@ func TestPeerTags(t *testing.T) {
 	}
 	recorder := testutils.NewInMemoryRecorder()
 	tracer := standardtracer.New(recorder)
-	span := tracer.StartTrace("my-trace")
+	span := tracer.StartSpan("my-trace")
 	ext.PeerService.Add(span, "my-service")
 	ext.PeerHostname.Add(span, "my-hostname")
 	ext.PeerHostIPv4.Add(span, uint32(127<<24|1))

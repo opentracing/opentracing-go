@@ -17,11 +17,6 @@ type spanImpl struct {
 	raw      RawSpan
 }
 
-func (s *spanImpl) StartChild(operationName string) opentracing.Span {
-	childCtx := s.raw.StandardContext.NewChild()
-	return s.tracer.startSpanGeneric(operationName, childCtx)
-}
-
 func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -61,10 +56,21 @@ func (s *spanImpl) Log(ld opentracing.LogData) {
 }
 
 func (s *spanImpl) Finish() {
-	duration := time.Since(s.raw.Start)
+	s.FinishWithOptions(opentracing.FinishOptions{})
+}
+
+func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
+	finishTime := opts.FinishTime
+	if finishTime.IsZero() {
+		finishTime = time.Now()
+	}
+	duration := finishTime.Sub(s.raw.Start)
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
+	if opts.BulkLogData != nil {
+		s.raw.Logs = append(s.raw.Logs, opts.BulkLogData...)
+	}
 	s.raw.Duration = duration
 	s.recorder.RecordSpan(&s.raw)
 }
@@ -92,4 +98,8 @@ func (s *spanImpl) TraceAttribute(restrictedKey string) string {
 	defer s.raw.StandardContext.attrMu.RUnlock()
 
 	return s.raw.StandardContext.traceAttrs[canonicalKey]
+}
+
+func (s *spanImpl) Tracer() opentracing.Tracer {
+	return s.tracer
 }

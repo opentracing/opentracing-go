@@ -6,15 +6,12 @@ import (
 	"time"
 )
 
-// Span represents an active, un-finished span in the opentracing system.
+// Span represents an active, un-finished span in the OpenTracing system.
 //
-// Spans are created by the Tracer interface and Span.StartChild.
+// Spans are created by the Tracer interface.
 type Span interface {
 	// Sets or changes the operation name.
 	SetOperationName(operationName string) Span
-
-	// Creates and starts a child span.
-	StartChild(operationName string) Span
 
 	// Adds a tag to the span.
 	//
@@ -34,6 +31,9 @@ type Span interface {
 	// Finish() should be the last call made to any span instance, and to do
 	// otherwise leads to undefined behavior.
 	Finish()
+	// FinishWithOptions is like Finish() but with explicit control over
+	// timestamps and log data.
+	FinishWithOptions(opts FinishOptions)
 
 	// LogEvent() is equivalent to
 	//
@@ -86,6 +86,9 @@ type Span interface {
 	//
 	// See the `SetTraceAttribute` notes about `restrictedKey`.
 	TraceAttribute(restrictedKey string) string
+
+	// Provides access to the Tracer that created this Span.
+	Tracer() Tracer
 }
 
 // LogData is data associated to a Span. Every LogData instance should specify
@@ -121,6 +124,29 @@ type LogData struct {
 	Payload interface{}
 }
 
+// FinishOptions allows Span.FinishWithOptions callers to override the finish
+// timestamp and provide log data via a bulk interface.
+type FinishOptions struct {
+	// FinishTime overrides the Span's finish time, or implicitly becomes
+	// time.Now() if FinishTime.IsZero().
+	//
+	// FinishTime must resolve to a timestamp that's >= the Span's StartTime
+	// (per StartSpanOptions).
+	FinishTime time.Time
+
+	// BulkLogData allows the caller to specify the contents of many Log()
+	// calls with a single slice. May be nil.
+	//
+	// None of the LogData.Timestamp values may be .IsZero() (i.e., they must
+	// be set explicitly). Also, they must be >= the Span's start timestamp and
+	// <= the FinishTime (or time.Now() if FinishTime.IsZero()). Otherwise the
+	// behavior of FinishWithOptions() is undefined.
+	//
+	// If specified, the caller hands off ownership of BulkLogData at
+	// FinishWithOptions() invocation time.
+	BulkLogData []*LogData
+}
+
 // Tags are a generic map from an arbitrary string key to an opaque value type.
 // The underlying tracing system is responsible for interpreting and
 // serializing the values.
@@ -144,4 +170,12 @@ func CanonicalizeTraceAttributeKey(key string) (string, bool) {
 		return "", false
 	}
 	return strings.ToLower(key), true
+}
+
+// StartChildSpan is a simple helper to start a child span given only its parent (per StartSpanOptions.Parent) and an operation name per Span.SetOperationName.
+func StartChildSpan(parent Span, operationName string) Span {
+	return parent.Tracer().StartSpanWithOptions(StartSpanOptions{
+		OperationName: operationName,
+		Parent:        parent,
+	})
 }
