@@ -32,34 +32,6 @@ func (n noopSpan) Log(data LogData)                                      {}
 func (n noopSpan) SetOperationName(operationName string) Span            { return n }
 func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 
-// PropagateSpanAsBinary belongs to the Tracer interface.
-func (n NoopTracer) PropagateSpanAsBinary(tcid Span) ([]byte, []byte) {
-	return emptyBytes, emptyBytes
-}
-
-// PropagateSpanAsText belongs to the Tracer interface.
-func (n NoopTracer) PropagateSpanAsText(tcid Span) (map[string]string, map[string]string) {
-	return emptyStringMap, emptyStringMap
-}
-
-// JoinTraceFromBinary belongs to the Tracer interface.
-func (n NoopTracer) JoinTraceFromBinary(
-	op string,
-	traceContextID []byte,
-	traceAttrs []byte,
-) (Span, error) {
-	return defaultNoopSpan, nil
-}
-
-// JoinTraceFromText belongs to the Tracer interface.
-func (n NoopTracer) JoinTraceFromText(
-	op string,
-	traceContextID map[string]string,
-	traceAttrs map[string]string,
-) (Span, error) {
-	return defaultNoopSpan, nil
-}
-
 // StartSpan belongs to the Tracer interface.
 func (n NoopTracer) StartSpan(operationName string) Span {
 	return defaultNoopSpan
@@ -78,11 +50,6 @@ func (n NoopTracer) Extractor(format interface{}) Extractor {
 // Injector belongs to the Tracer interface.
 func (n NoopTracer) Injector(format interface{}) Injector {
 	return defaultNoopInjectorExtractor
-}
-
-// JoinTrace belongs to the Tracer interface.
-func (n NoopTracer) JoinTrace(operationName string, parent interface{}) Span {
-	return defaultNoopSpan
 }
 
 func (n noopInjectorExtractor) InjectSpan(span Span, carrier interface{}) error {

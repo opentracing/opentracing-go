@@ -189,6 +189,5 @@ func InjectSpan(sp Span, format interface{}, carrier interface{}) error {
 	if inj = sp.Tracer().Injector(format); inj == nil {
 		return fmt.Errorf("Unsupported PropagationFormat: %v", format)
 	}
-	inj.InjectSpan(sp, carrier)
-	return nil
+	return inj.InjectSpan(sp, carrier)
 }
