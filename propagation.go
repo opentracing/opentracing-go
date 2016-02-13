@@ -1,8 +1,26 @@
 package opentracing
 
+import "errors"
+
 ///////////////////////////////////////////////////////////////////////////////
 // CORE PROPAGATION INTERFACES:
 ///////////////////////////////////////////////////////////////////////////////
+
+var (
+	// TraceNotFound occurs when the `carrier` passed to Extractor.JoinTrace()
+	// is valid and uncorrupted but has insufficient information to join or
+	// resume a trace.
+	TraceNotFound = errors.New("Trace not found in Extraction carrier")
+
+	// InvalidCarrier errors occur when Injector.InjectSpan() or
+	// Extractor.JoinTrace() implementations expect a different type of
+	// `carrier` than they are given.
+	InvalidCarrier = errors.New("Invalid Injection/Extraction carrier")
+
+	// TraceCorrupted occurs when the `carrier` passed to Extractor.JoinTrace()
+	// is of the expected type but is corrupted.
+	TraceCorrupted = errors.New("Trace data corrupted in Extraction carrier")
+)
 
 // Injector is responsible for injecting Span instances in a manner suitable
 // for propagation via a format-specific "carrier" object. Typically the
@@ -11,6 +29,11 @@ package opentracing
 //
 // See Extractor and Tracer.Injector.
 type Injector interface {
+	// InjectSpan takes `span` and injects it into `carrier`. The actual type
+	// of `carrier` depends on the `format` passed to `Tracer.Injector()`.
+	//
+	// Implementations may return opentracing.InvalidCarrier or any other
+	// implementation-specific error if injection fails.
 	InjectSpan(span Span, carrier interface{}) error
 }
 
@@ -21,6 +44,15 @@ type Injector interface {
 //
 // See Injector and Tracer.Extractor.
 type Extractor interface {
+	// JoinTrace returns a Span instance with operation name `operationName`
+	// given `carrier`, or (nil, opentracing.TraceNotFound) if no trace could be found to
+	// join with in the `carrier`.
+	//
+	// Implementations may return opentracing.InvalidCarrier,
+	// opentracing.TraceCorrupted, or implementation-specific errors if there
+	// are more fundamental problems with `carrier`.
+	//
+	// Upon success, the returned Span instance is already started.
 	JoinTrace(operationName string, carrier interface{}) (Span, error)
 }
 
