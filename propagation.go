@@ -10,16 +10,16 @@ var (
 	// TraceNotFound occurs when the `carrier` passed to Extractor.JoinTrace()
 	// is valid and uncorrupted but has insufficient information to join or
 	// resume a trace.
-	TraceNotFound = errors.New("Trace not found in Extraction carrier")
+	TraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
 
 	// InvalidCarrier errors occur when Injector.InjectSpan() or
 	// Extractor.JoinTrace() implementations expect a different type of
 	// `carrier` than they are given.
-	InvalidCarrier = errors.New("Invalid Injection/Extraction carrier")
+	InvalidCarrier = errors.New("opentracing: Invalid Injection/Extraction carrier")
 
 	// TraceCorrupted occurs when the `carrier` passed to Extractor.JoinTrace()
 	// is of the expected type but is corrupted.
-	TraceCorrupted = errors.New("Trace data corrupted in Extraction carrier")
+	TraceCorrupted = errors.New("opentracing: Trace data corrupted in Extraction carrier")
 )
 
 // Injector is responsible for injecting Span instances in a manner suitable
