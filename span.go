@@ -2,6 +2,7 @@ package opentracing
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -187,7 +188,10 @@ func StartChildSpan(parent Span, operationName string) Span {
 func InjectSpan(sp Span, format interface{}, carrier interface{}) error {
 	var inj Injector
 	if inj = sp.Tracer().Injector(format); inj == nil {
-		return fmt.Errorf("Unsupported PropagationFormat: %v", format)
+		return fmt.Errorf(
+			"Unsupported PropagationFormat: %v (type: %v)",
+			format,
+			reflect.TypeOf(format))
 	}
 	return inj.InjectSpan(sp, carrier)
 }

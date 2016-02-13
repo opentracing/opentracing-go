@@ -12,18 +12,18 @@ func New(recorder SpanRecorder) opentracing.Tracer {
 	rval := &tracerImpl{
 		recorder: recorder,
 	}
-	rval.textPropagator = splitTextPropagator{rval}
-	rval.binaryPropagator = splitBinaryPropagator{rval}
-	rval.goHTTPPropagator = goHTTPPropagator{rval.binaryPropagator}
+	rval.textPropagator = &splitTextPropagator{rval}
+	rval.binaryPropagator = &splitBinaryPropagator{rval}
+	rval.goHTTPPropagator = &goHTTPPropagator{rval.binaryPropagator}
 	return rval
 }
 
 // Implements the `Tracer` interface.
 type tracerImpl struct {
 	recorder         SpanRecorder
-	textPropagator   splitTextPropagator
-	binaryPropagator splitBinaryPropagator
-	goHTTPPropagator goHTTPPropagator
+	textPropagator   *splitTextPropagator
+	binaryPropagator *splitBinaryPropagator
+	goHTTPPropagator *goHTTPPropagator
 }
 
 func (t *tracerImpl) StartSpan(

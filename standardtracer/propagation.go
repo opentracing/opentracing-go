@@ -20,7 +20,7 @@ type splitBinaryPropagator struct {
 	tracer *tracerImpl
 }
 type goHTTPPropagator struct {
-	splitBinaryPropagator
+	*splitBinaryPropagator
 }
 
 const (
@@ -29,7 +29,7 @@ const (
 	fieldNameSampled = "sampled"
 )
 
-func (p splitTextPropagator) InjectSpan(
+func (p *splitTextPropagator) InjectSpan(
 	sp opentracing.Span,
 	carrier interface{},
 ) error {
@@ -52,7 +52,7 @@ func (p splitTextPropagator) InjectSpan(
 	return nil
 }
 
-func (p splitTextPropagator) JoinTrace(
+func (p *splitTextPropagator) JoinTrace(
 	operationName string,
 	carrier interface{},
 ) (opentracing.Span, error) {
@@ -106,7 +106,7 @@ func (p splitTextPropagator) JoinTrace(
 	), nil
 }
 
-func (p splitBinaryPropagator) InjectSpan(
+func (p *splitBinaryPropagator) InjectSpan(
 	sp opentracing.Span,
 	carrier interface{},
 ) error {
@@ -158,7 +158,7 @@ func (p splitBinaryPropagator) InjectSpan(
 	return nil
 }
 
-func (p splitBinaryPropagator) JoinTrace(
+func (p *splitBinaryPropagator) JoinTrace(
 	operationName string,
 	carrier interface{},
 ) (opentracing.Span, error) {
@@ -239,7 +239,7 @@ const (
 	traceAttrsHeaderName  = "Trace-Attributes"
 )
 
-func (p goHTTPPropagator) InjectSpan(
+func (p *goHTTPPropagator) InjectSpan(
 	sp opentracing.Span,
 	carrier interface{},
 ) error {
@@ -259,7 +259,7 @@ func (p goHTTPPropagator) InjectSpan(
 	return nil
 }
 
-func (p goHTTPPropagator) JoinTrace(
+func (p *goHTTPPropagator) JoinTrace(
 	operationName string,
 	carrier interface{},
 ) (opentracing.Span, error) {

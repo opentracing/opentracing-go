@@ -43,6 +43,9 @@ type Tracer interface {
 	//         opentracing.GoHTTPHeader).InjectSpan(
 	//         span, httpReq.Header)
 	//
+	// NOTE: All opentracing.Tracer implementations MUST support all
+	// BuiltinFormats.
+	//
 	Injector(format interface{}) Injector
 
 	// Return a Extractor for the given `format` value, or nil if the Tracer
@@ -60,6 +63,9 @@ type Tracer interface {
 	//     span, err := tracer.Extractor(
 	//         opentracing.GoHTTPHeader).JoinTrace(
 	//         operationName, httpReq.Header)
+	//
+	// NOTE: All opentracing.Tracer implementations MUST support all
+	// BuiltinFormats.
 	//
 	Extractor(format interface{}) Extractor
 }

@@ -25,7 +25,7 @@ var (
 // Injector is responsible for injecting Span instances in a manner suitable
 // for propagation via a format-specific "carrier" object. Typically the
 // injection will take place across an RPC boundary, but message queues and
-// other IPC mechanisms are also reasonable places to use a Injector.
+// other IPC mechanisms are also reasonable places to use an Injector.
 //
 // See Extractor and Tracer.Injector.
 type Injector interface {
@@ -40,7 +40,7 @@ type Injector interface {
 // Extractor is responsible for extracting Span instances from an
 // format-specific "carrier" object. Typically the extraction will take place
 // on the server side of an RPC boundary, but message queues and other IPC
-// mechanisms are also reasonable places to use a Extractor.
+// mechanisms are also reasonable places to use an Extractor.
 //
 // See Injector and Tracer.Extractor.
 type Extractor interface {
