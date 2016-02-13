@@ -12,6 +12,7 @@ import (
 )
 
 func TestSpanPropagator(t *testing.T) {
+	var err error
 	const op = "test"
 	recorder := testutils.NewInMemoryRecorder()
 	tracer := standardtracer.New(recorder)
@@ -19,14 +20,22 @@ func TestSpanPropagator(t *testing.T) {
 	sp := tracer.StartSpan(op)
 	sp.SetTraceAttribute("foo", "bar")
 
-	textCtx, textAttrs := tracer.PropagateSpanAsText(sp)
-	binCtx, binAttrs := tracer.PropagateSpanAsBinary(sp)
-
-	sp1, err := tracer.JoinTraceFromText(op, textCtx, textAttrs)
+	textCarrier := opentracing.NewSplitTextCarrier()
+	err = tracer.Injector(opentracing.SplitText).InjectSpan(sp, textCarrier)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sp2, err := tracer.JoinTraceFromBinary(op, binCtx, binAttrs)
+	binaryCarrier := opentracing.NewSplitBinaryCarrier()
+	err = tracer.Injector(opentracing.SplitBinary).InjectSpan(sp, binaryCarrier)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sp1, err := tracer.Extractor(opentracing.SplitText).JoinTrace(op, textCarrier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sp2, err := tracer.Extractor(opentracing.SplitBinary).JoinTrace(op, binaryCarrier)
 	if err != nil {
 		t.Fatal(err)
 	}
