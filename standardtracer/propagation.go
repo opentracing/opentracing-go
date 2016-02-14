@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 type splitTextPropagator struct {

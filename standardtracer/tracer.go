@@ -3,7 +3,7 @@ package standardtracer
 import (
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // New creates and returns a standard Tracer which defers to `recorder` after

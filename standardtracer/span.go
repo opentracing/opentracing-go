@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // Implements the `Span` interface. Created via tracerImpl (see
