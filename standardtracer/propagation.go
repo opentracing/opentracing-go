@@ -43,9 +43,11 @@ func (p *splitTextPropagator) InjectSpan(
 		fieldNameSampled: strconv.FormatBool(sc.raw.Sampled),
 	}
 	sc.Lock()
-	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.raw.Attributes))
-	for k, v := range sc.raw.Attributes {
-		splitTextCarrier.TraceAttributes[k] = v
+	if l := len(sc.raw.Attributes); l > 0 {
+		splitTextCarrier.TraceAttributes = make(map[string]string, l)
+		for k, v := range sc.raw.Attributes {
+			splitTextCarrier.TraceAttributes[k] = v
+		}
 	}
 	sc.Unlock()
 	return nil
@@ -201,31 +203,35 @@ func (p *splitBinaryPropagator) JoinTrace(
 		return nil, opentracing.ErrTraceCorrupted
 	}
 	iNumAttrs := int(numAttrs)
-	attrMap := make(map[string]string, iNumAttrs)
-	for i := 0; i < iNumAttrs; i++ {
-		var keyLen int32
-		err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
-		keyBytes := make([]byte, keyLen)
-		err = binary.Read(attrsReader, binary.BigEndian, &keyBytes)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
+	var attrMap map[string]string
+	if iNumAttrs > 0 {
+		attrMap = make(map[string]string, iNumAttrs)
+		for i := 0; i < iNumAttrs; i++ {
+			var keyLen int32
+			err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
+			if err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			keyBytes := make([]byte, keyLen)
+			err = binary.Read(attrsReader, binary.BigEndian, &keyBytes)
+			if err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
 
-		var valLen int32
-		err = binary.Read(attrsReader, binary.BigEndian, &valLen)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
+			var valLen int32
+			err = binary.Read(attrsReader, binary.BigEndian, &valLen)
+			if err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			valBytes := make([]byte, valLen)
+			err = binary.Read(attrsReader, binary.BigEndian, &valBytes)
+			if err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			// TODO(tschottdorf): should be able to convert the byte slice
+			// to string via unsafe.
+			attrMap[string(keyBytes)] = string(valBytes)
 		}
-		valBytes := make([]byte, valLen)
-		err = binary.Read(attrsReader, binary.BigEndian, &valBytes)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
-
-		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
 	sp := p.tracer.getSpan()

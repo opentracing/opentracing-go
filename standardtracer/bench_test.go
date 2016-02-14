@@ -23,6 +23,18 @@ func (c *countingRecorder) RecordSpan(r RawSpan) {
 	atomic.AddInt32((*int32)(c), 1)
 }
 
+func executeOps(sp opentracing.Span, numEvent, numTag, numAttr int) {
+	for j := 0; j < numEvent; j++ {
+		sp.LogEvent("event")
+	}
+	for j := 0; j < numTag; j++ {
+		sp.SetTag(tags[j], nil)
+	}
+	for j := 0; j < numAttr; j++ {
+		sp.SetTraceAttribute(tags[j], tags[j])
+	}
+}
+
 func benchmarkWithOps(b *testing.B, numEvent, numTag, numAttr int) {
 	var r countingRecorder
 	t := New(&r)
@@ -39,15 +51,7 @@ func benchmarkWithOpsAndCB(b *testing.B, create func() opentracing.Span,
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sp := create()
-		for j := 0; j < numEvent; j++ {
-			sp.LogEvent("event")
-		}
-		for j := 0; j < numTag; j++ {
-			sp.SetTag(tags[j], nil)
-		}
-		for j := 0; j < numAttr; j++ {
-			sp.SetTraceAttribute(tags[j], tags[j])
-		}
+		executeOps(sp, numEvent, numTag, numAttr)
 		sp.Finish()
 	}
 	b.StopTimer()
@@ -91,4 +95,88 @@ func BenchmarkTrimmedSpan_100Events_100Tags_100Attributes(b *testing.B) {
 	if int(r) != b.N {
 		b.Fatalf("missing traces: expected %d, got %d", b.N, r)
 	}
+}
+
+func benchmarkInject(b *testing.B, format opentracing.BuiltinFormat, numAttr int) {
+	var r countingRecorder
+	tracer := New(&r)
+	sp := tracer.StartSpan("testing")
+	executeOps(sp, 0, 0, numAttr)
+	var carrier interface{}
+	switch format {
+	case opentracing.SplitText:
+		carrier = opentracing.NewSplitTextCarrier()
+	case opentracing.SplitBinary:
+		carrier = opentracing.NewSplitBinaryCarrier()
+	default:
+		b.Fatalf("unhandled format %d", format)
+	}
+	inj := tracer.Injector(format)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := inj.InjectSpan(sp, carrier)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func benchmarkExtract(b *testing.B, format opentracing.BuiltinFormat, numAttr int) {
+	var r countingRecorder
+	tracer := New(&r)
+	sp := tracer.StartSpan("testing")
+	executeOps(sp, 0, 0, numAttr)
+	var carrier interface{}
+	switch format {
+	case opentracing.SplitText:
+		carrier = opentracing.NewSplitTextCarrier()
+	case opentracing.SplitBinary:
+		carrier = opentracing.NewSplitBinaryCarrier()
+	default:
+		b.Fatalf("unhandled format %d", format)
+	}
+	if err := tracer.Injector(format).InjectSpan(sp, carrier); err != nil {
+		b.Fatal(err)
+	}
+	extractor := tracer.Extractor(format)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sp, err := extractor.JoinTrace("benchmark", carrier)
+		if err != nil {
+			b.Fatal(err)
+		}
+		sp.Finish() // feed back into buffer pool
+	}
+}
+
+func BenchmarkInject_SplitText_Empty(b *testing.B) {
+	benchmarkInject(b, opentracing.SplitText, 0)
+}
+
+func BenchmarkInject_SplitText_100Attributes(b *testing.B) {
+	benchmarkInject(b, opentracing.SplitText, 100)
+}
+
+func BenchmarkInject_SplitBinary_Empty(b *testing.B) {
+	benchmarkInject(b, opentracing.SplitBinary, 0)
+}
+
+func BenchmarkInject_SplitBinary_100Attributes(b *testing.B) {
+	benchmarkInject(b, opentracing.SplitBinary, 100)
+}
+
+func BenchmarkExtract_SplitText_Empty(b *testing.B) {
+	benchmarkExtract(b, opentracing.SplitText, 0)
+}
+
+func BenchmarkExtract_SplitText_100Attributes(b *testing.B) {
+	benchmarkExtract(b, opentracing.SplitText, 100)
+}
+
+func BenchmarkExtract_SplitBinary_Empty(b *testing.B) {
+	benchmarkExtract(b, opentracing.SplitBinary, 0)
+}
+
+func BenchmarkExtract_SplitBinary_100Attributes(b *testing.B) {
+	benchmarkExtract(b, opentracing.SplitBinary, 100)
 }
