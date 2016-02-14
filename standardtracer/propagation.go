@@ -33,22 +33,22 @@ func (p *splitTextPropagator) InjectSpan(
 	sp opentracing.Span,
 	carrier interface{},
 ) error {
-	sc := sp.(*spanImpl).raw.StandardContext
+	sc := sp.(*spanImpl)
 	splitTextCarrier, ok := carrier.(*opentracing.SplitTextCarrier)
 	if !ok {
-		return opentracing.InvalidCarrier
+		return opentracing.ErrInvalidCarrier
 	}
 	splitTextCarrier.TracerState = map[string]string{
-		fieldNameTraceID: strconv.FormatInt(sc.TraceID, 10),
-		fieldNameSpanID:  strconv.FormatInt(sc.SpanID, 10),
-		fieldNameSampled: strconv.FormatBool(sc.Sampled),
+		fieldNameTraceID: strconv.FormatInt(sc.raw.TraceID, 10),
+		fieldNameSpanID:  strconv.FormatInt(sc.raw.SpanID, 10),
+		fieldNameSampled: strconv.FormatBool(sc.raw.Sampled),
 	}
-	sc.attrMu.RLock()
+	sc.Lock()
 	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.traceAttrs))
 	for k, v := range sc.traceAttrs {
 		splitTextCarrier.TraceAttributes[k] = v
 	}
-	sc.attrMu.RUnlock()
+	sc.Unlock()
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (p *splitTextPropagator) JoinTrace(
 ) (opentracing.Span, error) {
 	splitTextCarrier, ok := carrier.(*opentracing.SplitTextCarrier)
 	if !ok {
-		return nil, opentracing.InvalidCarrier
+		return nil, opentracing.ErrInvalidCarrier
 	}
 	requiredFieldCount := 0
 	var traceID, propagatedSpanID int64
@@ -69,19 +69,19 @@ func (p *splitTextPropagator) JoinTrace(
 		case fieldNameTraceID:
 			traceID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return nil, opentracing.TraceCorrupted
+				return nil, opentracing.ErrTraceCorrupted
 			}
 			requiredFieldCount++
 		case fieldNameSpanID:
 			propagatedSpanID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return nil, opentracing.TraceCorrupted
+				return nil, opentracing.ErrTraceCorrupted
 			}
 			requiredFieldCount++
 		case fieldNameSampled:
 			sampled, err = strconv.ParseBool(v)
 			if err != nil {
-				return nil, opentracing.TraceCorrupted
+				return nil, opentracing.ErrTraceCorrupted
 			}
 			requiredFieldCount++
 		default:
@@ -92,17 +92,22 @@ func (p *splitTextPropagator) JoinTrace(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
-	return p.tracer.startSpanInternal(
-		&StandardContext{
-			TraceID:      traceID,
-			SpanID:       randomID(),
-			ParentSpanID: propagatedSpanID,
-			Sampled:      sampled,
-			traceAttrs:   splitTextCarrier.TraceAttributes,
+	sp := &spanImpl{
+		raw: RawSpan{
+			StandardContext: StandardContext{
+				TraceID:      traceID,
+				SpanID:       randomID(),
+				ParentSpanID: propagatedSpanID,
+				Sampled:      sampled,
+			},
 		},
+		traceAttrs: splitTextCarrier.TraceAttributes,
+	}
+	return p.tracer.startSpanInternal(
+		sp,
 		operationName,
 		time.Now(),
-		opentracing.Tags{},
+		nil,
 	), nil
 }
 
@@ -110,25 +115,25 @@ func (p *splitBinaryPropagator) InjectSpan(
 	sp opentracing.Span,
 	carrier interface{},
 ) error {
-	sc := sp.(*spanImpl).raw.StandardContext
+	sc := sp.(*spanImpl)
 	splitBinaryCarrier, ok := carrier.(*opentracing.SplitBinaryCarrier)
 	if !ok {
-		return opentracing.InvalidCarrier
+		return opentracing.ErrInvalidCarrier
 	}
 	var err error
 	var sampledByte byte
-	if sc.Sampled {
+	if sc.raw.Sampled {
 		sampledByte = 1
 	}
 
 	// Handle the trace and span ids, and sampled status.
 	contextBuf := new(bytes.Buffer)
-	err = binary.Write(contextBuf, binary.BigEndian, sc.TraceID)
+	err = binary.Write(contextBuf, binary.BigEndian, sc.raw.TraceID)
 	if err != nil {
 		return err
 	}
 
-	err = binary.Write(contextBuf, binary.BigEndian, sc.SpanID)
+	err = binary.Write(contextBuf, binary.BigEndian, sc.raw.SpanID)
 	if err != nil {
 		return err
 	}
@@ -165,7 +170,7 @@ func (p *splitBinaryPropagator) JoinTrace(
 	var err error
 	splitBinaryCarrier, ok := carrier.(*opentracing.SplitBinaryCarrier)
 	if !ok {
-		return nil, opentracing.InvalidCarrier
+		return nil, opentracing.ErrInvalidCarrier
 	}
 	// Handle the trace, span ids, and sampled status.
 	contextReader := bytes.NewReader(splitBinaryCarrier.TracerState)
@@ -174,15 +179,15 @@ func (p *splitBinaryPropagator) JoinTrace(
 
 	err = binary.Read(contextReader, binary.BigEndian, &traceID)
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 	err = binary.Read(contextReader, binary.BigEndian, &propagatedSpanID)
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 	err = binary.Read(contextReader, binary.BigEndian, &sampledByte)
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 
 	// Handle the attributes.
@@ -190,7 +195,7 @@ func (p *splitBinaryPropagator) JoinTrace(
 	var numAttrs int32
 	err = binary.Read(attrsReader, binary.BigEndian, &numAttrs)
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 	iNumAttrs := int(numAttrs)
 	attrMap := make(map[string]string, iNumAttrs)
@@ -198,39 +203,45 @@ func (p *splitBinaryPropagator) JoinTrace(
 		var keyLen int32
 		err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
 		if err != nil {
-			return nil, opentracing.TraceCorrupted
+			return nil, opentracing.ErrTraceCorrupted
 		}
 		keyBytes := make([]byte, keyLen)
 		err = binary.Read(attrsReader, binary.BigEndian, &keyBytes)
 		if err != nil {
-			return nil, opentracing.TraceCorrupted
+			return nil, opentracing.ErrTraceCorrupted
 		}
 
 		var valLen int32
 		err = binary.Read(attrsReader, binary.BigEndian, &valLen)
 		if err != nil {
-			return nil, opentracing.TraceCorrupted
+			return nil, opentracing.ErrTraceCorrupted
 		}
 		valBytes := make([]byte, valLen)
 		err = binary.Read(attrsReader, binary.BigEndian, &valBytes)
 		if err != nil {
-			return nil, opentracing.TraceCorrupted
+			return nil, opentracing.ErrTraceCorrupted
 		}
 
 		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
-	return p.tracer.startSpanInternal(
-		&StandardContext{
-			TraceID:      traceID,
-			SpanID:       randomID(),
-			ParentSpanID: propagatedSpanID,
-			Sampled:      sampledByte != 0,
-			traceAttrs:   attrMap,
+	sp := &spanImpl{
+		raw: RawSpan{
+			StandardContext: StandardContext{
+				TraceID:      traceID,
+				SpanID:       randomID(),
+				ParentSpanID: propagatedSpanID,
+				Sampled:      sampledByte != 0,
+			},
 		},
+		traceAttrs: attrMap,
+	}
+
+	return p.tracer.startSpanInternal(
+		sp,
 		operationName,
 		time.Now(),
-		opentracing.Tags{},
+		nil,
 	), nil
 }
 
@@ -267,19 +278,19 @@ func (p *goHTTPPropagator) JoinTrace(
 	header := carrier.(http.Header)
 	tracerStateBase64, found := header[http.CanonicalHeaderKey(tracerStateHeaderName)]
 	if !found || len(tracerStateBase64) == 0 {
-		return nil, opentracing.TraceNotFound
+		return nil, opentracing.ErrTraceNotFound
 	}
 	traceAttrsBase64, found := header[http.CanonicalHeaderKey(traceAttrsHeaderName)]
 	if !found || len(traceAttrsBase64) == 0 {
-		return nil, opentracing.TraceNotFound
+		return nil, opentracing.ErrTraceNotFound
 	}
 	tracerStateBinary, err := base64.StdEncoding.DecodeString(tracerStateBase64[0])
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 	traceAttrsBinary, err := base64.StdEncoding.DecodeString(traceAttrsBase64[0])
 	if err != nil {
-		return nil, opentracing.TraceCorrupted
+		return nil, opentracing.ErrTraceCorrupted
 	}
 
 	// Defer to SplitBinary for the real work.

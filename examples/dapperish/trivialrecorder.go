@@ -31,7 +31,7 @@ func (t *TrivialRecorder) SetTag(key string, val interface{}) *TrivialRecorder {
 }
 
 // RecordSpan complies with the standardtracer.Recorder interface.
-func (t *TrivialRecorder) RecordSpan(span *standardtracer.RawSpan) {
+func (t *TrivialRecorder) RecordSpan(span standardtracer.RawSpan) {
 	fmt.Printf(
 		"RecordSpan: %v[%v, %v us] --> %v logs. std context: %v\n",
 		span.Operation, span.Start, span.Duration, len(span.Logs),

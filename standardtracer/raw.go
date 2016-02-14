@@ -10,7 +10,7 @@ import (
 type RawSpan struct {
 	// The RawSpan embeds its StandardContext. Those recording the RawSpan
 	// should also record the contents of its StandardContext.
-	*StandardContext
+	StandardContext
 
 	// The name of the "operation" this span is an instance of. (Called a "span
 	// name" in some implementations)
@@ -26,5 +26,5 @@ type RawSpan struct {
 	Tags opentracing.Tags
 
 	// The span's "microlog".
-	Logs []*opentracing.LogData
+	Logs []opentracing.LogData
 }

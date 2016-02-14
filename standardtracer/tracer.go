@@ -46,20 +46,32 @@ func (t *tracerImpl) StartSpanWithOptions(
 
 	// Tags.
 	tags := opts.Tags
-	if tags == nil {
-		tags = opentracing.Tags{}
-	}
 
-	// The context for the new span.
-	var newCtx *StandardContext
+	// Build the new span. This is the only allocation: We'll return this as
+	// a opentracing.Span.
+	sp := &spanImpl{}
 	if opts.Parent == nil {
-		newCtx = NewRootStandardContext()
+		sp.raw.TraceID, sp.raw.SpanID = randomID2()
+		sp.raw.Sampled = sp.raw.TraceID%64 == 0
 	} else {
-		newCtx = opts.Parent.(*spanImpl).raw.StandardContext.NewChild()
+		pr := opts.Parent.(*spanImpl)
+		sp.raw.TraceID = pr.raw.TraceID
+		sp.raw.SpanID = randomID()
+		sp.raw.ParentSpanID = pr.raw.SpanID
+		sp.raw.Sampled = pr.raw.Sampled
+
+		pr.Lock()
+		if l := len(pr.traceAttrs); l > 0 {
+			sp.traceAttrs = make(map[string]string, len(pr.traceAttrs))
+			for k, v := range pr.traceAttrs {
+				sp.traceAttrs[k] = v
+			}
+		}
+		pr.Unlock()
 	}
 
 	return t.startSpanInternal(
-		newCtx,
+		sp,
 		opts.OperationName,
 		startTime,
 		tags,
@@ -67,23 +79,17 @@ func (t *tracerImpl) StartSpanWithOptions(
 }
 
 func (t *tracerImpl) startSpanInternal(
-	newCtx *StandardContext,
+	sp *spanImpl,
 	operationName string,
 	startTime time.Time,
 	tags opentracing.Tags,
 ) opentracing.Span {
-	return &spanImpl{
-		tracer:   t,
-		recorder: t.recorder,
-		raw: RawSpan{
-			StandardContext: newCtx,
-			Operation:       operationName,
-			Start:           startTime,
-			Duration:        -1,
-			Tags:            tags,
-			Logs:            []*opentracing.LogData{},
-		},
-	}
+	sp.tracer = t
+	sp.raw.Operation = operationName
+	sp.raw.Start = startTime
+	sp.raw.Duration = -1
+	sp.raw.Tags = tags
+	return sp
 }
 
 func (t *tracerImpl) Extractor(format interface{}) opentracing.Extractor {

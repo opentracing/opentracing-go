@@ -57,5 +57,5 @@ func (n noopInjectorExtractor) InjectSpan(span Span, carrier interface{}) error 
 }
 
 func (n noopInjectorExtractor) JoinTrace(operationName string, carrier interface{}) (Span, error) {
-	return nil, TraceNotFound
+	return nil, ErrTraceNotFound
 }

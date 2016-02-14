@@ -146,7 +146,7 @@ type FinishOptions struct {
 	//
 	// If specified, the caller hands off ownership of BulkLogData at
 	// FinishWithOptions() invocation time.
-	BulkLogData []*LogData
+	BulkLogData []LogData
 }
 
 // Tags are a generic map from an arbitrary string key to an opaque value type.

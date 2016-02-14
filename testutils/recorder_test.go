@@ -1,6 +1,7 @@
 package testutils_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -11,8 +12,8 @@ import (
 func TestInMemoryRecorderSpans(t *testing.T) {
 	recorder := testutils.NewInMemoryRecorder()
 	var apiRecorder standardtracer.SpanRecorder = recorder
-	span := &standardtracer.RawSpan{
-		StandardContext: &standardtracer.StandardContext{},
+	span := standardtracer.RawSpan{
+		StandardContext: standardtracer.StandardContext{},
 		Operation:       "test-span",
 		Start:           time.Now(),
 		Duration:        -1,
@@ -21,7 +22,7 @@ func TestInMemoryRecorderSpans(t *testing.T) {
 	if len(recorder.GetSpans()) != 1 {
 		t.Fatal("No spans recorded")
 	}
-	if recorder.GetSpans()[0] != span {
+	if !reflect.DeepEqual(recorder.GetSpans()[0], span) {
 		t.Fatal("Span not recorded")
 	}
 }
