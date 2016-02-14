@@ -27,4 +27,7 @@ type RawSpan struct {
 
 	// The span's "microlog".
 	Logs []opentracing.LogData
+
+	// The span's associated attributes.
+	Attributes map[string]string // initialized on first use
 }

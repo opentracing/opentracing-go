@@ -14,15 +14,12 @@ type spanImpl struct {
 	tracer     *tracerImpl
 	sync.Mutex // protects the fields below
 	raw        RawSpan
-	// TODO(tschottdorf): should this be available to the Recorder
-	// via RawSpan as well?
-	traceAttrs map[string]string // initialized on first use
 }
 
 func (s *spanImpl) reset() {
 	s.tracer = nil
 	s.raw = RawSpan{}
-	s.traceAttrs = nil // TODO(tschottdorf): is clearing out the map better?
+	s.raw.Attributes = nil // TODO(tschottdorf): is clearing out the map better?
 }
 
 func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
@@ -95,10 +92,10 @@ func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span
 
 	s.Lock()
 	defer s.Unlock()
-	if s.traceAttrs == nil {
-		s.traceAttrs = make(map[string]string)
+	if s.raw.Attributes == nil {
+		s.raw.Attributes = make(map[string]string)
 	}
-	s.traceAttrs[canonicalKey] = val
+	s.raw.Attributes[canonicalKey] = val
 	return s
 }
 
@@ -111,7 +108,7 @@ func (s *spanImpl) TraceAttribute(restrictedKey string) string {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.traceAttrs[canonicalKey]
+	return s.raw.Attributes[canonicalKey]
 }
 
 func (s *spanImpl) Tracer() opentracing.Tracer {

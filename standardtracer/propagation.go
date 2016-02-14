@@ -44,8 +44,8 @@ func (p *splitTextPropagator) InjectSpan(
 		fieldNameSampled: strconv.FormatBool(sc.raw.Sampled),
 	}
 	sc.Lock()
-	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.traceAttrs))
-	for k, v := range sc.traceAttrs {
+	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.raw.Attributes))
+	for k, v := range sc.raw.Attributes {
 		splitTextCarrier.TraceAttributes[k] = v
 	}
 	sc.Unlock()
@@ -101,7 +101,7 @@ func (p *splitTextPropagator) JoinTrace(
 			Sampled:      sampled,
 		},
 	}
-	sp.traceAttrs = splitTextCarrier.TraceAttributes
+	sp.raw.Attributes = splitTextCarrier.TraceAttributes
 
 	return p.tracer.startSpanInternal(
 		sp,
@@ -145,11 +145,11 @@ func (p *splitBinaryPropagator) InjectSpan(
 
 	// Handle the attributes.
 	attrsBuf := new(bytes.Buffer)
-	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.traceAttrs)))
+	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.raw.Attributes)))
 	if err != nil {
 		return err
 	}
-	for k, v := range sc.traceAttrs {
+	for k, v := range sc.raw.Attributes {
 		keyBytes := []byte(k)
 		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(keyBytes)))
 		err = binary.Write(attrsBuf, binary.BigEndian, keyBytes)
@@ -234,7 +234,7 @@ func (p *splitBinaryPropagator) JoinTrace(
 			Sampled:      sampledByte != 0,
 		},
 	}
-	sp.traceAttrs = attrMap
+	sp.raw.Attributes = attrMap
 
 	return p.tracer.startSpanInternal(
 		sp,

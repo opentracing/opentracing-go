@@ -72,10 +72,10 @@ func (t *tracerImpl) StartSpanWithOptions(
 		sp.raw.Sampled = pr.raw.Sampled
 
 		pr.Lock()
-		if l := len(pr.traceAttrs); l > 0 {
-			sp.traceAttrs = make(map[string]string, len(pr.traceAttrs))
-			for k, v := range pr.traceAttrs {
-				sp.traceAttrs[k] = v
+		if l := len(pr.raw.Attributes); l > 0 {
+			sp.raw.Attributes = make(map[string]string, len(pr.raw.Attributes))
+			for k, v := range pr.raw.Attributes {
+				sp.raw.Attributes[k] = v
 			}
 		}
 		pr.Unlock()
