@@ -7,19 +7,19 @@ import "errors"
 ///////////////////////////////////////////////////////////////////////////////
 
 var (
-	// TraceNotFound occurs when the `carrier` passed to Extractor.JoinTrace()
+	// ErrTraceNotFound occurs when the `carrier` passed to Extractor.JoinTrace()
 	// is valid and uncorrupted but has insufficient information to join or
 	// resume a trace.
-	TraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
+	ErrTraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
 
-	// InvalidCarrier errors occur when Injector.InjectSpan() or
+	// ErrInvalidCarrier errors occur when Injector.InjectSpan() or
 	// Extractor.JoinTrace() implementations expect a different type of
 	// `carrier` than they are given.
-	InvalidCarrier = errors.New("opentracing: Invalid Injection/Extraction carrier")
+	ErrInvalidCarrier = errors.New("opentracing: Invalid Injection/Extraction carrier")
 
-	// TraceCorrupted occurs when the `carrier` passed to Extractor.JoinTrace()
+	// ErrTraceCorrupted occurs when the `carrier` passed to Extractor.JoinTrace()
 	// is of the expected type but is corrupted.
-	TraceCorrupted = errors.New("opentracing: Trace data corrupted in Extraction carrier")
+	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Extraction carrier")
 )
 
 // Injector is responsible for injecting Span instances in a manner suitable
@@ -102,6 +102,7 @@ type SplitTextCarrier struct {
 	TraceAttributes map[string]string
 }
 
+// NewSplitTextCarrier creates a new SplitTextCarrier.
 func NewSplitTextCarrier() *SplitTextCarrier {
 	return &SplitTextCarrier{
 		TracerState:     make(map[string]string),
@@ -125,6 +126,7 @@ type SplitBinaryCarrier struct {
 	TraceAttributes []byte
 }
 
+// NewSplitBinaryCarrier creates a new SplitTextCarrier.
 func NewSplitBinaryCarrier() *SplitBinaryCarrier {
 	return &SplitBinaryCarrier{
 		TracerState:     []byte{},

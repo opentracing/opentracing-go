@@ -5,5 +5,5 @@ package standardtracer
 // the containing process and provides access to a straightforward tag map.
 type SpanRecorder interface {
 	// Implementations must determine whether and where to store `span`.
-	RecordSpan(span *RawSpan)
+	RecordSpan(span RawSpan)
 }
