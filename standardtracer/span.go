@@ -19,6 +19,12 @@ type spanImpl struct {
 	traceAttrs map[string]string // initialized on first use
 }
 
+func (s *spanImpl) reset() {
+	s.tracer = nil
+	s.raw = RawSpan{}
+	s.traceAttrs = nil // TODO(tschottdorf): is clearing out the map better?
+}
+
 func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 	s.Lock()
 	defer s.Unlock()
@@ -78,6 +84,7 @@ func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
 	}
 	s.raw.Duration = duration
 	s.tracer.recorder.RecordSpan(s.raw)
+	s.tracer.spanPool.Put(s)
 }
 
 func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span {

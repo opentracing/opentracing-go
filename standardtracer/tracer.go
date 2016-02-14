@@ -1,6 +1,7 @@
 package standardtracer
 
 import (
+	"sync"
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
@@ -11,6 +12,9 @@ import (
 func New(recorder SpanRecorder) opentracing.Tracer {
 	rval := &tracerImpl{
 		recorder: recorder,
+		spanPool: sync.Pool{New: func() interface{} {
+			return &spanImpl{}
+		}},
 	}
 	rval.textPropagator = &splitTextPropagator{rval}
 	rval.binaryPropagator = &splitBinaryPropagator{rval}
@@ -20,6 +24,7 @@ func New(recorder SpanRecorder) opentracing.Tracer {
 
 // Implements the `Tracer` interface.
 type tracerImpl struct {
+	spanPool         sync.Pool
 	recorder         SpanRecorder
 	textPropagator   *splitTextPropagator
 	binaryPropagator *splitBinaryPropagator
@@ -33,6 +38,12 @@ func (t *tracerImpl) StartSpan(
 		opentracing.StartSpanOptions{
 			OperationName: operationName,
 		})
+}
+
+func (t *tracerImpl) getSpan() *spanImpl {
+	sp := t.spanPool.Get().(*spanImpl)
+	sp.reset()
+	return sp
 }
 
 func (t *tracerImpl) StartSpanWithOptions(
@@ -49,7 +60,7 @@ func (t *tracerImpl) StartSpanWithOptions(
 
 	// Build the new span. This is the only allocation: We'll return this as
 	// a opentracing.Span.
-	sp := &spanImpl{}
+	sp := t.getSpan()
 	if opts.Parent == nil {
 		sp.raw.TraceID, sp.raw.SpanID = randomID2()
 		sp.raw.Sampled = sp.raw.TraceID%64 == 0

@@ -92,17 +92,17 @@ func (p *splitTextPropagator) JoinTrace(
 		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
 	}
 
-	sp := &spanImpl{
-		raw: RawSpan{
-			StandardContext: StandardContext{
-				TraceID:      traceID,
-				SpanID:       randomID(),
-				ParentSpanID: propagatedSpanID,
-				Sampled:      sampled,
-			},
+	sp := p.tracer.getSpan()
+	sp.raw = RawSpan{
+		StandardContext: StandardContext{
+			TraceID:      traceID,
+			SpanID:       randomID(),
+			ParentSpanID: propagatedSpanID,
+			Sampled:      sampled,
 		},
-		traceAttrs: splitTextCarrier.TraceAttributes,
 	}
+	sp.traceAttrs = splitTextCarrier.TraceAttributes
+
 	return p.tracer.startSpanInternal(
 		sp,
 		operationName,
@@ -225,17 +225,16 @@ func (p *splitBinaryPropagator) JoinTrace(
 		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
-	sp := &spanImpl{
-		raw: RawSpan{
-			StandardContext: StandardContext{
-				TraceID:      traceID,
-				SpanID:       randomID(),
-				ParentSpanID: propagatedSpanID,
-				Sampled:      sampledByte != 0,
-			},
+	sp := p.tracer.getSpan()
+	sp.raw = RawSpan{
+		StandardContext: StandardContext{
+			TraceID:      traceID,
+			SpanID:       randomID(),
+			ParentSpanID: propagatedSpanID,
+			Sampled:      sampledByte != 0,
 		},
-		traceAttrs: attrMap,
 	}
+	sp.traceAttrs = attrMap
 
 	return p.tracer.startSpanInternal(
 		sp,
