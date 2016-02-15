@@ -6,6 +6,7 @@ import (
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 // Implements the `Span` interface. Created via tracerImpl (see
@@ -32,6 +33,11 @@ func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 func (s *spanImpl) SetTag(key string, value interface{}) opentracing.Span {
 	s.Lock()
 	defer s.Unlock()
+	if key == string(ext.SamplingPriority) {
+		s.raw.Sampled = true
+		return s
+	}
+
 	if s.raw.Tags == nil {
 		s.raw.Tags = opentracing.Tags{}
 	}
@@ -85,6 +91,10 @@ func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
 }
 
 func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span {
+	// TODO(tschottdorf): this is in a bad place performance-wise. Most callers
+	// will have fixed attribute keys, so the are in a much better position to
+	// canonicalize here. Alternatively, we could put a LRU cache here, but that
+	// is more complexity than is warranted for.
 	canonicalKey, valid := opentracing.CanonicalizeTraceAttributeKey(restrictedKey)
 	if !valid {
 		panic(fmt.Errorf("Invalid key: %q", restrictedKey))
