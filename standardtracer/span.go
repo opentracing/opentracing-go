@@ -103,10 +103,6 @@ func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
 }
 
 func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span {
-	// TODO(tschottdorf): this is in a bad place performance-wise. Most callers
-	// will have fixed attribute keys, so the are in a much better position to
-	// canonicalize here. Alternatively, we could put a LRU cache here, but that
-	// is more complexity than is warranted for.
 	canonicalKey, valid := opentracing.CanonicalizeTraceAttributeKey(restrictedKey)
 	if !valid {
 		panic(fmt.Errorf("Invalid key: %q", restrictedKey))

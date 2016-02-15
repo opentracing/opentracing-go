@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 var tags []string
@@ -24,9 +26,19 @@ func (c *countingRecorder) RecordSpan(r RawSpan) {
 func benchmarkWithOps(b *testing.B, numEvent, numTag, numAttr int) {
 	var r countingRecorder
 	t := New(&r)
+	benchmarkWithOpsAndCB(b, func() opentracing.Span {
+		return t.StartSpan("test")
+	}, numEvent, numTag, numAttr)
+	if int(r) != b.N {
+		b.Fatalf("missing traces: expected %d, got %d", b.N, r)
+	}
+}
+
+func benchmarkWithOpsAndCB(b *testing.B, create func() opentracing.Span,
+	numEvent, numTag, numAttr int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sp := t.StartSpan("test")
+		sp := create()
 		for j := 0; j < numEvent; j++ {
 			sp.LogEvent("event")
 		}
@@ -39,9 +51,6 @@ func benchmarkWithOps(b *testing.B, numEvent, numTag, numAttr int) {
 		sp.Finish()
 	}
 	b.StopTimer()
-	if int(r) != b.N {
-		b.Fatalf("missing traces: expected %d, got %d", b.N, r)
-	}
 }
 
 func BenchmarkSpan_Empty(b *testing.B) {
@@ -62,4 +71,24 @@ func BenchmarkSpan_100Tags(b *testing.B) {
 
 func BenchmarkSpan_1000Tags(b *testing.B) {
 	benchmarkWithOps(b, 0, 100, 0)
+}
+
+func BenchmarkSpan_100Attributes(b *testing.B) {
+	benchmarkWithOps(b, 0, 0, 100)
+}
+
+func BenchmarkTrimmedSpan_100Events_100Tags_100Attributes(b *testing.B) {
+	var r countingRecorder
+	opts := DefaultOptions()
+	opts.TrimUnsampledSpans(true)
+	opts.ShouldSample(func(_ int64) bool { return false })
+	opts.Recorder(&r)
+	t := NewWithOptions(opts)
+	benchmarkWithOpsAndCB(b, func() opentracing.Span {
+		sp := t.StartSpan("test")
+		return sp
+	}, 100, 100, 100)
+	if int(r) != b.N {
+		b.Fatalf("missing traces: expected %d, got %d", b.N, r)
+	}
 }
