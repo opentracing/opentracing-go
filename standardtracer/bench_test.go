@@ -2,6 +2,7 @@ package standardtracer
 
 import (
 	"fmt"
+	"net/http"
 	"sync/atomic"
 	"testing"
 
@@ -108,6 +109,8 @@ func benchmarkInject(b *testing.B, format opentracing.BuiltinFormat, numAttr int
 		carrier = opentracing.NewSplitTextCarrier()
 	case opentracing.SplitBinary:
 		carrier = opentracing.NewSplitBinaryCarrier()
+	case opentracing.GoHTTPHeader:
+		carrier = http.Header{}
 	default:
 		b.Fatalf("unhandled format %d", format)
 	}
@@ -132,6 +135,8 @@ func benchmarkExtract(b *testing.B, format opentracing.BuiltinFormat, numAttr in
 		carrier = opentracing.NewSplitTextCarrier()
 	case opentracing.SplitBinary:
 		carrier = opentracing.NewSplitBinaryCarrier()
+	case opentracing.GoHTTPHeader:
+		carrier = http.Header{}
 	default:
 		b.Fatalf("unhandled format %d", format)
 	}
@@ -157,6 +162,14 @@ func BenchmarkInject_SplitText_100Attributes(b *testing.B) {
 	benchmarkInject(b, opentracing.SplitText, 100)
 }
 
+func BenchmarkInject_GoHTTPHeader_Empty(b *testing.B) {
+	benchmarkInject(b, opentracing.GoHTTPHeader, 0)
+}
+
+func BenchmarkInject_GoHTTPHeader_100Attributes(b *testing.B) {
+	benchmarkInject(b, opentracing.GoHTTPHeader, 100)
+}
+
 func BenchmarkInject_SplitBinary_Empty(b *testing.B) {
 	benchmarkInject(b, opentracing.SplitBinary, 0)
 }
@@ -171,6 +184,14 @@ func BenchmarkExtract_SplitText_Empty(b *testing.B) {
 
 func BenchmarkExtract_SplitText_100Attributes(b *testing.B) {
 	benchmarkExtract(b, opentracing.SplitText, 100)
+}
+
+func BenchmarkExtract_GoHTTPHeader_Empty(b *testing.B) {
+	benchmarkExtract(b, opentracing.GoHTTPHeader, 0)
+}
+
+func BenchmarkExtract_GoHTTPHeader_100Attributes(b *testing.B) {
+	benchmarkExtract(b, opentracing.GoHTTPHeader, 100)
 }
 
 func BenchmarkExtract_SplitBinary_Empty(b *testing.B) {
