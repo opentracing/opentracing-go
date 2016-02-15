@@ -167,6 +167,8 @@ var regexTraceAttribute = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
 
 // CanonicalizeTraceAttributeKey returns the canonicalized version of trace tag
 // key `key`, and true if and only if the key was valid.
+//
+// It is more performant to use lowercase keys only.
 func CanonicalizeTraceAttributeKey(key string) (string, bool) {
 	if !regexTraceAttribute.MatchString(key) {
 		return "", false
