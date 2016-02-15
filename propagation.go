@@ -104,7 +104,6 @@ type SplitTextCarrier struct {
 
 // NewSplitTextCarrier creates a new SplitTextCarrier.
 func NewSplitTextCarrier() *SplitTextCarrier {
-	// TODO(tschottdorf): a global sync.Pool can help reduce allocations.
 	return &SplitTextCarrier{
 		TracerState:     make(map[string]string),
 		TraceAttributes: make(map[string]string),

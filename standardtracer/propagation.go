@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -129,7 +130,7 @@ func (p *splitBinaryPropagator) InjectSpan(
 	}
 
 	// Handle the trace and span ids, and sampled status.
-	contextBuf := new(bytes.Buffer)
+	contextBuf := bytes.NewBuffer(splitBinaryCarrier.TracerState[:0])
 	err = binary.Write(contextBuf, binary.BigEndian, sc.raw.TraceID)
 	if err != nil {
 		return err
@@ -146,18 +147,20 @@ func (p *splitBinaryPropagator) InjectSpan(
 	}
 
 	// Handle the attributes.
-	attrsBuf := new(bytes.Buffer)
+	attrsBuf := bytes.NewBuffer(splitBinaryCarrier.TraceAttributes[:0])
 	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.raw.Attributes)))
 	if err != nil {
 		return err
 	}
 	for k, v := range sc.raw.Attributes {
-		keyBytes := []byte(k)
-		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(keyBytes)))
-		err = binary.Write(attrsBuf, binary.BigEndian, keyBytes)
-		valBytes := []byte(v)
-		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(valBytes)))
-		err = binary.Write(attrsBuf, binary.BigEndian, valBytes)
+		if err = binary.Write(attrsBuf, binary.BigEndian, int32(len(k))); err != nil {
+			return err
+		}
+		attrsBuf.WriteString(k)
+		if err = binary.Write(attrsBuf, binary.BigEndian, int32(len(v))); err != nil {
+			return err
+		}
+		attrsBuf.WriteString(v)
 	}
 
 	splitBinaryCarrier.TracerState = contextBuf.Bytes()
@@ -205,32 +208,30 @@ func (p *splitBinaryPropagator) JoinTrace(
 	iNumAttrs := int(numAttrs)
 	var attrMap map[string]string
 	if iNumAttrs > 0 {
+		var buf bytes.Buffer // TODO(tschottdorf): candidate for sync.Pool
 		attrMap = make(map[string]string, iNumAttrs)
+		var keyLen, valLen int32
 		for i := 0; i < iNumAttrs; i++ {
-			var keyLen int32
 			err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
 			if err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			keyBytes := make([]byte, keyLen)
-			err = binary.Read(attrsReader, binary.BigEndian, &keyBytes)
-			if err != nil {
+			buf.Grow(int(keyLen))
+			if n, err := io.CopyN(&buf, attrsReader, int64(keyLen)); err != nil || int32(n) != keyLen {
 				return nil, opentracing.ErrTraceCorrupted
 			}
+			key := buf.String()
+			buf.Reset()
 
-			var valLen int32
 			err = binary.Read(attrsReader, binary.BigEndian, &valLen)
 			if err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			valBytes := make([]byte, valLen)
-			err = binary.Read(attrsReader, binary.BigEndian, &valBytes)
-			if err != nil {
+			if n, err := io.CopyN(&buf, attrsReader, int64(valLen)); err != nil || int32(n) != valLen {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			// TODO(tschottdorf): should be able to convert the byte slice
-			// to string via unsafe.
-			attrMap[string(keyBytes)] = string(valBytes)
+			attrMap[key] = buf.String()
+			buf.Reset()
 		}
 	}
 
