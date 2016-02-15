@@ -22,6 +22,9 @@ var (
 
 	// PeerPort records port number of the peer
 	PeerPort = uint16Tag("peer.port")
+
+	// SamplingPriority determines the priority of sampling this Span.
+	SamplingPriority = uint32Tag("sampling.priority")
 )
 
 type stringTag string
