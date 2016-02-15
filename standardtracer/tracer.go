@@ -52,9 +52,8 @@ func NewWithOptions(opts Options) opentracing.Tracer {
 
 // New creates and returns a standard Tracer which defers completed Spans to
 // `recorder`.
-// Spans created by this Tracer support the ext.SamplingPriority tag: Calling
-// SetTag(ext.SamplingPriority, nil) causes the Span to be Sampled from that
-// point on.
+// Spans created by this Tracer support the ext.SamplingPriority tag: Setting
+// ext.SamplingPriority causes the Span to be Sampled from that point on.
 func New(recorder SpanRecorder) opentracing.Tracer {
 	opts := DefaultOptions()
 	opts.Recorder = recorder

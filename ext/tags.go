@@ -1,8 +1,6 @@
 package ext
 
-import (
-	"github.com/opentracing/opentracing-go"
-)
+import opentracing "github.com/opentracing/opentracing-go"
 
 var (
 	// PeerXXX tags can be emitted by either client-side of server-side to describe
@@ -24,7 +22,7 @@ var (
 	PeerPort = uint16Tag("peer.port")
 
 	// SamplingPriority determines the priority of sampling this Span.
-	SamplingPriority = uint32Tag("sampling.priority")
+	SamplingPriority = uint16Tag("sampling.priority")
 )
 
 type stringTag string
