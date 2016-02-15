@@ -3,6 +3,7 @@ package standardtracer
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
@@ -30,11 +31,18 @@ func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 	return s
 }
 
+func (s *spanImpl) trim() bool {
+	return !s.raw.Sampled && atomic.LoadInt32(&s.tracer.trimUnsampledSpans) != 0
+}
+
 func (s *spanImpl) SetTag(key string, value interface{}) opentracing.Span {
 	s.Lock()
 	defer s.Unlock()
 	if key == string(ext.SamplingPriority) {
 		s.raw.Sampled = true
+		return s
+	}
+	if s.trim() {
 		return s
 	}
 
@@ -61,6 +69,9 @@ func (s *spanImpl) LogEventWithPayload(event string, payload interface{}) {
 func (s *spanImpl) Log(ld opentracing.LogData) {
 	s.Lock()
 	defer s.Unlock()
+	if s.trim() {
+		return
+	}
 
 	if ld.Timestamp.IsZero() {
 		ld.Timestamp = time.Now()
@@ -81,12 +92,13 @@ func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
 	duration := finishTime.Sub(s.raw.Start)
 
 	s.Lock()
-	defer s.Unlock()
 	if opts.BulkLogData != nil {
 		s.raw.Logs = append(s.raw.Logs, opts.BulkLogData...)
 	}
 	s.raw.Duration = duration
-	s.tracer.recorder.RecordSpan(s.raw)
+	s.Unlock()
+
+	s.tracer.recorder.Load().(SpanRecorder).RecordSpan(s.raw)
 	s.tracer.spanPool.Put(s)
 }
 
@@ -102,6 +114,10 @@ func (s *spanImpl) SetTraceAttribute(restrictedKey, val string) opentracing.Span
 
 	s.Lock()
 	defer s.Unlock()
+	if s.trim() {
+		return s
+	}
+
 	if s.raw.Attributes == nil {
 		s.raw.Attributes = make(map[string]string)
 	}
