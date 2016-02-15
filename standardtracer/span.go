@@ -3,7 +3,6 @@ package standardtracer
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
@@ -32,7 +31,7 @@ func (s *spanImpl) SetOperationName(operationName string) opentracing.Span {
 }
 
 func (s *spanImpl) trim() bool {
-	return !s.raw.Sampled && atomic.LoadInt32(&s.tracer.trimUnsampledSpans) != 0
+	return !s.raw.Sampled && s.tracer.TrimUnsampledSpans
 }
 
 func (s *spanImpl) SetTag(key string, value interface{}) opentracing.Span {
@@ -98,7 +97,7 @@ func (s *spanImpl) FinishWithOptions(opts opentracing.FinishOptions) {
 	s.raw.Duration = duration
 	s.Unlock()
 
-	s.tracer.recorder.Load().(SpanRecorder).RecordSpan(s.raw)
+	s.tracer.Recorder.RecordSpan(s.raw)
 	s.tracer.spanPool.Put(s)
 }
 

@@ -80,9 +80,9 @@ func BenchmarkSpan_100Attributes(b *testing.B) {
 func BenchmarkTrimmedSpan_100Events_100Tags_100Attributes(b *testing.B) {
 	var r countingRecorder
 	opts := DefaultOptions()
-	opts.TrimUnsampledSpans(true)
-	opts.ShouldSample(func(_ int64) bool { return false })
-	opts.Recorder(&r)
+	opts.TrimUnsampledSpans = true
+	opts.ShouldSample = func(_ int64) bool { return false }
+	opts.Recorder = &r
 	t := NewWithOptions(opts)
 	benchmarkWithOpsAndCB(b, func() opentracing.Span {
 		sp := t.StartSpan("test")
