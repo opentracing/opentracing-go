@@ -7,11 +7,39 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
-// New creates and returns a standard Tracer which defers to `recorder` after
-// RawSpans have been assembled.
-func New(recorder SpanRecorder) opentracing.Tracer {
+// Options allows creating a customized Tracer via NewWithOptions. The object
+// must not be updated when there is an active tracer using it.
+type Options struct {
+	// ShouldSample is a function which is called when creating a new Span and
+	// determines whether that Span is sampled. The randomized TraceID is supplied
+	// to allow deterministic sampling decisions to be made across different nodes.
+	// For example,
+	//
+	//   func(traceID int64) { return traceID % 64 == 0 }
+	//
+	// samples every 64th trace on average.
+	ShouldSample func(int64) bool
+	// TrimUnsampledSpans turns potentially expensive operations on unsampled
+	// Spans into no-ops. More precisely, tags, attributes and log events
+	// are silently discarded.
+	TrimUnsampledSpans bool
+	// Recorder receives Spans which have been finished.
+	Recorder SpanRecorder
+}
+
+// DefaultOptions returns an Options object with a 1 in 64 sampling rate and
+// all options disabled. A Recorder needs to be set manually before using the
+// returned object with a Tracer.
+func DefaultOptions() Options {
+	var opts Options
+	opts.ShouldSample = func(traceID int64) bool { return traceID%64 == 0 }
+	return opts
+}
+
+// NewWithOptions creates a customized Tracer.
+func NewWithOptions(opts Options) opentracing.Tracer {
 	rval := &tracerImpl{
-		recorder: recorder,
+		Options: opts,
 		spanPool: sync.Pool{New: func() interface{} {
 			return &spanImpl{}
 		}},
@@ -22,10 +50,20 @@ func New(recorder SpanRecorder) opentracing.Tracer {
 	return rval
 }
 
+// New creates and returns a standard Tracer which defers completed Spans to
+// `recorder`.
+// Spans created by this Tracer support the ext.SamplingPriority tag: Setting
+// ext.SamplingPriority causes the Span to be Sampled from that point on.
+func New(recorder SpanRecorder) opentracing.Tracer {
+	opts := DefaultOptions()
+	opts.Recorder = recorder
+	return NewWithOptions(opts)
+}
+
 // Implements the `Tracer` interface.
 type tracerImpl struct {
+	Options
 	spanPool         sync.Pool
-	recorder         SpanRecorder
 	textPropagator   *splitTextPropagator
 	binaryPropagator *splitBinaryPropagator
 	goHTTPPropagator *goHTTPPropagator
@@ -63,7 +101,7 @@ func (t *tracerImpl) StartSpanWithOptions(
 	sp := t.getSpan()
 	if opts.Parent == nil {
 		sp.raw.TraceID, sp.raw.SpanID = randomID2()
-		sp.raw.Sampled = sp.raw.TraceID%64 == 0
+		sp.raw.Sampled = t.ShouldSample(sp.raw.TraceID)
 	} else {
 		pr := opts.Parent.(*spanImpl)
 		sp.raw.TraceID = pr.raw.TraceID

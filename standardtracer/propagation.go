@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -71,25 +70,26 @@ func (p *splitTextPropagator) JoinTrace(
 			if err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			requiredFieldCount++
 		case fieldNameSpanID:
 			propagatedSpanID, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			requiredFieldCount++
 		case fieldNameSampled:
 			sampled, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
-			requiredFieldCount++
 		default:
-			return nil, fmt.Errorf("Unknown TracerState field: %v", k)
+			continue
 		}
+		requiredFieldCount++
 	}
 	if requiredFieldCount < 3 {
-		return nil, fmt.Errorf("Only found %v of 3 required fields", requiredFieldCount)
+		if len(splitTextCarrier.TracerState) == 0 {
+			return nil, opentracing.ErrTraceNotFound
+		}
+		return nil, opentracing.ErrTraceCorrupted
 	}
 
 	sp := p.tracer.getSpan()
@@ -171,6 +171,9 @@ func (p *splitBinaryPropagator) JoinTrace(
 	splitBinaryCarrier, ok := carrier.(*opentracing.SplitBinaryCarrier)
 	if !ok {
 		return nil, opentracing.ErrInvalidCarrier
+	}
+	if len(splitBinaryCarrier.TracerState) == 0 {
+		return nil, opentracing.ErrTraceNotFound
 	}
 	// Handle the trace, span ids, and sampled status.
 	contextReader := bytes.NewReader(splitBinaryCarrier.TracerState)
