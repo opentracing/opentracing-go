@@ -172,7 +172,6 @@ func (p *splitBinaryPropagator) JoinTrace(
 	operationName string,
 	carrier interface{},
 ) (opentracing.Span, error) {
-	var err error
 	splitBinaryCarrier, ok := carrier.(*opentracing.SplitBinaryCarrier)
 	if !ok {
 		return nil, opentracing.ErrInvalidCarrier
@@ -185,24 +184,20 @@ func (p *splitBinaryPropagator) JoinTrace(
 	var traceID, propagatedSpanID int64
 	var sampledByte byte
 
-	err = binary.Read(contextReader, binary.BigEndian, &traceID)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &traceID); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
-	err = binary.Read(contextReader, binary.BigEndian, &propagatedSpanID)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &propagatedSpanID); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
-	err = binary.Read(contextReader, binary.BigEndian, &sampledByte)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &sampledByte); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
 
 	// Handle the attributes.
 	attrsReader := bytes.NewReader(splitBinaryCarrier.TraceAttributes)
 	var numAttrs int32
-	err = binary.Read(attrsReader, binary.BigEndian, &numAttrs)
-	if err != nil {
+	if err := binary.Read(attrsReader, binary.BigEndian, &numAttrs); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
 	iNumAttrs := int(numAttrs)
@@ -212,8 +207,7 @@ func (p *splitBinaryPropagator) JoinTrace(
 		attrMap = make(map[string]string, iNumAttrs)
 		var keyLen, valLen int32
 		for i := 0; i < iNumAttrs; i++ {
-			err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
-			if err != nil {
+			if err := binary.Read(attrsReader, binary.BigEndian, &keyLen); err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
 			buf.Grow(int(keyLen))
@@ -223,8 +217,7 @@ func (p *splitBinaryPropagator) JoinTrace(
 			key := buf.String()
 			buf.Reset()
 
-			err = binary.Read(attrsReader, binary.BigEndian, &valLen)
-			if err != nil {
+			if err := binary.Read(attrsReader, binary.BigEndian, &valLen); err != nil {
 				return nil, opentracing.ErrTraceCorrupted
 			}
 			if n, err := io.CopyN(&buf, attrsReader, int64(valLen)); err != nil || int32(n) != valLen {
