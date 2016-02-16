@@ -32,7 +32,7 @@ type Injector interface {
 	// InjectSpan takes `span` and injects it into `carrier`. The actual type
 	// of `carrier` depends on the `format` passed to `Tracer.Injector()`.
 	//
-	// Implementations may return opentracing.InvalidCarrier or any other
+	// Implementations may return opentracing.ErrInvalidCarrier or any other
 	// implementation-specific error if injection fails.
 	InjectSpan(span Span, carrier interface{}) error
 }
@@ -45,11 +45,11 @@ type Injector interface {
 // See Injector and Tracer.Extractor.
 type Extractor interface {
 	// JoinTrace returns a Span instance with operation name `operationName`
-	// given `carrier`, or (nil, opentracing.TraceNotFound) if no trace could be found to
+	// given `carrier`, or (nil, opentracing.ErrTraceNotFound) if no trace could be found to
 	// join with in the `carrier`.
 	//
-	// Implementations may return opentracing.InvalidCarrier,
-	// opentracing.TraceCorrupted, or implementation-specific errors if there
+	// Implementations may return opentracing.ErrInvalidCarrier,
+	// opentracing.ErrTraceCorrupted, or implementation-specific errors if there
 	// are more fundamental problems with `carrier`.
 	//
 	// Upon success, the returned Span instance is already started.
