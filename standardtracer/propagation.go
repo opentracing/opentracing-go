@@ -38,17 +38,19 @@ func (p *splitTextPropagator) InjectSpan(
 	if !ok {
 		return opentracing.ErrInvalidCarrier
 	}
-	splitTextCarrier.TracerState = map[string]string{
-		fieldNameTraceID: strconv.FormatInt(sc.raw.TraceID, 10),
-		fieldNameSpanID:  strconv.FormatInt(sc.raw.SpanID, 10),
-		fieldNameSampled: strconv.FormatBool(sc.raw.Sampled),
+	if splitTextCarrier.TracerState == nil {
+		splitTextCarrier.TracerState = make(map[string]string, 3 /* see below */)
 	}
+	splitTextCarrier.TracerState[fieldNameTraceID] = strconv.FormatInt(sc.raw.TraceID, 10)
+	splitTextCarrier.TracerState[fieldNameSpanID] = strconv.FormatInt(sc.raw.SpanID, 10)
+	splitTextCarrier.TracerState[fieldNameSampled] = strconv.FormatBool(sc.raw.Sampled)
+
 	sc.Lock()
-	if l := len(sc.raw.Attributes); l > 0 {
+	if l := len(sc.raw.Attributes); l > 0 && splitTextCarrier.TraceAttributes == nil {
 		splitTextCarrier.TraceAttributes = make(map[string]string, l)
-		for k, v := range sc.raw.Attributes {
-			splitTextCarrier.TraceAttributes[k] = v
-		}
+	}
+	for k, v := range sc.raw.Attributes {
+		splitTextCarrier.TraceAttributes[k] = v
 	}
 	sc.Unlock()
 	return nil
@@ -88,7 +90,8 @@ func (p *splitTextPropagator) JoinTrace(
 		}
 		requiredFieldCount++
 	}
-	if requiredFieldCount < 3 {
+	const expFieldCount = 3
+	if requiredFieldCount < expFieldCount {
 		if len(splitTextCarrier.TracerState) == 0 {
 			return nil, opentracing.ErrTraceNotFound
 		}
