@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,13 +38,17 @@ func (p *splitTextPropagator) InjectSpan(
 	if !ok {
 		return opentracing.ErrInvalidCarrier
 	}
-	splitTextCarrier.TracerState = map[string]string{
-		fieldNameTraceID: strconv.FormatInt(sc.raw.TraceID, 10),
-		fieldNameSpanID:  strconv.FormatInt(sc.raw.SpanID, 10),
-		fieldNameSampled: strconv.FormatBool(sc.raw.Sampled),
+	if splitTextCarrier.TracerState == nil {
+		splitTextCarrier.TracerState = make(map[string]string, 3 /* see below */)
 	}
+	splitTextCarrier.TracerState[fieldNameTraceID] = strconv.FormatInt(sc.raw.TraceID, 10)
+	splitTextCarrier.TracerState[fieldNameSpanID] = strconv.FormatInt(sc.raw.SpanID, 10)
+	splitTextCarrier.TracerState[fieldNameSampled] = strconv.FormatBool(sc.raw.Sampled)
+
 	sc.Lock()
-	splitTextCarrier.TraceAttributes = make(map[string]string, len(sc.raw.Attributes))
+	if l := len(sc.raw.Attributes); l > 0 && splitTextCarrier.TraceAttributes == nil {
+		splitTextCarrier.TraceAttributes = make(map[string]string, l)
+	}
 	for k, v := range sc.raw.Attributes {
 		splitTextCarrier.TraceAttributes[k] = v
 	}
@@ -85,7 +90,8 @@ func (p *splitTextPropagator) JoinTrace(
 		}
 		requiredFieldCount++
 	}
-	if requiredFieldCount < 3 {
+	const expFieldCount = 3
+	if requiredFieldCount < expFieldCount {
 		if len(splitTextCarrier.TracerState) == 0 {
 			return nil, opentracing.ErrTraceNotFound
 		}
@@ -127,7 +133,7 @@ func (p *splitBinaryPropagator) InjectSpan(
 	}
 
 	// Handle the trace and span ids, and sampled status.
-	contextBuf := new(bytes.Buffer)
+	contextBuf := bytes.NewBuffer(splitBinaryCarrier.TracerState[:0])
 	err = binary.Write(contextBuf, binary.BigEndian, sc.raw.TraceID)
 	if err != nil {
 		return err
@@ -144,18 +150,20 @@ func (p *splitBinaryPropagator) InjectSpan(
 	}
 
 	// Handle the attributes.
-	attrsBuf := new(bytes.Buffer)
+	attrsBuf := bytes.NewBuffer(splitBinaryCarrier.TraceAttributes[:0])
 	err = binary.Write(attrsBuf, binary.BigEndian, int32(len(sc.raw.Attributes)))
 	if err != nil {
 		return err
 	}
 	for k, v := range sc.raw.Attributes {
-		keyBytes := []byte(k)
-		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(keyBytes)))
-		err = binary.Write(attrsBuf, binary.BigEndian, keyBytes)
-		valBytes := []byte(v)
-		err = binary.Write(attrsBuf, binary.BigEndian, int32(len(valBytes)))
-		err = binary.Write(attrsBuf, binary.BigEndian, valBytes)
+		if err = binary.Write(attrsBuf, binary.BigEndian, int32(len(k))); err != nil {
+			return err
+		}
+		attrsBuf.WriteString(k)
+		if err = binary.Write(attrsBuf, binary.BigEndian, int32(len(v))); err != nil {
+			return err
+		}
+		attrsBuf.WriteString(v)
 	}
 
 	splitBinaryCarrier.TracerState = contextBuf.Bytes()
@@ -167,7 +175,6 @@ func (p *splitBinaryPropagator) JoinTrace(
 	operationName string,
 	carrier interface{},
 ) (opentracing.Span, error) {
-	var err error
 	splitBinaryCarrier, ok := carrier.(*opentracing.SplitBinaryCarrier)
 	if !ok {
 		return nil, opentracing.ErrInvalidCarrier
@@ -180,52 +187,48 @@ func (p *splitBinaryPropagator) JoinTrace(
 	var traceID, propagatedSpanID int64
 	var sampledByte byte
 
-	err = binary.Read(contextReader, binary.BigEndian, &traceID)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &traceID); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
-	err = binary.Read(contextReader, binary.BigEndian, &propagatedSpanID)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &propagatedSpanID); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
-	err = binary.Read(contextReader, binary.BigEndian, &sampledByte)
-	if err != nil {
+	if err := binary.Read(contextReader, binary.BigEndian, &sampledByte); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
 
 	// Handle the attributes.
 	attrsReader := bytes.NewReader(splitBinaryCarrier.TraceAttributes)
 	var numAttrs int32
-	err = binary.Read(attrsReader, binary.BigEndian, &numAttrs)
-	if err != nil {
+	if err := binary.Read(attrsReader, binary.BigEndian, &numAttrs); err != nil {
 		return nil, opentracing.ErrTraceCorrupted
 	}
 	iNumAttrs := int(numAttrs)
-	attrMap := make(map[string]string, iNumAttrs)
-	for i := 0; i < iNumAttrs; i++ {
-		var keyLen int32
-		err = binary.Read(attrsReader, binary.BigEndian, &keyLen)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
-		keyBytes := make([]byte, keyLen)
-		err = binary.Read(attrsReader, binary.BigEndian, &keyBytes)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
+	var attrMap map[string]string
+	if iNumAttrs > 0 {
+		var buf bytes.Buffer // TODO(tschottdorf): candidate for sync.Pool
+		attrMap = make(map[string]string, iNumAttrs)
+		var keyLen, valLen int32
+		for i := 0; i < iNumAttrs; i++ {
+			if err := binary.Read(attrsReader, binary.BigEndian, &keyLen); err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			buf.Grow(int(keyLen))
+			if n, err := io.CopyN(&buf, attrsReader, int64(keyLen)); err != nil || int32(n) != keyLen {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			key := buf.String()
+			buf.Reset()
 
-		var valLen int32
-		err = binary.Read(attrsReader, binary.BigEndian, &valLen)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
+			if err := binary.Read(attrsReader, binary.BigEndian, &valLen); err != nil {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			if n, err := io.CopyN(&buf, attrsReader, int64(valLen)); err != nil || int32(n) != valLen {
+				return nil, opentracing.ErrTraceCorrupted
+			}
+			attrMap[key] = buf.String()
+			buf.Reset()
 		}
-		valBytes := make([]byte, valLen)
-		err = binary.Read(attrsReader, binary.BigEndian, &valBytes)
-		if err != nil {
-			return nil, opentracing.ErrTraceCorrupted
-		}
-
-		attrMap[string(keyBytes)] = string(valBytes)
 	}
 
 	sp := p.tracer.getSpan()

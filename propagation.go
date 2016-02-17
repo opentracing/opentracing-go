@@ -91,6 +91,10 @@ const (
 // The Span is separated in this way for a variety of reasons; the most
 // important is to give OpenTracing users a portable way to opt out of Trace
 // Attribute propagation entirely if they deem it a stability risk.
+//
+// It is legal to provide one or both maps as `nil`; they will be created
+// as needed. If non-nil maps are provided, they will be used without
+// clearing them out on injection.
 type SplitTextCarrier struct {
 	// TracerState is Tracer-specific context that must cross process
 	// boundaries. For example, in Dapper this would include a trace_id, a
@@ -104,10 +108,7 @@ type SplitTextCarrier struct {
 
 // NewSplitTextCarrier creates a new SplitTextCarrier.
 func NewSplitTextCarrier() *SplitTextCarrier {
-	return &SplitTextCarrier{
-		TracerState:     make(map[string]string),
-		TraceAttributes: make(map[string]string),
-	}
+	return &SplitTextCarrier{}
 }
 
 // SplitBinaryCarrier breaks a propagated Span into two pieces.
@@ -115,6 +116,9 @@ func NewSplitTextCarrier() *SplitTextCarrier {
 // The Span is separated in this way for a variety of reasons; the most
 // important is to give OpenTracing users a portable way to opt out of Trace
 // Attribute propagation entirely if they deem it a stability risk.
+//
+// Both byte slices may be nil; on injection, what is provided will be cleared
+// and the resulting capacity used.
 type SplitBinaryCarrier struct {
 	// TracerState is Tracer-specific context that must cross process
 	// boundaries. For example, in Dapper this would include a trace_id, a
@@ -128,8 +132,5 @@ type SplitBinaryCarrier struct {
 
 // NewSplitBinaryCarrier creates a new SplitTextCarrier.
 func NewSplitBinaryCarrier() *SplitBinaryCarrier {
-	return &SplitBinaryCarrier{
-		TracerState:     []byte{},
-		TraceAttributes: []byte{},
-	}
+	return &SplitBinaryCarrier{}
 }
