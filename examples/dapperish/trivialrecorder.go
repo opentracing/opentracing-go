@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/opentracing/opentracing-go/standardtracer"
+	"github.com/opentracing/basictracer-go"
 )
 
-// TrivialRecorder implements the standardtracer.Recorder interface.
+// TrivialRecorder implements the basictracer.Recorder interface.
 type TrivialRecorder struct {
 	processName string
 	tags        map[string]string
@@ -30,12 +30,12 @@ func (t *TrivialRecorder) SetTag(key string, val interface{}) *TrivialRecorder {
 	return t
 }
 
-// RecordSpan complies with the standardtracer.Recorder interface.
-func (t *TrivialRecorder) RecordSpan(span standardtracer.RawSpan) {
+// RecordSpan complies with the basictracer.Recorder interface.
+func (t *TrivialRecorder) RecordSpan(span basictracer.RawSpan) {
 	fmt.Printf(
 		"RecordSpan: %v[%v, %v us] --> %v logs. std context: %v\n",
 		span.Operation, span.Start, span.Duration, len(span.Logs),
-		span.StandardContext)
+		span.Context)
 	for i, l := range span.Logs {
 		fmt.Printf(
 			"    log %v @ %v: %v --> %v\n", i, l.Timestamp, l.Event, reflect.TypeOf(l.Payload))
