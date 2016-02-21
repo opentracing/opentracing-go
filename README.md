@@ -24,7 +24,7 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
 ```go
     import ".../opentracing-go"
     import ".../some_tracing_impl"
-    
+
     func main() {
         tracerImpl := some_tracing_impl.New(...) // tracing impl specific
         opentracing.InitGlobalTracer(tracerImpl)
@@ -123,7 +123,7 @@ synchronization.
 
 ## API pointers for those implementing a tracing system
 
-Tracing system implementors may be able to reuse or copy-paste-modify the `./standardtracer` package. In particular, see `standardtracer.New(...)`.
+Tracing system implementors may be able to reuse or copy-paste-modify the `basictracer` package, found [here](https://github.com/opentracing/basictracer-go). In particular, see `basictracer.New(...)`.
 
 ## API compatibility
 
