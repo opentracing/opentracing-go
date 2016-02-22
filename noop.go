@@ -24,8 +24,8 @@ const (
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
-func (n noopSpan) SetTraceAttribute(key, val string) Span                { return n }
-func (n noopSpan) TraceAttribute(key string) string                      { return emptyString }
+func (n noopSpan) SetBaggageItem(key, val string) Span                   { return n }
+func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}

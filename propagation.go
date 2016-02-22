@@ -79,7 +79,7 @@ const (
 	SplitText
 
 	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
-	// tracer state and any Trace Attributes).
+	// tracer state and any baggage).
 	//
 	// The `carrier` for both injection and extraction must be an http.Header
 	// instance.
@@ -89,8 +89,8 @@ const (
 // SplitTextCarrier breaks a propagated Span into two pieces.
 //
 // The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of Trace
-// Attribute propagation entirely if they deem it a stability risk.
+// important is to give OpenTracing users a portable way to opt out of
+// Baggage propagation entirely if they deem it a stability risk.
 //
 // It is legal to provide one or both maps as `nil`; they will be created
 // as needed. If non-nil maps are provided, they will be used without
@@ -102,8 +102,8 @@ type SplitTextCarrier struct {
 	// trace.
 	TracerState map[string]string
 
-	// Any Trace Attributes for the encoded Span (per Span.SetTraceAttribute).
-	TraceAttributes map[string]string
+	// Any Baggae for the encoded Span (per Span.SetBaggageItem).
+	TraceBaggage map[string]string
 }
 
 // NewSplitTextCarrier creates a new SplitTextCarrier.
@@ -114,8 +114,8 @@ func NewSplitTextCarrier() *SplitTextCarrier {
 // SplitBinaryCarrier breaks a propagated Span into two pieces.
 //
 // The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of Trace
-// Attribute propagation entirely if they deem it a stability risk.
+// important is to give OpenTracing users a portable way to opt out of
+// Baggage propagation entirely if they deem it a stability risk.
 //
 // Both byte slices may be nil; on injection, what is provided will be cleared
 // and the resulting capacity used.
@@ -126,8 +126,8 @@ type SplitBinaryCarrier struct {
 	// trace.
 	TracerState []byte
 
-	// Any Trace Attributes for the encoded Span (per Span.SetTraceAttribute).
-	TraceAttributes []byte
+	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
+	TraceBaggage []byte
 }
 
 // NewSplitBinaryCarrier creates a new SplitTextCarrier.
