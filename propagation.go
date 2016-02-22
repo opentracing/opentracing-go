@@ -102,8 +102,8 @@ type SplitTextCarrier struct {
 	// trace.
 	TracerState map[string]string
 
-	// Any Baggae for the encoded Span (per Span.SetBaggageItem).
-	TraceBaggage map[string]string
+	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
+	Baggage map[string]string
 }
 
 // NewSplitTextCarrier creates a new SplitTextCarrier.
@@ -127,7 +127,7 @@ type SplitBinaryCarrier struct {
 	TracerState []byte
 
 	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
-	TraceBaggage []byte
+	Baggage []byte
 }
 
 // NewSplitBinaryCarrier creates a new SplitTextCarrier.

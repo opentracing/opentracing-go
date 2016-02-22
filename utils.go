@@ -40,7 +40,7 @@ func InjectSpanInHeader(
 	for headerSuffix, val := range carrier.TracerState {
 		h.Add(ContextIDHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
-	for headerSuffix, val := range carrier.TraceBaggage {
+	for headerSuffix, val := range carrier.Baggage {
 		h.Add(TagsHTTPHeaderPrefix+headerSuffix, url.QueryEscape(val))
 	}
 	return nil
@@ -83,7 +83,7 @@ func JoinTraceFromHeader(
 			if err != nil {
 				return nil, err
 			}
-			carrier.TraceBaggage[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
+			carrier.Baggage[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
 	return extractor.JoinTrace(operationName, carrier)
