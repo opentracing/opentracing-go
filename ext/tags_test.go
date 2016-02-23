@@ -52,8 +52,8 @@ func (n noopSpan) SetTag(key string, value interface{}) opentracing.Span {
 
 func (n noopSpan) Finish()                                                {}
 func (n noopSpan) FinishWithOptions(opts opentracing.FinishOptions)       {}
-func (n noopSpan) SetTraceAttribute(key, val string) opentracing.Span     { return n }
-func (n noopSpan) TraceAttribute(key string) string                       { return "" }
+func (n noopSpan) SetBaggageItem(key, val string) opentracing.Span        { return n }
+func (n noopSpan) BaggageItem(key string) string                          { return "" }
 func (n noopSpan) LogEvent(event string)                                  {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{})  {}
 func (n noopSpan) Log(data opentracing.LogData)                           {}
