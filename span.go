@@ -54,40 +54,40 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// SetTraceAttribute sets a key:value pair on this Span that also
+	// SetBaggageItem sets a key:value pair on this Span that also
 	// propagates to future Span children.
 	//
-	// SetTraceAttribute() enables powerful functionality given a full-stack
+	// SetBaggageItem() enables powerful functionality given a full-stack
 	// opentracing integration (e.g., arbitrary application data from a mobile
 	// app can make it, transparently, all the way into the depths of a storage
 	// system), and with it some powerful costs: use this feature with care.
 	//
-	// IMPORTANT NOTE #1: SetTraceAttribute() will only propagate trace
-	// attributes to *future* children of the Span.
+	// IMPORTANT NOTE #1: SetBaggageItem() will only propagate trace
+	// baggage items to *future* children of the Span.
 	//
 	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
 	// value is copied into every local *and remote* child of this Span, and
 	// that can add up to a lot of network and cpu overhead.
 	//
-	// IMPORTANT NOTE #3: Trace attributes keys have a restricted format:
+	// IMPORTANT NOTE #3: Baggage item keys have a restricted format:
 	// implementations may wish to use them as HTTP header keys (or key
 	// suffixes), and of course HTTP headers are case insensitive.
 	//
 	// As such, `restrictedKey` MUST match the regular expression
 	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
 	// start with a letter or number, and the remaining characters must be
-	// letters, numbers, or hyphens. See CanonicalizeTraceAttributeKey(). If
-	// `restrictedKey` does not meet these criteria, SetTraceAttribute()
+	// letters, numbers, or hyphens. See CanonicalizeBaggageKey(). If
+	// `restrictedKey` does not meet these criteria, SetBaggageItem()
 	// results in undefined behavior.
 	//
 	// Returns a reference to this Span for chaining, etc.
-	SetTraceAttribute(restrictedKey, value string) Span
+	SetBaggageItem(restrictedKey, value string) Span
 
-	// Gets the value for a trace tag given its key. Returns the empty string
+	// Gets the value for a baggage item given its key. Returns the empty string
 	// if the value isn't found in this Span.
 	//
-	// See the `SetTraceAttribute` notes about `restrictedKey`.
-	TraceAttribute(restrictedKey string) string
+	// See the `SetBaggageItem` notes about `restrictedKey`.
+	BaggageItem(restrictedKey string) string
 
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
@@ -163,14 +163,14 @@ func (t Tags) Merge(other Tags) Tags {
 	return t
 }
 
-var regexTraceAttribute = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
+var regexBaggage = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
 
-// CanonicalizeTraceAttributeKey returns the canonicalized version of trace tag
+// CanonicalizeBaggageKey returns the canonicalized version of baggage item
 // key `key`, and true if and only if the key was valid.
 //
 // It is more performant to use lowercase keys only.
-func CanonicalizeTraceAttributeKey(key string) (string, bool) {
-	if !regexTraceAttribute.MatchString(key) {
+func CanonicalizeBaggageKey(key string) (string, bool) {
+	if !regexBaggage.MatchString(key) {
 		return "", false
 	}
 	return strings.ToLower(key), true
