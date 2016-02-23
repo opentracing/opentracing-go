@@ -81,5 +81,5 @@ func (n noopInjectorExtractor) InjectSpan(span opentracing.Span, carrier interfa
 }
 
 func (n noopInjectorExtractor) JoinTrace(operationName string, carrier interface{}) (opentracing.Span, error) {
-	return nil, nil
+	panic("not implemented")
 }
