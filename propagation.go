@@ -12,6 +12,11 @@ var (
 	// resume a trace.
 	ErrTraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
 
+	// ErrInvalidSpan errors occur when Injector.InjectSpan() is asked to operate
+	// on a Span which it is not prepared to handle (for example, since it was
+	// created by a different tracer implementation).
+	ErrInvalidSpan = errors.New("opentracing: Span type incompatible with tracer")
+
 	// ErrInvalidCarrier errors occur when Injector.InjectSpan() or
 	// Extractor.JoinTrace() implementations expect a different type of
 	// `carrier` than they are given.
