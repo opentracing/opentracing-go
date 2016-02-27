@@ -9,12 +9,12 @@ import "errors"
 var (
 	// ErrUnsupportedFormat occurs when the `format` passed to Tracer.Inject() or
 	// Tracer.Join() is not recognized by the Tracer implementation.
-	ErrUnsupportedFormat = errors.New("opentracing: Unknown or unsupported inject/join format")
+	ErrUnsupportedFormat = errors.New("opentracing: Unknown or unsupported Inject/Join format")
 
 	// ErrTraceNotFound occurs when the `carrier` passed to Tracer.Join() is
 	// valid and uncorrupted but has insufficient information to join or resume
 	// a trace.
-	ErrTraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
+	ErrTraceNotFound = errors.New("opentracing: Trace not found in Join carrier")
 
 	// ErrInvalidSpan errors occur when Tracer.Inject() is asked to operate on
 	// a Span which it is not prepared to handle (for example, since it was
@@ -24,11 +24,11 @@ var (
 	// ErrInvalidCarrier errors occur when Tracer.Inject() or Tracer.Join()
 	// implementations expect a different type of `carrier` than they are
 	// given.
-	ErrInvalidCarrier = errors.New("opentracing: Invalid Injection/Extraction carrier")
+	ErrInvalidCarrier = errors.New("opentracing: Invalid Inject/Join carrier")
 
 	// ErrTraceCorrupted occurs when the `carrier` passed to Tracer.Join() is
 	// of the expected type but is corrupted.
-	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Extraction carrier")
+	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Join carrier")
 )
 
 ///////////////////////////////////////////////////////////////////////////////

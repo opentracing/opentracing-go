@@ -181,8 +181,3 @@ func StartChildSpan(parent Span, operationName string) Span {
 		Parent:        parent,
 	})
 }
-
-// InjectSpan is a trivial helper that injects a Span instance into a carrier.
-func InjectSpan(sp Span, format interface{}, carrier interface{}) error {
-	return sp.Tracer().Inject(sp, format, carrier)
-}

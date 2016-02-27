@@ -23,13 +23,13 @@ func InjectSpanInHeader(
 	h http.Header,
 ) error {
 	// First, try to inject using the GoHTTPHeader format (our preference).
-	if err := InjectSpan(sp, GoHTTPHeader, h); err == nil {
+	if err := sp.Tracer().Inject(sp, GoHTTPHeader, h); err == nil {
 		return nil
 	}
 
 	// Else, fall back on SplitText.
 	carrier := NewSplitTextCarrier()
-	if err := InjectSpan(sp, SplitText, carrier); err != nil {
+	if err := sp.Tracer().Inject(sp, SplitText, carrier); err != nil {
 		return err
 	}
 	for headerSuffix, val := range carrier.TracerState {
