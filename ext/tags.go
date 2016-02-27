@@ -2,6 +2,17 @@ package ext
 
 import opentracing "github.com/opentracing/opentracing-go"
 
+// These constants define common tag names recommended for better portability across
+// tracing systems and languages/platforms.
+//
+// The tag names are defined as typed strings, so that in addition to the usual use
+//
+//     span.setTag(TagName, value)
+//
+// they also support value type validation via this additional syntax:
+//
+//    TagName.Set(span, value)
+//
 var (
 	// PeerXXX tags can be emitted by either client-side of server-side to describe
 	// the other side/service in a peer-to-peer communications, like an RPC call.
