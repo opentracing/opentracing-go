@@ -1,8 +1,6 @@
 package opentracing
 
 import (
-	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -184,16 +182,7 @@ func StartChildSpan(parent Span, operationName string) Span {
 	})
 }
 
-// InjectSpan is a helper that injects a Span instance into a carrier.
-//
-// See Tracer.Injector() and Injector.InjectSpan().
+// InjectSpan is a trivial helper that injects a Span instance into a carrier.
 func InjectSpan(sp Span, format interface{}, carrier interface{}) error {
-	var inj Injector
-	if inj = sp.Tracer().Injector(format); inj == nil {
-		return fmt.Errorf(
-			"Unsupported PropagationFormat: %v (type: %v)",
-			format,
-			reflect.TypeOf(format))
-	}
-	return inj.InjectSpan(sp, carrier)
+	return sp.Tracer().Inject(sp, format, carrier)
 }

@@ -43,8 +43,6 @@ type noopSpan struct {
 	Tags opentracing.Tags
 }
 
-type noopInjectorExtractor struct{}
-
 func (n noopSpan) SetTag(key string, value interface{}) opentracing.Span {
 	n.Tags[key] = value
 	return n
@@ -68,18 +66,10 @@ func (n noopTracer) StartSpanWithOptions(opts opentracing.StartSpanOptions) open
 	return noopSpan{Tags: make(opentracing.Tags)}
 }
 
-func (n noopTracer) Extractor(format interface{}) opentracing.Extractor {
-	return noopInjectorExtractor{}
+func (n noopTracer) Inject(toInject opentracing.Span, format interface{}, carrier interface{}) error {
+	panic("not implemented")
 }
 
-func (n noopTracer) Injector(format interface{}) opentracing.Injector {
-	return noopInjectorExtractor{}
-}
-
-func (n noopInjectorExtractor) InjectSpan(span opentracing.Span, carrier interface{}) error {
-	return nil
-}
-
-func (n noopInjectorExtractor) JoinTrace(operationName string, carrier interface{}) (opentracing.Span, error) {
+func (n noopTracer) Join(operationName string, format interface{}, carrier interface{}) (opentracing.Span, error) {
 	panic("not implemented")
 }
