@@ -21,11 +21,14 @@ func TestPeerTags(t *testing.T) {
 	}
 	tracer := noopTracer{}
 	span := tracer.StartSpan("my-trace")
-	ext.PeerService.Add(span, "my-service")
-	ext.PeerHostname.Add(span, "my-hostname")
-	ext.PeerHostIPv4.Add(span, uint32(127<<24|1))
-	ext.PeerHostIPv6.Add(span, "::")
-	ext.PeerPort.Add(span, uint16(8080))
+	ext.PeerService.Set(span, "my-service")
+	ext.PeerHostname.Set(span, "my-hostname")
+	ext.PeerHostIPv4.Set(span, uint32(127<<24|1))
+	ext.PeerHostIPv6.Set(span, "::")
+	ext.PeerPort.Set(span, uint16(8080))
+	ext.SamplingPriority.Set(span, uint16(1))
+	ext.SpanKind.Set(span, ext.SpanKindRPCServer)
+	ext.SpanKind.Set(span, ext.SpanKindRPCClient)
 	span.Finish()
 
 	rawSpan := span.(*noopSpan)
