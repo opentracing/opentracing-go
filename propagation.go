@@ -7,66 +7,36 @@ import "errors"
 ///////////////////////////////////////////////////////////////////////////////
 
 var (
-	// ErrTraceNotFound occurs when the `carrier` passed to Extractor.JoinTrace()
-	// is valid and uncorrupted but has insufficient information to join or
-	// resume a trace.
-	ErrTraceNotFound = errors.New("opentracing: Trace not found in Extraction carrier")
+	// ErrUnsupportedFormat occurs when the `format` passed to Tracer.Inject() or
+	// Tracer.Join() is not recognized by the Tracer implementation.
+	ErrUnsupportedFormat = errors.New("opentracing: Unknown or unsupported Inject/Join format")
 
-	// ErrInvalidSpan errors occur when Injector.InjectSpan() is asked to operate
-	// on a Span which it is not prepared to handle (for example, since it was
+	// ErrTraceNotFound occurs when the `carrier` passed to Tracer.Join() is
+	// valid and uncorrupted but has insufficient information to join or resume
+	// a trace.
+	ErrTraceNotFound = errors.New("opentracing: Trace not found in Join carrier")
+
+	// ErrInvalidSpan errors occur when Tracer.Inject() is asked to operate on
+	// a Span which it is not prepared to handle (for example, since it was
 	// created by a different tracer implementation).
 	ErrInvalidSpan = errors.New("opentracing: Span type incompatible with tracer")
 
-	// ErrInvalidCarrier errors occur when Injector.InjectSpan() or
-	// Extractor.JoinTrace() implementations expect a different type of
-	// `carrier` than they are given.
-	ErrInvalidCarrier = errors.New("opentracing: Invalid Injection/Extraction carrier")
+	// ErrInvalidCarrier errors occur when Tracer.Inject() or Tracer.Join()
+	// implementations expect a different type of `carrier` than they are
+	// given.
+	ErrInvalidCarrier = errors.New("opentracing: Invalid Inject/Join carrier")
 
-	// ErrTraceCorrupted occurs when the `carrier` passed to Extractor.JoinTrace()
-	// is of the expected type but is corrupted.
-	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Extraction carrier")
+	// ErrTraceCorrupted occurs when the `carrier` passed to Tracer.Join() is
+	// of the expected type but is corrupted.
+	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Join carrier")
 )
-
-// Injector is responsible for injecting Span instances in a manner suitable
-// for propagation via a format-specific "carrier" object. Typically the
-// injection will take place across an RPC boundary, but message queues and
-// other IPC mechanisms are also reasonable places to use an Injector.
-//
-// See Extractor and Tracer.Injector.
-type Injector interface {
-	// InjectSpan takes `span` and injects it into `carrier`. The actual type
-	// of `carrier` depends on the `format` passed to `Tracer.Injector()`.
-	//
-	// Implementations may return opentracing.ErrInvalidCarrier or any other
-	// implementation-specific error if injection fails.
-	InjectSpan(span Span, carrier interface{}) error
-}
-
-// Extractor is responsible for extracting Span instances from an
-// format-specific "carrier" object. Typically the extraction will take place
-// on the server side of an RPC boundary, but message queues and other IPC
-// mechanisms are also reasonable places to use an Extractor.
-//
-// See Injector and Tracer.Extractor.
-type Extractor interface {
-	// JoinTrace returns a Span instance with operation name `operationName`
-	// given `carrier`, or (nil, opentracing.ErrTraceNotFound) if no trace could be found to
-	// join with in the `carrier`.
-	//
-	// Implementations may return opentracing.ErrInvalidCarrier,
-	// opentracing.ErrTraceCorrupted, or implementation-specific errors if there
-	// are more fundamental problems with `carrier`.
-	//
-	// Upon success, the returned Span instance is already started.
-	JoinTrace(operationName string, carrier interface{}) (Span, error)
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // BUILTIN PROPAGATION FORMATS:
 ///////////////////////////////////////////////////////////////////////////////
 
 // BuiltinFormat is used to demarcate the values within package `opentracing`
-// that are intended for use with the Tracer.Injector() and Tracer.Extractor()
+// that are intended for use with the Tracer.Inject() and Tracer.Join()
 // methods.
 type BuiltinFormat byte
 

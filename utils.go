@@ -1,7 +1,6 @@
 package opentracing
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -23,18 +22,14 @@ func InjectSpanInHeader(
 	sp Span,
 	h http.Header,
 ) error {
-	// First, look for a GoHTTPHeader injector (our preference).
-	injector := sp.Tracer().Injector(GoHTTPHeader)
-	if injector != nil {
-		return injector.InjectSpan(sp, h)
+	// First, try to inject using the GoHTTPHeader format (our preference).
+	if err := sp.Tracer().Inject(sp, GoHTTPHeader, h); err == nil {
+		return nil
 	}
 
 	// Else, fall back on SplitText.
-	if injector = sp.Tracer().Injector(SplitText); injector == nil {
-		return errors.New("No suitable injector")
-	}
 	carrier := NewSplitTextCarrier()
-	if err := injector.InjectSpan(sp, carrier); err != nil {
+	if err := sp.Tracer().Inject(sp, SplitText, carrier); err != nil {
 		return err
 	}
 	for headerSuffix, val := range carrier.TracerState {
@@ -46,28 +41,23 @@ func InjectSpanInHeader(
 	return nil
 }
 
-// JoinTraceFromHeader decodes a Span with operation name `operationName` from
-// `h`, expecting that header values are URL-escpaed.
+// JoinFromHeader decodes a Span with operation name `operationName` from `h`,
+// expecting that header values are URL-escpaed.
 //
 // If `operationName` is empty, the caller must later call
 // `Span.SetOperationName` on the returned `Span`.
-func JoinTraceFromHeader(
+func JoinFromHeader(
 	operationName string,
 	h http.Header,
 	tracer Tracer,
 ) (Span, error) {
-	// First, look for a GoHTTPHeader extractor (our
-	// preference).
-	extractor := tracer.Extractor(GoHTTPHeader)
-	if extractor != nil {
-		return extractor.JoinTrace(operationName, h)
+	// First, try to Join using the GoHTTPHeader format (our preference).
+	span, err := tracer.Join(operationName, GoHTTPHeader, h)
+	if err == nil {
+		return span, nil
 	}
 
 	// Else, fall back on SplitText.
-	if extractor = tracer.Extractor(SplitText); extractor == nil {
-		return nil, errors.New("No suitable extractor")
-	}
-
 	carrier := NewSplitTextCarrier()
 	for key, val := range h {
 		if strings.HasPrefix(key, ContextIDHTTPHeaderPrefix) {
@@ -86,5 +76,5 @@ func JoinTraceFromHeader(
 			carrier.Baggage[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
 	}
-	return extractor.JoinTrace(operationName, carrier)
+	return tracer.Join(operationName, SplitText, carrier)
 }

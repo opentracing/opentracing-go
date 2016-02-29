@@ -5,7 +5,7 @@ import "time"
 // Tracer is a simple, thin interface for Span creation.
 //
 // A straightforward implementation is available via the
-// `opentracing/basictracer` package's `standardtracer.New()'.
+// `opentracing/basictracer-go` package's `standardtracer.New()'.
 type Tracer interface {
 	// Create, start, and return a new Span with the given `operationName`, all
 	// without specifying a parent Span that can be used to incorporate the
@@ -27,29 +27,9 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Return an Injector for the given `format` value, or nil if the Tracer
-	// does not support such a format.
-	//
-	// OpenTracing defines a common set of `format` values (see
-	// BuiltinFormat), and each has an expected carrier type.
-	//
-	// Other packages may declare their own `format` values, much like the keys
-	// used by the `net.Context` package (see
-	// https://godoc.org/golang.org/x/net/context#WithValue).
-	//
-	// Example usage (sans error handling):
-	//
-	//     tracer.Injector(
-	//         opentracing.GoHTTPHeader).InjectSpan(
-	//         span, httpReq.Header)
-	//
-	// NOTE: All opentracing.Tracer implementations MUST support all
-	// BuiltinFormats.
-	//
-	Injector(format interface{}) Injector
-
-	// Return a Extractor for the given `format` value, or nil if the Tracer
-	// does not support such a format.
+	// Inject() takes the `sp` Span instance and represents it for propagation
+	// within `carrier`. The actual type of `carrier` depends on the value of
+	// `format`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
@@ -60,14 +40,62 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
-	//     span, err := tracer.Extractor(
-	//         opentracing.GoHTTPHeader).JoinTrace(
-	//         operationName, httpReq.Header)
+	//     tracer.Inject(
+	//         span,
+	//         opentracing.GoHTTPHeader,
+	//         httpReq.Header)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
 	// BuiltinFormats.
 	//
-	Extractor(format interface{}) Extractor
+	// Implementations may return opentracing.ErrUnsupportedFormat if `format`
+	// is or not supported by (or not known by) the implementation.
+	//
+	// Implementations may return opentracing.ErrInvalidCarrier or any other
+	// implementation-specific error if the format is supported but injection
+	// fails anyway.
+	//
+	// See Tracer.Join().
+	Inject(sp Span, format interface{}, carrier interface{}) error
+
+	// Join() returns a Span instance with operation name `operationName` given
+	// `format` and `carrier`.
+	//
+	// Join() is responsible for extracting and joining to the trace of a Span
+	// instance embedded in a format-specific "carrier" object. Typically the
+	// joining will take place on the server side of an RPC boundary, but
+	// message queues and other IPC mechanisms are also reasonable places to
+	// use Join().
+	//
+	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
+	// and each has an expected carrier type.
+	//
+	// Other packages may declare their own `format` values, much like the keys
+	// used by the `net.Context` package (see
+	// https://godoc.org/golang.org/x/net/context#WithValue).
+	//
+	// Example usage (sans error handling):
+	//
+	//     span, err := tracer.Join(
+	//         operationName,
+	//         opentracing.GoHTTPHeader,
+	//         httpReq.Header)
+	//
+	// NOTE: All opentracing.Tracer implementations MUST support all
+	// BuiltinFormats.
+	//
+	// Return values:
+	//  - A successful join will return a started Span instance and a nil error
+	//  - If there was simply no trace to join with in `carrier`, Join()
+	//    returns (nil, opentracing.ErrTraceNotFound)
+	//  - If `format` is unsupported or unrecognized, Join() returns (nil,
+	//    opentracing.ErrUnsupportedFormat)
+	//  - If there are more fundamental problems with the `carrier` object,
+	//    Join() may return opentracing.ErrInvalidCarrier,
+	//    opentracing.ErrTraceCorrupted, or implementation-specific errors.
+	//
+	// See Tracer.Inject().
+	Join(operationName string, format interface{}, carrier interface{}) (Span, error)
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
