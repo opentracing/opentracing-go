@@ -41,7 +41,7 @@ func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 }
 
 // Inject belongs to the Tracer interface.
-func (n NoopTracer) Inject(toInject Span, format interface{}, carrier interface{}) error {
+func (n NoopTracer) Inject(sp Span, format interface{}, carrier interface{}) error {
 	return nil
 }
 

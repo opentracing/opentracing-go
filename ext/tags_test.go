@@ -66,7 +66,7 @@ func (n noopTracer) StartSpanWithOptions(opts opentracing.StartSpanOptions) open
 	return noopSpan{Tags: make(opentracing.Tags)}
 }
 
-func (n noopTracer) Inject(toInject opentracing.Span, format interface{}, carrier interface{}) error {
+func (n noopTracer) Inject(sp opentracing.Span, format interface{}, carrier interface{}) error {
 	panic("not implemented")
 }
 

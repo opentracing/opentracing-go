@@ -27,9 +27,9 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Inject() takes the `toInject` Span instance and represents it for
-	// propagation within `carrier`. The actual type of `carrier` depends on
-	// the value of `format`.
+	// Inject() takes the `sp` Span instance and represents it for propagation
+	// within `carrier`. The actual type of `carrier` depends on the value of
+	// `format`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
@@ -56,7 +56,7 @@ type Tracer interface {
 	// fails anyway.
 	//
 	// See Tracer.Join().
-	Inject(toInject Span, format interface{}, carrier interface{}) error
+	Inject(sp Span, format interface{}, carrier interface{}) error
 
 	// Join() returns a Span instance with operation name `operationName` given
 	// `format` and `carrier`.
