@@ -13,7 +13,7 @@ In order to understand the Go platform API, one must first be familiar with the
 ## API overview for those adding instrumentation
 
 Everyday consumers of this `opentracing` package really only need to worry
-about a couple of key abstractions: the `StartTrace` function, the `Span`
+about a couple of key abstractions: the `StartSpan` function, the `Span`
 interface, and binding a `Tracer` at `main()`-time. Here are code snippets
 demonstrating some important use cases.
 
@@ -42,7 +42,7 @@ If you prefer direct control to singletons, manage ownership of the
 ```go
     func xyz() {
         ...
-        sp := opentracing.StartTrace("span_name")
+        sp := opentracing.StartSpan("span_name")
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -54,7 +54,7 @@ If you prefer direct control to singletons, manage ownership of the
 ```go
     func xyz(parentSpan opentracing.Span, ...) {
         ...
-        sp := opentracing.JoinTrace("span_name", parentSpan)
+        sp := opentracing.StartChildSpan(parentSpan, "span_name")
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -70,7 +70,7 @@ associated with any `opentracing.Span` instance.
     func xyz(goCtx context.Context, ...) {
         ...
         goCtx, sp := opentracing.ContextWithSpan(
-            goCtx, opentracing.JoinTrace("span_name", goCtx))
+            goCtx, opentracing.SpanFromContext(goCtx))
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -87,10 +87,9 @@ associated with any `opentracing.Span` instance.
 
             // Transmit the span's TraceContext as an HTTP header on our
             // outbound request.
-            opentracing.GlobalTracer().PropagateSpanInHeader(
+            opentracing.InjectSpanInHeader(
                 span,
-                httpReq.Header,
-                opentracing.DefaultTracer())
+                httpReq.Header)
 
             resp, err := httpClient.Do(httpReq)
             ...
@@ -104,7 +103,7 @@ associated with any `opentracing.Span` instance.
 ```go
     http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
         // Join the trace in the HTTP header using the opentracing helper.
-        serverSpan, err := opentracing.GlobalTracer().JoinTraceFromHeader(
+        serverSpan, err := opentracing.JoinFromHeader(
                 "serverSpan", req.Header, opentracing.GlobalTracer())
         if err != nil {
             serverSpan = opentracing.StartTrace("serverSpan")
