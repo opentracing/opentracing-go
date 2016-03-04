@@ -22,7 +22,7 @@ demonstrating some important use cases.
 The simplest starting point is `./default_tracer.go`. As early as possible, call
 
 ```go
-    import ".../opentracing-go"
+    import "github.com/opentracing/opentracing-go"
     import ".../some_tracing_impl"
 
     func main() {

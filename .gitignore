@@ -1,8 +1,8 @@
 # IntelliJ project files
 .idea/
-api-go.iml
-api-go.ipr
-api-go.iws
+opentracing-go.iml
+opentracing-go.ipr
+opentracing-go.iws
 
 # Test results
 *.cov
