@@ -66,12 +66,18 @@ func JoinFromHeader(
 			if err != nil {
 				return nil, err
 			}
+			if carrier.TracerState == nil {
+				carrier.TracerState = map[string]string{}
+			}
 			carrier.TracerState[strings.TrimPrefix(key, ContextIDHTTPHeaderPrefix)] = unescaped
 		} else if strings.HasPrefix(key, TagsHTTPHeaderPrefix) {
 			// We don't know what to do with anything beyond slice item v[0]:
 			unescaped, err := url.QueryUnescape(val[0])
 			if err != nil {
 				return nil, err
+			}
+			if carrier.Baggage == nil {
+				carrier.Baggage = map[string]string{}
 			}
 			carrier.Baggage[strings.TrimPrefix(key, TagsHTTPHeaderPrefix)] = unescaped
 		}
