@@ -9,9 +9,6 @@ type noopSpan struct{}
 var (
 	defaultNoopSpan   = noopSpan{}
 	defaultNoopTracer = NoopTracer{}
-	emptyTags         = Tags{}
-	emptyBytes        = []byte{}
-	emptyStringMap    = map[string]string{}
 )
 
 const (

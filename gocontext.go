@@ -27,3 +27,31 @@ func SpanFromContext(ctx context.Context) Span {
 	}
 	return nil
 }
+
+// StartSpanFromContext starts and returns a Span with `operationName`, using
+// any Span found within `ctx` as a parent. If no such parent could be found,
+// StartSpanFromContext creates a root (parentless) Span.
+//
+// The second return value is a context.Context object built around the
+// returned Span.
+//
+// Example usage:
+//
+//    SomeFunction(ctx context.Context, ...) {
+//        sp, ctx := opentracing.StartSpanFromContext(ctx, "SomeFunction")
+//        defer sp.Finish()
+//        ...
+//    }
+func StartSpanFromContext(ctx context.Context, operationName string) (Span, context.Context) {
+	return startSpanFromContextWithTracer(ctx, operationName, GlobalTracer())
+}
+
+// startSpanFromContextWithTracer is factored out for testing purposes.
+func startSpanFromContextWithTracer(ctx context.Context, operationName string, tracer Tracer) (Span, context.Context) {
+	parent := SpanFromContext(ctx)
+	span := tracer.StartSpanWithOptions(StartSpanOptions{
+		OperationName: operationName,
+		Parent:        parent,
+	})
+	return span, ContextWithSpan(ctx, span)
+}
