@@ -41,71 +41,42 @@ var (
 type BuiltinFormat byte
 
 const (
-	// SplitBinary encodes the Span in a SplitBinaryCarrier instance.
+	// Binary encodes the Span in a BinaryCarrier instance.
 	//
-	// The `carrier` for injection and extraction must be a
-	// `*SplitBinaryCarrier` instance.
-	SplitBinary BuiltinFormat = iota
+	// The `carrier` for injection and extraction must be a `BinaryCarrier`
+	// instance (not a pointer to a BinaryCarrier instance).
+	Binary BuiltinFormat = iota
 
-	// SplitText encodes the Span in a SplitTextCarrier instance.
+	// TextMap encodes the Span in a TextMapCarrier instance.
 	//
-	// The `carrier` for injection and extraction must be a `*SplitTextCarrier`
-	// instance.
-	SplitText
+	// The `carrier` for injection and extraction must be a `TextMapCarrier`
+	// instance (not a pointer to a TextMapCarrier instance).
+	TextMap
 
 	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
 	// tracer state and any baggage).
 	//
 	// The `carrier` for both injection and extraction must be an http.Header
-	// instance.
+	// instance (not a pointer to an http.Header instance).
+	//
+	// If there are entries in the http.Header map prior to a call to Inject(),
+	// they are left alone (i.e., the map is not cleared). Similarly, in calls
+	// to Join() it is fine (and expected in some cases) for the http.Header
+	// map to contain other unrelated data (i.e., non-OpenTracing headers).
 	GoHTTPHeader
 )
 
-// SplitTextCarrier breaks a propagated Span into two pieces.
+// TextMapCarrier represents a Span for propagation as a key:value map of
+// unicode strings.
 //
-// The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of
-// Baggage propagation entirely if they deem it a stability risk.
+// If there are entries in the TextMapCarrier prior to a call to Inject(), they
+// are left alone (i.e., the map is not cleared). Similarly, in calls to Join()
+// it is fine (and expected in some cases) for the TextMapCarrier to contain
+// other unrelated data (e.g., arbitrary HTTP header pairs).
+type TextMapCarrier map[string]string
+
+// BinaryCarrier represents a Span for propagation as an opaque byte array.
 //
-// It is legal to provide one or both maps as `nil`; they will be created
-// as needed. If non-nil maps are provided, they will be used without
-// clearing them out on injection.
-type SplitTextCarrier struct {
-	// TracerState is Tracer-specific context that must cross process
-	// boundaries. For example, in Dapper this would include a trace_id, a
-	// span_id, and a bitmask representing the sampling status for the given
-	// trace.
-	TracerState map[string]string
-
-	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
-	Baggage map[string]string
-}
-
-// NewSplitTextCarrier creates a new SplitTextCarrier.
-func NewSplitTextCarrier() *SplitTextCarrier {
-	return &SplitTextCarrier{}
-}
-
-// SplitBinaryCarrier breaks a propagated Span into two pieces.
-//
-// The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of
-// Baggage propagation entirely if they deem it a stability risk.
-//
-// Both byte slices may be nil; on injection, what is provided will be cleared
-// and the resulting capacity used.
-type SplitBinaryCarrier struct {
-	// TracerState is Tracer-specific context that must cross process
-	// boundaries. For example, in Dapper this would include a trace_id, a
-	// span_id, and a bitmask representing the sampling status for the given
-	// trace.
-	TracerState []byte
-
-	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
-	Baggage []byte
-}
-
-// NewSplitBinaryCarrier creates a new SplitTextCarrier.
-func NewSplitBinaryCarrier() *SplitBinaryCarrier {
-	return &SplitBinaryCarrier{}
-}
+// It is fine to pass `nil` to Inject(); in that case, it will allocate a
+// []byte for the caller.
+type BinaryCarrier *[]byte
