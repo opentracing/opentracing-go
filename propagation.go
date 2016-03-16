@@ -64,6 +64,11 @@ const (
 	// to Join() it is fine (and expected in some cases) for the http.Header
 	// map to contain other unrelated data (i.e., non-OpenTracing headers).
 	GoHTTPHeader
+
+	// SplitBinary is DEPRECATED
+	SplitBinary
+	// SplitText is DEPRECATED
+	SplitText
 )
 
 // TextMapCarrier represents a Span for propagation as a key:value map of
@@ -80,3 +85,25 @@ type TextMapCarrier map[string]string
 // It is fine to pass `nil` to Inject(); in that case, it will allocate a
 // []byte for the caller.
 type BinaryCarrier *[]byte
+
+// SplitTextCarrier is DEPRECATED
+type SplitTextCarrier struct {
+	TracerState map[string]string
+	Baggage     map[string]string
+}
+
+// NewSplitTextCarrier is DEPRECATED
+func NewSplitTextCarrier() *SplitTextCarrier {
+	return &SplitTextCarrier{}
+}
+
+// SplitBinaryCarrier is DEPRECATED
+type SplitBinaryCarrier struct {
+	TracerState []byte
+	Baggage     []byte
+}
+
+// NewSplitBinaryCarrier is DEPRECATED
+func NewSplitBinaryCarrier() *SplitBinaryCarrier {
+	return &SplitBinaryCarrier{}
+}
