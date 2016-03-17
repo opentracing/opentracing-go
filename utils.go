@@ -18,10 +18,7 @@ const (
 
 // InjectSpanInHeader encodes Span `sp` in `h` as a series of HTTP headers.
 // Values are URL-escaped.
-func InjectSpanInHeader(
-	sp Span,
-	h http.Header,
-) error {
+func InjectSpanInHeader(sp Span, h http.Header) error {
 	// First, try to inject using the GoHTTPHeader format (our preference).
 	if err := sp.Tracer().Inject(sp, GoHTTPHeader, h); err == nil {
 		return nil
@@ -46,11 +43,7 @@ func InjectSpanInHeader(
 //
 // If `operationName` is empty, the caller must later call
 // `Span.SetOperationName` on the returned `Span`.
-func JoinFromHeader(
-	operationName string,
-	h http.Header,
-	tracer Tracer,
-) (Span, error) {
+func JoinFromHeader(operationName string, h http.Header, tracer Tracer) (Span, error) {
 	// First, try to Join using the GoHTTPHeader format (our preference).
 	span, err := tracer.Join(operationName, GoHTTPHeader, h)
 	if err == nil {
