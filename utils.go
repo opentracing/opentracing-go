@@ -14,12 +14,9 @@ func InjectSpanInHeader(sp Span, h http.Header) error {
 	}
 
 	// Else, fall back on TextMap.
-	carrier := TextMapCarrier{}
+	carrier := HTTPHeaderTextMapCarrier{http.Header{}}
 	if err := sp.Tracer().Inject(sp, TextMap, carrier); err != nil {
 		return err
-	}
-	for key, val := range carrier {
-		h.Add(key, url.QueryEscape(val))
 	}
 	return nil
 }
@@ -37,14 +34,28 @@ func JoinFromHeader(operationName string, h http.Header, tracer Tracer) (Span, e
 	}
 
 	// Else, fall back on TextMap.
-	carrier := TextMapCarrier{}
-	for key, val := range h {
-		// We don't know what to do with anything beyond slice item v[0]:
-		unescaped, err := url.QueryUnescape(val[0])
-		if err != nil {
-			continue
-		}
-		carrier[key] = unescaped
-	}
+	carrier := HTTPHeaderTextMapCarrier{h}
 	return tracer.Join(operationName, TextMap, carrier)
+}
+
+type HTTPHeaderTextMapCarrier struct {
+	http.Header
+}
+
+func (c HTTPHeaderTextMapCarrier) Add(key, val string) {
+	c.Header.Add(key, url.QueryEscape(val))
+}
+func (c HTTPHeaderTextMapCarrier) GetAll(handler func(key, val string) error) error {
+	for k, vals := range c.Header {
+		for _, v := range vals {
+			rawV, err := url.QueryUnescape(v)
+			if err != nil {
+				continue
+			}
+			if err = handler(k, rawV); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

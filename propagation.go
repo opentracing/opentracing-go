@@ -1,6 +1,9 @@
 package opentracing
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 ///////////////////////////////////////////////////////////////////////////////
 // CORE PROPAGATION INTERFACES:
@@ -71,20 +74,34 @@ const (
 	SplitText
 )
 
-// TextMapCarrier represents a Span for propagation as a key:value map of
+// TextMapCarrier represents a Span for propagation within a key:value map of
 // unicode strings.
-//
-// If there are entries in the TextMapCarrier prior to a call to Inject(), they
-// are left alone (i.e., the map is not cleared). Similarly, in calls to Join()
-// it is fine (and expected in some cases) for the TextMapCarrier to contain
-// other unrelated data (e.g., arbitrary HTTP header pairs).
-type TextMapCarrier map[string]string
+type TextMapCarrier interface {
+	// Add a key:value pair to the carrier.`key` should be prefixed in a way
+	// that protects against collisions with things like HTTP headers (which
+	// may share space with Tracer data in the TextMapCarrier).
+	Add(key, val string)
 
-// BinaryCarrier represents a Span for propagation as an opaque byte array.
+	// GetAll returns all contents of the text map via repeated calls to the
+	// `handler` function. If any call to `handler` returns a non-nil error,
+	// GetAll terminates and returns that error.
+	//
+	// NOTE: `handler` may be invoked for key:value combinations that were
+	// *not* added via `Set` (in this process or otherwise). As such,
+	// implementations MUST check that `key` is something they care about.
+	//
+	// NOTE: A single `key` may appear in multiple calls to `handler` for a
+	// single `GetAll` invocation.
+	GetAll(handler func(key, val string) error) error
+}
+
+// BinaryCarrier represents a Span for propagation as an opaque byte stream.
 //
-// It is fine to pass `nil` to Inject(); in that case, it will allocate a
-// []byte for the caller.
-type BinaryCarrier *[]byte
+// The io.Writer is intended for use with Tracer.Inject() and the io.Reader is
+// intended for use with Tracer.Join().
+type BinaryCarrier interface {
+	io.ReadWriter
+}
 
 // SplitTextCarrier is DEPRECATED
 type SplitTextCarrier struct {
