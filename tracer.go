@@ -40,9 +40,13 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
+	//     carrier := opentracing.HTTPHeaderTextMapCarrier{
+	//         HeaderPrefix: "opentracing-",
+	//         Header: httpReq.Header,
+	//     }
 	//     tracer.Inject(
 	//         span,
-	//         opentracing.HTTPHeader,
+	//         opentracing.TextMap,
 	//         httpReq.Header)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
@@ -76,10 +80,14 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
+	//     carrier := opentracing.HTTPHeaderTextMapCarrier{
+	//         HeaderPrefix: "opentracing-",
+	//         Header: httpReq.Header,
+	//     }
 	//     span, err := tracer.Join(
 	//         operationName,
-	//         opentracing.HTTPHeader,
-	//         httpReq.Header)
+	//         opentracing.TextMap,
+	//         carrier)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
 	// BuiltinFormats.
