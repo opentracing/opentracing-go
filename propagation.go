@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -63,18 +62,12 @@ const (
 	// and TextMapReader that defers to an http.Header instance for storage.
 	// For example, Inject():
 	//
-	//    carrier := HTTPHeaderTextMapCarrier{
-	//    	HeaderPrefix: "opentracing-",
-	//    	Header:       h,
-	//    }
+	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
 	//    err := span.Tracer().Inject(span, TextMap, carrier)
 	//
 	// Or Join():
 	//
-	//    carrier := HTTPHeaderTextMapCarrier{
-	//    	HeaderPrefix: "opentracing-",
-	//    	Header:       h,
-	//    }
+	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
 	//    span, err := tracer.Join("opName", TextMap, carrier)
 	//
 	TextMap
@@ -98,48 +91,41 @@ type TextMapWriter interface {
 // the caller can decode a propagated Span as entries in a multimap of unicode
 // strings.
 type TextMapReader interface {
-	// ReadAllEntries returns TextMap contents via repeated calls to the
-	// `handler` function. If any call to `handler` returns a non-nil error,
-	// ReadAllEntries terminates and returns that error.
+	// ReadAll returns TextMap contents via repeated calls to the `handler`
+	// function. If any call to `handler` returns a non-nil error, ReadAll
+	// terminates and returns that error.
 	//
 	// NOTE: A single `key` may appear in multiple calls to `handler` for a
 	// single `ReadAllEntries` invocation.
-	ReadAllEntries(handler func(key, val string) error) error
+	ReadAll(handler func(key, val string) error) error
 }
 
 // HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
 //
 // NOTE: All `key` parameters to Add() and the ReadAllEntries() handler func
-// are lowercased since http.Header doesn't respect character casing for keys.
-type HTTPHeaderTextMapCarrier struct {
-	// The prefix used to distinguish the TextMap entries within the
-	// http.Header map.
-	HeaderPrefix string
-
-	http.Header
-}
-
-var ErrNoHeaderPrefix = errors.New("HTTPHeaderTextMapCarrier.HeaderPrefix is empty")
+// identify values in a case-insensitive manner since http.Header doesn't
+// respect character casing for keys. Also note that the underlying http.Header
+// implementation will change the casing on keys per
+// http.CanonicalMIMEHeaderKey().
+type HTTPHeaderTextMapCarrier http.Header
 
 func (c HTTPHeaderTextMapCarrier) Add(key, val string) {
-	c.Header.Add(strings.ToLower(c.HeaderPrefix+key), url.QueryEscape(val))
+	// We need to convert to a proper http.Header or `c.Add(...)` recurses
+	// infinitely.
+	h := (*http.Header)(&c)
+	h.Add(key, url.QueryEscape(val))
 }
-func (c HTTPHeaderTextMapCarrier) ReadAllEntries(handler func(key, val string) error) error {
-	if len(c.HeaderPrefix) == 0 {
-		return ErrNoHeaderPrefix
-	}
-	for k, vals := range c.Header {
-		k = strings.ToLower(k)
-		if !strings.HasPrefix(k, c.HeaderPrefix) {
-			continue
-		}
-		kSuffix := k[len(c.HeaderPrefix):]
+func (c HTTPHeaderTextMapCarrier) ReadAll(handler func(key, val string) error) error {
+	for k, vals := range c {
 		for _, v := range vals {
 			rawV, err := url.QueryUnescape(v)
 			if err != nil {
+				// We don't know if there was an error escaping an
+				// OpenTracing-related header or something else; as such, we
+				// continue rather than return the error.
 				continue
 			}
-			if err = handler(kSuffix, rawV); err != nil {
+			if err = handler(k, rawV); err != nil {
 				return err
 			}
 		}

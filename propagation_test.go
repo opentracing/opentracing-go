@@ -15,10 +15,7 @@ func TestHTTPHeaderInject(t *testing.T) {
 	span := tracer.StartSpan("someSpan")
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
-	carrier := HTTPHeaderTextMapCarrier{
-		HeaderPrefix: testHeaderPrefix,
-		Header:       h,
-	}
+	carrier := HTTPHeaderTextMapCarrier(h)
 	if err := span.Tracer().Inject(span, TextMap, carrier); err != nil {
 		t.Fatal(err)
 	}
@@ -45,10 +42,7 @@ func TestHTTPHeaderJoin(t *testing.T) {
 	tracer := testTracer{}
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
-	carrier := HTTPHeaderTextMapCarrier{
-		HeaderPrefix: testHeaderPrefix,
-		Header:       h,
-	}
+	carrier := HTTPHeaderTextMapCarrier(h)
 	span, err := tracer.Join("ignoredByImpl", TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)

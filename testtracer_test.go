@@ -1,6 +1,11 @@
 package opentracing
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
+
+const testHTTPHeaderPrefix = "testprefix-"
 
 // testTracer is a most-noop Tracer implementation that makes it possible for
 // unittests to verify whether certain methods were / were not called.
@@ -46,8 +51,8 @@ func (n testTracer) Inject(sp Span, format interface{}, carrier interface{}) err
 	case TextMap:
 		// Just for testing purposes... generally not a worthwhile thing to
 		// propagate.
-		carrier.(TextMapWriter).Add("opname", span.OperationName)
-		carrier.(TextMapWriter).Add("hasparent", strconv.FormatBool(span.HasParent))
+		carrier.(TextMapWriter).Add(testHTTPHeaderPrefix+"opname", span.OperationName)
+		carrier.(TextMapWriter).Add(testHTTPHeaderPrefix+"hasparent", strconv.FormatBool(span.HasParent))
 		return nil
 	}
 	return ErrUnsupportedFormat
@@ -60,15 +65,15 @@ func (n testTracer) Join(operationName string, format interface{}, carrier inter
 		// Just for testing purposes... generally not a worthwhile thing to
 		// propagate.
 		rval := testSpan{}
-		err := carrier.(TextMapReader).ReadAllEntries(func(key, val string) error {
-			switch key {
-			case "hasparent":
+		err := carrier.(TextMapReader).ReadAll(func(key, val string) error {
+			switch strings.ToLower(key) {
+			case testHTTPHeaderPrefix + "hasparent":
 				b, err := strconv.ParseBool(val)
 				if err != nil {
 					return err
 				}
 				rval.HasParent = b
-			case "opname":
+			case testHTTPHeaderPrefix + "opname":
 				rval.OperationName = val
 			}
 			return nil
