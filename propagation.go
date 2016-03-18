@@ -61,6 +61,22 @@ const (
 	//
 	// See HTTPHeaderTextMapCarrier for an implementation of both TextMapWriter
 	// and TextMapReader that defers to an http.Header instance for storage.
+	// For example, Inject():
+	//
+	//    carrier := HTTPHeaderTextMapCarrier{
+	//    	HeaderPrefix: "opentracing-",
+	//    	Header:       h,
+	//    }
+	//    err := span.Tracer().Inject(span, TextMap, carrier)
+	//
+	// Or Join():
+	//
+	//    carrier := HTTPHeaderTextMapCarrier{
+	//    	HeaderPrefix: "opentracing-",
+	//    	Header:       h,
+	//    }
+	//    span, err := tracer.Join("opName", TextMap, carrier)
+	//
 	TextMap
 
 	// SplitBinary is DEPRECATED

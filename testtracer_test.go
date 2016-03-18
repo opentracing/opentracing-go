@@ -48,6 +48,7 @@ func (n testTracer) Inject(sp Span, format interface{}, carrier interface{}) err
 		// propagate.
 		carrier.(TextMapWriter).Add("opname", span.OperationName)
 		carrier.(TextMapWriter).Add("hasparent", strconv.FormatBool(span.HasParent))
+		return nil
 	}
 	return ErrUnsupportedFormat
 }

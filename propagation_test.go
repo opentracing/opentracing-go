@@ -5,13 +5,24 @@ import (
 	"testing"
 )
 
-func TestInjectSpanInHeader(t *testing.T) {
+const testHeaderPrefix = "testprefix-"
+
+func TestHTTPHeaderInject(t *testing.T) {
 	h := http.Header{}
 	h.Add("NotOT", "blah")
 	h.Add("opname", "AlsoNotOT")
 	tracer := testTracer{}
 	span := tracer.StartSpan("someSpan")
-	InjectSpanInHeader(span, h, "testprefix-")
+
+	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
+	carrier := HTTPHeaderTextMapCarrier{
+		HeaderPrefix: testHeaderPrefix,
+		Header:       h,
+	}
+	if err := span.Tracer().Inject(span, TextMap, carrier); err != nil {
+		t.Fatal(err)
+	}
+
 	if len(h) != 4 {
 		t.Errorf("Unexpected header length: %v", len(h))
 	}
@@ -25,18 +36,28 @@ func TestInjectSpanInHeader(t *testing.T) {
 	}
 }
 
-func TestJoinFromHeader(t *testing.T) {
+func TestHTTPHeaderJoin(t *testing.T) {
 	h := http.Header{}
 	h.Add("NotOT", "blah")
 	h.Add("opname", "AlsoNotOT")
 	h.Add("testprefix-opname", "someSpan")
 	h.Add("testprefix-hasparent", "true")
 	tracer := testTracer{}
-	span, err := JoinFromHeader(tracer, "joinedOpname", h, "testprefix-")
+
+	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
+	carrier := HTTPHeaderTextMapCarrier{
+		HeaderPrefix: testHeaderPrefix,
+		Header:       h,
+	}
+	span, err := tracer.Join("ignoredByImpl", TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !span.(testSpan).HasParent {
 		t.Errorf("Failed to read testprefix-hasparent correctly")
+	}
+	if span.(testSpan).OperationName != "someSpan" {
+		t.Errorf("Failed to read testprefix-opname correctly")
 	}
 }
