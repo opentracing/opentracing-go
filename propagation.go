@@ -89,7 +89,8 @@ const (
 // it, the caller can encode a Span for propagation as entries in a multimap of
 // unicode strings.
 type TextMapWriter interface {
-	// Add a key:value pair to the carrier.
+	// Add a key:value pair to the carrier. Multiple values may be added for a
+	// single (repeated) key.
 	Add(key, val string)
 }
 
@@ -97,12 +98,12 @@ type TextMapWriter interface {
 // the caller can decode a propagated Span as entries in a multimap of unicode
 // strings.
 type TextMapReader interface {
-	// GetAll returns TextMap contents via repeated calls to the `handler`
-	// function. If any call to `handler` returns a non-nil error, GetAll
-	// terminates and returns that error.
+	// ReadAllEntries returns TextMap contents via repeated calls to the
+	// `handler` function. If any call to `handler` returns a non-nil error,
+	// ReadAllEntries terminates and returns that error.
 	//
 	// NOTE: A single `key` may appear in multiple calls to `handler` for a
-	// single `GetAll` invocation.
+	// single `ReadAllEntries` invocation.
 	ReadAllEntries(handler func(key, val string) error) error
 }
 
