@@ -42,7 +42,7 @@ type Tracer interface {
 	//
 	//     tracer.Inject(
 	//         span,
-	//         opentracing.GoHTTPHeader,
+	//         opentracing.HTTPHeader,
 	//         httpReq.Header)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
@@ -78,7 +78,7 @@ type Tracer interface {
 	//
 	//     span, err := tracer.Join(
 	//         operationName,
-	//         opentracing.GoHTTPHeader,
+	//         opentracing.HTTPHeader,
 	//         httpReq.Header)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all

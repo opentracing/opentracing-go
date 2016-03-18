@@ -2,7 +2,9 @@ package opentracing
 
 import (
 	"errors"
-	"io"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -44,29 +46,22 @@ var (
 type BuiltinFormat byte
 
 const (
-	// Binary encodes the Span in a BinaryCarrier instance.
+	// Binary encodes the Span for propagation as opaque binary data.
 	//
-	// The `carrier` for injection and extraction must be a `BinaryCarrier`
-	// instance (not a pointer to a BinaryCarrier instance).
+	// For Tracer.Inject(): the carrier must be an `io.Writer`.
+	//
+	// For Tracer.Join(): the carrier must be an `io.Reader`.
 	Binary BuiltinFormat = iota
 
 	// TextMap encodes the Span in a TextMapCarrier instance.
 	//
-	// The `carrier` for injection and extraction must be a `TextMapCarrier`
-	// instance (not a pointer to a TextMapCarrier instance).
+	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
+	//
+	// For Tracer.Join(): the carrier must be a `TextMapReader`.
+	//
+	// See HTTPHeaderTextMapCarrier for an implementation of both TextMapWriter
+	// and TextMapReader that defers to an http.Header instance for storage.
 	TextMap
-
-	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
-	// tracer state and any baggage).
-	//
-	// The `carrier` for both injection and extraction must be an http.Header
-	// instance (not a pointer to an http.Header instance).
-	//
-	// If there are entries in the http.Header map prior to a call to Inject(),
-	// they are left alone (i.e., the map is not cleared). Similarly, in calls
-	// to Join() it is fine (and expected in some cases) for the http.Header
-	// map to contain other unrelated data (i.e., non-OpenTracing headers).
-	GoHTTPHeader
 
 	// SplitBinary is DEPRECATED
 	SplitBinary
@@ -74,33 +69,65 @@ const (
 	SplitText
 )
 
-// TextMapCarrier represents a Span for propagation within a key:value map of
+// TextMapWriter is the Inject() carrier for the TextMap builtin format. With
+// it, the caller can encode a Span for propagation as entries in a multimap of
 // unicode strings.
-type TextMapCarrier interface {
-	// Add a key:value pair to the carrier.`key` should be prefixed in a way
-	// that protects against collisions with things like HTTP headers (which
-	// may share space with Tracer data in the TextMapCarrier).
+type TextMapWriter interface {
+	// Add a key:value pair to the carrier.
 	Add(key, val string)
+}
 
-	// GetAll returns all contents of the text map via repeated calls to the
-	// `handler` function. If any call to `handler` returns a non-nil error,
-	// GetAll terminates and returns that error.
-	//
-	// NOTE: `handler` may be invoked for key:value combinations that were
-	// *not* added via `Set` (in this process or otherwise). As such,
-	// implementations MUST check that `key` is something they care about.
+// TextMapWriter is the Join() carrier for the TextMap builtin format. With it,
+// the caller can decode a propagated Span as entries in a multimap of unicode
+// strings.
+type TextMapReader interface {
+	// GetAll returns TextMap contents via repeated calls to the `handler`
+	// function. If any call to `handler` returns a non-nil error, GetAll
+	// terminates and returns that error.
 	//
 	// NOTE: A single `key` may appear in multiple calls to `handler` for a
 	// single `GetAll` invocation.
-	GetAll(handler func(key, val string) error) error
+	ReadAllEntries(handler func(key, val string) error) error
 }
 
-// BinaryCarrier represents a Span for propagation as an opaque byte stream.
+// HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
 //
-// The io.Writer is intended for use with Tracer.Inject() and the io.Reader is
-// intended for use with Tracer.Join().
-type BinaryCarrier interface {
-	io.ReadWriter
+// NOTE: All `key` parameters to Add() and the ReadAllEntries() handler func
+// are lowercased since http.Header doesn't respect character casing for keys.
+type HTTPHeaderTextMapCarrier struct {
+	// The prefix used to distinguish the TextMap entries within the
+	// http.Header map.
+	HeaderPrefix string
+
+	http.Header
+}
+
+var ErrNoHeaderPrefix = errors.New("HTTPHeaderTextMapCarrier.HeaderPrefix is empty")
+
+func (c HTTPHeaderTextMapCarrier) Add(key, val string) {
+	c.Header.Add(strings.ToLower(c.HeaderPrefix+key), url.QueryEscape(val))
+}
+func (c HTTPHeaderTextMapCarrier) ReadAllEntries(handler func(key, val string) error) error {
+	if len(c.HeaderPrefix) == 0 {
+		return ErrNoHeaderPrefix
+	}
+	for k, vals := range c.Header {
+		k = strings.ToLower(k)
+		if !strings.HasPrefix(k, c.HeaderPrefix) {
+			continue
+		}
+		kSuffix := k[len(c.HeaderPrefix):]
+		for _, v := range vals {
+			rawV, err := url.QueryUnescape(v)
+			if err != nil {
+				continue
+			}
+			if err = handler(kSuffix, rawV); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // SplitTextCarrier is DEPRECATED
