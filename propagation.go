@@ -87,7 +87,7 @@ type TextMapWriter interface {
 	Add(key, val string)
 }
 
-// TextMapWriter is the Join() carrier for the TextMap builtin format. With it,
+// TextMapReader is the Join() carrier for the TextMap builtin format. With it,
 // the caller can decode a propagated Span as entries in a multimap of unicode
 // strings.
 type TextMapReader interface {
@@ -109,12 +109,15 @@ type TextMapReader interface {
 // http.CanonicalMIMEHeaderKey().
 type HTTPHeaderTextMapCarrier http.Header
 
+// Add conforms to the TextMapWriter interface.
 func (c HTTPHeaderTextMapCarrier) Add(key, val string) {
 	// We need to convert to a proper http.Header or `c.Add(...)` recurses
 	// infinitely.
 	h := (*http.Header)(&c)
 	h.Add(key, url.QueryEscape(val))
 }
+
+// ReadAll conforms to the TextMapReader interface.
 func (c HTTPHeaderTextMapCarrier) ReadAll(handler func(key, val string) error) error {
 	for k, vals := range c {
 		for _, v := range vals {
