@@ -71,11 +71,6 @@ const (
 	//    span, err := tracer.Join("opName", TextMap, carrier)
 	//
 	TextMap
-
-	// SplitBinary is DEPRECATED
-	SplitBinary
-	// SplitText is DEPRECATED
-	SplitText
 )
 
 // TextMapWriter is the Inject() carrier for the TextMap builtin format. With
@@ -144,26 +139,4 @@ func (c HTTPHeaderTextMapCarrier) ForeachKey(handler func(key, val string) error
 		}
 	}
 	return nil
-}
-
-// SplitTextCarrier is DEPRECATED
-type SplitTextCarrier struct {
-	TracerState map[string]string
-	Baggage     map[string]string
-}
-
-// NewSplitTextCarrier is DEPRECATED
-func NewSplitTextCarrier() *SplitTextCarrier {
-	return &SplitTextCarrier{}
-}
-
-// SplitBinaryCarrier is DEPRECATED
-type SplitBinaryCarrier struct {
-	TracerState []byte
-	Baggage     []byte
-}
-
-// NewSplitBinaryCarrier is DEPRECATED
-func NewSplitBinaryCarrier() *SplitBinaryCarrier {
-	return &SplitBinaryCarrier{}
 }
