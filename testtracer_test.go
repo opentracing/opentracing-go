@@ -1,12 +1,27 @@
 package opentracing
 
+import (
+	"strconv"
+	"strings"
+)
+
+const testHTTPHeaderPrefix = "testprefix-"
+
 // testTracer is a most-noop Tracer implementation that makes it possible for
 // unittests to verify whether certain methods were / were not called.
 type testTracer struct{}
 
+var fakeIDSource = 1
+
+func nextFakeID() int {
+	fakeIDSource++
+	return fakeIDSource
+}
+
 type testSpan struct {
 	OperationName string
 	HasParent     bool
+	FakeID        int
 }
 
 // testSpan:
@@ -26,6 +41,7 @@ func (n testTracer) StartSpan(operationName string) Span {
 	return testSpan{
 		OperationName: operationName,
 		HasParent:     false,
+		FakeID:        nextFakeID(),
 	}
 }
 
@@ -34,15 +50,40 @@ func (n testTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 	return testSpan{
 		OperationName: opts.OperationName,
 		HasParent:     opts.Parent != nil,
+		FakeID:        nextFakeID(),
 	}
 }
 
 // Inject belongs to the Tracer interface.
 func (n testTracer) Inject(sp Span, format interface{}, carrier interface{}) error {
-	return nil
+	span := sp.(testSpan)
+	switch format {
+	case TextMap:
+		carrier.(TextMapWriter).Set(testHTTPHeaderPrefix+"fakeid", strconv.Itoa(span.FakeID))
+		return nil
+	}
+	return ErrUnsupportedFormat
 }
 
 // Join belongs to the Tracer interface.
 func (n testTracer) Join(operationName string, format interface{}, carrier interface{}) (Span, error) {
+	switch format {
+	case TextMap:
+		// Just for testing purposes... generally not a worthwhile thing to
+		// propagate.
+		rval := testSpan{}
+		err := carrier.(TextMapReader).ForeachKey(func(key, val string) error {
+			switch strings.ToLower(key) {
+			case testHTTPHeaderPrefix + "fakeid":
+				i, err := strconv.Atoi(val)
+				if err != nil {
+					return err
+				}
+				rval.FakeID = i
+			}
+			return nil
+		})
+		return rval, err
+	}
 	return nil, ErrTraceNotFound
 }

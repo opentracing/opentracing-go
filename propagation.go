@@ -1,6 +1,10 @@
 package opentracing
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+	"net/url"
+)
 
 ///////////////////////////////////////////////////////////////////////////////
 // CORE PROPAGATION INTERFACES:
@@ -41,71 +45,125 @@ var (
 type BuiltinFormat byte
 
 const (
-	// SplitBinary encodes the Span in a SplitBinaryCarrier instance.
+	// Binary encodes the Span for propagation as opaque binary data.
 	//
-	// The `carrier` for injection and extraction must be a
-	// `*SplitBinaryCarrier` instance.
-	SplitBinary BuiltinFormat = iota
+	// For Tracer.Inject(): the carrier must be an `io.Writer`.
+	//
+	// For Tracer.Join(): the carrier must be an `io.Reader`.
+	Binary BuiltinFormat = iota
 
-	// SplitText encodes the Span in a SplitTextCarrier instance.
+	// TextMap encodes the Span as key:value pairs.
 	//
-	// The `carrier` for injection and extraction must be a `*SplitTextCarrier`
-	// instance.
+	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
+	//
+	// For Tracer.Join(): the carrier must be a `TextMapReader`.
+	//
+	// See HTTPHeaderTextMapCarrier for an implementation of both TextMapWriter
+	// and TextMapReader that defers to an http.Header instance for storage.
+	// For example, Inject():
+	//
+	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
+	//    err := span.Tracer().Inject(span, TextMap, carrier)
+	//
+	// Or Join():
+	//
+	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
+	//    span, err := tracer.Join("opName", TextMap, carrier)
+	//
+	TextMap
+
+	// SplitBinary is DEPRECATED
+	SplitBinary
+	// SplitText is DEPRECATED
 	SplitText
-
-	// GoHTTPHeader encodes the Span into a Go http.Header instance (both the
-	// tracer state and any baggage).
-	//
-	// The `carrier` for both injection and extraction must be an http.Header
-	// instance.
-	GoHTTPHeader
 )
 
-// SplitTextCarrier breaks a propagated Span into two pieces.
-//
-// The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of
-// Baggage propagation entirely if they deem it a stability risk.
-//
-// It is legal to provide one or both maps as `nil`; they will be created
-// as needed. If non-nil maps are provided, they will be used without
-// clearing them out on injection.
-type SplitTextCarrier struct {
-	// TracerState is Tracer-specific context that must cross process
-	// boundaries. For example, in Dapper this would include a trace_id, a
-	// span_id, and a bitmask representing the sampling status for the given
-	// trace.
-	TracerState map[string]string
-
-	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
-	Baggage map[string]string
+// TextMapWriter is the Inject() carrier for the TextMap builtin format. With
+// it, the caller can encode a Span for propagation as entries in a multimap of
+// unicode strings.
+type TextMapWriter interface {
+	// Set a key:value pair to the carrier. Multiple calls to Set() for the
+	// same key leads to undefined behavior.
+	//
+	// NOTE: Since HTTP headers are a particularly important use case for the
+	// TextMap carrier, `key` parameters identify their respective values in a
+	// case-insensitive manner.
+	//
+	// NOTE: The backing store for the TextMapWriter may contain unrelated data
+	// (e.g., arbitrary HTTP headers). As such, the TextMap writer and reader
+	// should agree on a prefix or other convention to distinguish their
+	// key:value pairs.
+	Set(key, val string)
 }
 
-// NewSplitTextCarrier creates a new SplitTextCarrier.
+// TextMapReader is the Join() carrier for the TextMap builtin format. With it,
+// the caller can decode a propagated Span as entries in a multimap of unicode
+// strings.
+type TextMapReader interface {
+	// ForeachKey returns TextMap contents via repeated calls to the `handler`
+	// function. If any call to `handler` returns a non-nil error, ForeachKey
+	// terminates and returns that error.
+	//
+	// NOTE: A single `key` may appear in multiple calls to `handler` for a
+	// single `ForeachKey` invocation.
+	//
+	// NOTE: The ForeachKey handler *may* be invoked for keys not set by any
+	// TextMap writer (e.g., totally unrelated HTTP headers). As such, the
+	// TextMap writer and reader should agree on a prefix or other convention
+	// to distinguish their key:value pairs.
+	//
+	// The "foreach" callback pattern reduces unnecessary copying in some cases
+	// and also allows implementations to hold locks while the map is read.
+	ForeachKey(handler func(key, val string) error) error
+}
+
+// HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
+//
+type HTTPHeaderTextMapCarrier http.Header
+
+// Set conforms to the TextMapWriter interface.
+func (c HTTPHeaderTextMapCarrier) Set(key, val string) {
+	h := http.Header(c)
+	h.Add(key, url.QueryEscape(val))
+}
+
+// ForeachKey conforms to the TextMapReader interface.
+func (c HTTPHeaderTextMapCarrier) ForeachKey(handler func(key, val string) error) error {
+	for k, vals := range c {
+		for _, v := range vals {
+			rawV, err := url.QueryUnescape(v)
+			if err != nil {
+				// We don't know if there was an error escaping an
+				// OpenTracing-related header or something else; as such, we
+				// continue rather than return the error.
+				continue
+			}
+			if err = handler(k, rawV); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// SplitTextCarrier is DEPRECATED
+type SplitTextCarrier struct {
+	TracerState map[string]string
+	Baggage     map[string]string
+}
+
+// NewSplitTextCarrier is DEPRECATED
 func NewSplitTextCarrier() *SplitTextCarrier {
 	return &SplitTextCarrier{}
 }
 
-// SplitBinaryCarrier breaks a propagated Span into two pieces.
-//
-// The Span is separated in this way for a variety of reasons; the most
-// important is to give OpenTracing users a portable way to opt out of
-// Baggage propagation entirely if they deem it a stability risk.
-//
-// Both byte slices may be nil; on injection, what is provided will be cleared
-// and the resulting capacity used.
+// SplitBinaryCarrier is DEPRECATED
 type SplitBinaryCarrier struct {
-	// TracerState is Tracer-specific context that must cross process
-	// boundaries. For example, in Dapper this would include a trace_id, a
-	// span_id, and a bitmask representing the sampling status for the given
-	// trace.
 	TracerState []byte
-
-	// Any Baggage for the encoded Span (per Span.SetBaggageItem).
-	Baggage []byte
+	Baggage     []byte
 }
 
-// NewSplitBinaryCarrier creates a new SplitTextCarrier.
+// NewSplitBinaryCarrier is DEPRECATED
 func NewSplitBinaryCarrier() *SplitBinaryCarrier {
 	return &SplitBinaryCarrier{}
 }
