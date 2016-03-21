@@ -52,7 +52,7 @@ const (
 	// For Tracer.Join(): the carrier must be an `io.Reader`.
 	Binary BuiltinFormat = iota
 
-	// TextMap encodes the Span in a TextMapCarrier instance.
+	// TextMap encodes the Span as key:value pairs.
 	//
 	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
 	//
@@ -82,43 +82,53 @@ const (
 // it, the caller can encode a Span for propagation as entries in a multimap of
 // unicode strings.
 type TextMapWriter interface {
-	// Add a key:value pair to the carrier. Multiple values may be added for a
-	// single (repeated) key.
-	Add(key, val string)
+	// Set a key:value pair to the carrier. Multiple calls to Set() for the
+	// same key leads to undefined behavior.
+	//
+	// NOTE: Since HTTP headers are a particularly important use case for the
+	// TextMap carrier, `key` parameters identify their respective values in a
+	// case-insensitive manner.
+	//
+	// NOTE: The backing store for the TextMapWriter may contain unrelated data
+	// (e.g., arbitrary HTTP headers). As such, the TextMap writer and reader
+	// should agree on a prefix or other convention to distinguish their
+	// key:value pairs.
+	Set(key, val string)
 }
 
 // TextMapReader is the Join() carrier for the TextMap builtin format. With it,
 // the caller can decode a propagated Span as entries in a multimap of unicode
 // strings.
 type TextMapReader interface {
-	// ReadAll returns TextMap contents via repeated calls to the `handler`
-	// function. If any call to `handler` returns a non-nil error, ReadAll
+	// ForeachKey returns TextMap contents via repeated calls to the `handler`
+	// function. If any call to `handler` returns a non-nil error, ForeachKey
 	// terminates and returns that error.
 	//
 	// NOTE: A single `key` may appear in multiple calls to `handler` for a
-	// single `ReadAllEntries` invocation.
-	ReadAll(handler func(key, val string) error) error
+	// single `ForeachKey` invocation.
+	//
+	// NOTE: The ForeachKey handler *may* be invoked for keys not set by any
+	// TextMap writer (e.g., totally unrelated HTTP headers). As such, the
+	// TextMap writer and reader should agree on a prefix or other convention
+	// to distinguish their key:value pairs.
+	//
+	// The "foreach" callback pattern reduces unnecessary copying in some cases
+	// and also allows implementations to hold locks while the map is read.
+	ForeachKey(handler func(key, val string) error) error
 }
 
 // HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
 //
-// NOTE: All `key` parameters to Add() and the ReadAllEntries() handler func
-// identify values in a case-insensitive manner since http.Header doesn't
-// respect character casing for keys. Also note that the underlying http.Header
-// implementation will change the casing on keys per
-// http.CanonicalMIMEHeaderKey().
 type HTTPHeaderTextMapCarrier http.Header
 
-// Add conforms to the TextMapWriter interface.
-func (c HTTPHeaderTextMapCarrier) Add(key, val string) {
-	// We need to convert to a proper http.Header or `c.Add(...)` recurses
-	// infinitely.
-	h := (*http.Header)(&c)
+// Set conforms to the TextMapWriter interface.
+func (c HTTPHeaderTextMapCarrier) Set(key, val string) {
+	h := http.Header(c)
 	h.Add(key, url.QueryEscape(val))
 }
 
-// ReadAll conforms to the TextMapReader interface.
-func (c HTTPHeaderTextMapCarrier) ReadAll(handler func(key, val string) error) error {
+// ForeachKey conforms to the TextMapReader interface.
+func (c HTTPHeaderTextMapCarrier) ForeachKey(handler func(key, val string) error) error {
 	for k, vals := range c {
 		for _, v := range vals {
 			rawV, err := url.QueryUnescape(v)

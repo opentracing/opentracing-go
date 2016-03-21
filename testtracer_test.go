@@ -11,9 +11,17 @@ const testHTTPHeaderPrefix = "testprefix-"
 // unittests to verify whether certain methods were / were not called.
 type testTracer struct{}
 
+var fakeIDSource = 1
+
+func nextFakeID() int {
+	fakeIDSource++
+	return fakeIDSource
+}
+
 type testSpan struct {
 	OperationName string
 	HasParent     bool
+	FakeID        int
 }
 
 // testSpan:
@@ -33,6 +41,7 @@ func (n testTracer) StartSpan(operationName string) Span {
 	return testSpan{
 		OperationName: operationName,
 		HasParent:     false,
+		FakeID:        nextFakeID(),
 	}
 }
 
@@ -41,6 +50,7 @@ func (n testTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 	return testSpan{
 		OperationName: opts.OperationName,
 		HasParent:     opts.Parent != nil,
+		FakeID:        nextFakeID(),
 	}
 }
 
@@ -49,10 +59,7 @@ func (n testTracer) Inject(sp Span, format interface{}, carrier interface{}) err
 	span := sp.(testSpan)
 	switch format {
 	case TextMap:
-		// Just for testing purposes... generally not a worthwhile thing to
-		// propagate.
-		carrier.(TextMapWriter).Add(testHTTPHeaderPrefix+"opname", span.OperationName)
-		carrier.(TextMapWriter).Add(testHTTPHeaderPrefix+"hasparent", strconv.FormatBool(span.HasParent))
+		carrier.(TextMapWriter).Set(testHTTPHeaderPrefix+"fakeid", strconv.Itoa(span.FakeID))
 		return nil
 	}
 	return ErrUnsupportedFormat
@@ -65,16 +72,14 @@ func (n testTracer) Join(operationName string, format interface{}, carrier inter
 		// Just for testing purposes... generally not a worthwhile thing to
 		// propagate.
 		rval := testSpan{}
-		err := carrier.(TextMapReader).ReadAll(func(key, val string) error {
+		err := carrier.(TextMapReader).ForeachKey(func(key, val string) error {
 			switch strings.ToLower(key) {
-			case testHTTPHeaderPrefix + "hasparent":
-				b, err := strconv.ParseBool(val)
+			case testHTTPHeaderPrefix + "fakeid":
+				i, err := strconv.Atoi(val)
 				if err != nil {
 					return err
 				}
-				rval.HasParent = b
-			case testHTTPHeaderPrefix + "opname":
-				rval.OperationName = val
+				rval.FakeID = i
 			}
 			return nil
 		})
