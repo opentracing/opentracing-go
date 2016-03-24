@@ -37,40 +37,42 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
 If you prefer direct control to singletons, manage ownership of the
 `opentracing.Tracer` implementation explicitly.
 
+#### Creating a Span given an existing Golang `context.Context`
+
+If you use `context.Context` in your application, OpenTracing's Go library will
+happily use it for `Span` propagation. To start a new (child) `Span`, you can use
+`StartSpanFromContext`.
+
+```go
+    func xyz(ctx context.Context, ...) {
+        ...
+        ctx, span := opentracing.StartSpanFromContext(ctx, "operation_name")
+        defer span.Finish()
+        span.LogEvent("xyz_called")
+        ...
+    }
+```
+
 #### Starting an empty trace by creating a "root span"
+
+It's always possible to create a "root" (parentless) `Span`.
 
 ```go
     func xyz() {
         ...
-        sp := opentracing.StartSpan("span_name")
+        sp := opentracing.StartSpan("operation_name")
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
     }
 ```
 
-#### Creating a Span given an existing Span
+#### Creating a (child) Span given an existing (parent) Span
 
 ```go
     func xyz(parentSpan opentracing.Span, ...) {
         ...
-        sp := opentracing.StartChildSpan(parentSpan, "span_name")
-        defer sp.Finish()
-        sp.LogEvent("xyz_called")
-        ...
-    }
-```
-
-#### Creating a Span given an existing Golang `context.Context`
-
-Additionally, this example demonstrates how to get a `context.Context`
-associated with any `opentracing.Span` instance.
-
-```go
-    func xyz(goCtx context.Context, ...) {
-        ...
-        goCtx, sp := opentracing.ContextWithSpan(
-            goCtx, opentracing.SpanFromContext(goCtx))
+        sp := opentracing.StartChildSpan(parentSpan, "operation_name")
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -85,11 +87,12 @@ associated with any `opentracing.Span` instance.
             httpClient := &http.Client{}
             httpReq, _ := http.NewRequest("GET", "http://myservice/", nil)
 
-            // Transmit the span's TraceContext as an HTTP header on our
+            // Transmit the span's TraceContext as HTTP headers on our
             // outbound request.
-            opentracing.InjectSpanInHeader(
+            tracer.Inject(
                 span,
-                httpReq.Header)
+                opentracing.TextMap,
+                opentracing.HTTPHeaderTextMapCarrier(httpReq.Header))
 
             resp, err := httpClient.Do(httpReq)
             ...
@@ -102,10 +105,13 @@ associated with any `opentracing.Span` instance.
 
 ```go
     http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-        // Join the trace in the HTTP header using the opentracing helper.
-        serverSpan, err := opentracing.JoinFromHeader(
-                "serverSpan", req.Header, opentracing.GlobalTracer())
+        serverSpan, err := opentracing.GlobalTracer().Join(
+            "serverSpan",
+            opentracing.TextMap,
+            opentracing.HTTPHeaderTextMapCarrier(req.Header))
+
         if err != nil {
+            // Create a root span if necessary
             serverSpan = opentracing.StartTrace("serverSpan")
         }
         var goCtx context.Context = ...
