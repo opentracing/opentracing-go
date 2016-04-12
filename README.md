@@ -46,7 +46,7 @@ happily use it for `Span` propagation. To start a new (child) `Span`, you can us
 ```go
     func xyz(ctx context.Context, ...) {
         ...
-        ctx, span := opentracing.StartSpanFromContext(ctx, "operation_name")
+        span, ctx := opentracing.StartSpanFromContext(ctx, "operation_name")
         defer span.Finish()
         span.LogEvent("xyz_called")
         ...
