@@ -14,8 +14,33 @@ import opentracing "github.com/opentracing/opentracing-go"
 //    TagName.Set(span, value)
 //
 var (
-	// PeerXXX tags can be emitted by either client-side of server-side to describe
-	// the other side/service in a peer-to-peer communications, like an RPC call.
+	//////////////////////////////////////////////////////////////////////
+	// SpanKind (client/server)
+	//////////////////////////////////////////////////////////////////////
+
+	// SpanKind hints at relationship between spans, e.g. client/server
+	SpanKind = spanKindTag("span.kind")
+
+	// SpanKindRPCClient marks a span representing the client-side of an RPC
+	// or other remote call
+	SpanKindRPCClient = SpanKindEnum("c")
+
+	// SpanKindRPCServer marks a span representing the server-side of an RPC
+	// or other remote call
+	SpanKindRPCServer = SpanKindEnum("s")
+
+	//////////////////////////////////////////////////////////////////////
+	// Sampling hint
+	//////////////////////////////////////////////////////////////////////
+
+	// SamplingPriority determines the priority of sampling this Span.
+	SamplingPriority = uint16Tag("sampling.priority")
+
+	//////////////////////////////////////////////////////////////////////
+	// Peer tags. These tags can be emitted by either client-side of
+	// server-side to describe the other side/service in a peer-to-peer
+	// communications, like an RPC call.
+	//////////////////////////////////////////////////////////////////////
 
 	// PeerService records the service name of the peer
 	PeerService = stringTag("peer.service")
@@ -32,19 +57,20 @@ var (
 	// PeerPort records port number of the peer
 	PeerPort = uint16Tag("peer.port")
 
-	// SamplingPriority determines the priority of sampling this Span.
-	SamplingPriority = uint16Tag("sampling.priority")
+	//////////////////////////////////////////////////////////////////////
+	// HTTP Tags
+	//////////////////////////////////////////////////////////////////////
 
-	// SpanKind hints at relationship between spans, e.g. client/server
-	SpanKind = spanKindTag("span.kind")
+	// HTTPUrl should be the URL of the request being handled in this segment
+	// of the trace, in standard URI format. The protocol is optional.
+	HTTPUrl = stringTag("http.url")
 
-	// SpanKindRPCClient marks a span representing the client-side of an RPC
-	// or other remote call
-	SpanKindRPCClient = SpanKindEnum("c")
+	// HTTPMethod is the HTTP method of the request, and is case-insensitive.
+	HTTPMethod = stringTag("http.method")
 
-	// SpanKindRPCServer marks a span representing the server-side of an RPC
-	// or other remote call
-	SpanKindRPCServer = SpanKindEnum("s")
+	// HTTPStatusCode is the numeric HTTP status code (200, 404, etc) of the
+	// HTTP response.
+	HTTPStatusCode = uint16Tag("htttp.status_code")
 )
 
 // ---
