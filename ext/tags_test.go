@@ -39,6 +39,20 @@ func TestPeerTags(t *testing.T) {
 	assertEqual(t, uint16(8080), rawSpan.Tags[string(ext.PeerPort)])
 }
 
+func TestHTTPTags(t *testing.T) {
+	tracer := noopTracer{}
+	span := tracer.StartSpan("my-trace")
+	ext.HTTPUrl.Set(span, "test.biz/uri?protocol=false")
+	ext.HTTPMethod.Set(span, "GET")
+	ext.HTTPStatusCode.Set(span, 301)
+	span.Finish()
+
+	rawSpan := span.(*noopSpan)
+	assertEqual(t, "test.biz/uri?protocol=false", rawSpan.Tags[string(ext.HTTPUrl)])
+	assertEqual(t, "GET", rawSpan.Tags[string(ext.HTTPMethod)])
+	assertEqual(t, uint16(301), rawSpan.Tags[string(ext.HTTPStatusCode)])
+}
+
 // noopTracer and noopSpan with span tags implemented
 type noopTracer struct{}
 
