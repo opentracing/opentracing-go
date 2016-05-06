@@ -23,11 +23,11 @@ var (
 
 	// SpanKindRPCClient marks a span representing the client-side of an RPC
 	// or other remote call
-	SpanKindRPCClient = SpanKindEnum("c")
+	SpanKindRPCClient = SpanKindEnum("client")
 
 	// SpanKindRPCServer marks a span representing the server-side of an RPC
 	// or other remote call
-	SpanKindRPCServer = SpanKindEnum("s")
+	SpanKindRPCServer = SpanKindEnum("server")
 
 	//////////////////////////////////////////////////////////////////////
 	// Sampling hint
