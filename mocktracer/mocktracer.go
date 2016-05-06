@@ -58,14 +58,21 @@ func (t *MockTracer) StartSpanWithOptions(opts opentracing.StartSpanOptions) ope
 	return newMockSpan(t, opts)
 }
 
-const mockTextMapPrefix = "mockpfx-"
+const mockTextMapIdsPrefix = "mockpfx-ids-"
+const mockTextMapBaggagePrefix = "mockpfx-baggage-"
 
 // Inject belongs to the Tracer interface.
 func (t *MockTracer) Inject(sp opentracing.Span, format interface{}, carrier interface{}) error {
 	span := sp.(*MockSpan)
 	switch format {
 	case opentracing.TextMap:
-		carrier.(opentracing.TextMapWriter).Set(mockTextMapPrefix+"spanid", strconv.Itoa(span.SpanID))
+		writer := carrier.(opentracing.TextMapWriter)
+		// Ids:
+		writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(span.SpanID))
+		// Baggage:
+		for baggageKey, baggageVal := range span.Baggage {
+			writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
+		}
 		return nil
 	}
 	return opentracing.ErrUnsupportedFormat
@@ -79,13 +86,18 @@ func (t *MockTracer) Join(operationName string, format interface{}, carrier inte
 			OperationName: operationName,
 		})
 		err := carrier.(opentracing.TextMapReader).ForeachKey(func(key, val string) error {
-			switch strings.ToLower(key) {
-			case mockTextMapPrefix + "spanid":
+			lowerKey := strings.ToLower(key)
+			switch {
+			case lowerKey == mockTextMapIdsPrefix+"spanid":
+				// Ids:
 				i, err := strconv.Atoi(val)
 				if err != nil {
 					return err
 				}
 				rval.ParentID = i
+			case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
+				// Baggage:
+				rval.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
 			}
 			return nil
 		})
