@@ -70,7 +70,7 @@ var (
 
 	// HTTPStatusCode is the numeric HTTP status code (200, 404, etc) of the
 	// HTTP response.
-	HTTPStatusCode = uint16Tag("htttp.status_code")
+	HTTPStatusCode = uint16Tag("http.status_code")
 )
 
 // ---
