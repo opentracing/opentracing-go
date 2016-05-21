@@ -32,11 +32,11 @@ func TestPeerTags(t *testing.T) {
 	span.Finish()
 
 	rawSpan := span.(*noopSpan)
-	assertEqual(t, "my-service", rawSpan.Tags[string(ext.PeerService)])
-	assertEqual(t, "my-hostname", rawSpan.Tags[string(ext.PeerHostname)])
-	assertEqual(t, uint32(127<<24|1), rawSpan.Tags[string(ext.PeerHostIPv4)])
-	assertEqual(t, "::", rawSpan.Tags[string(ext.PeerHostIPv6)])
-	assertEqual(t, uint16(8080), rawSpan.Tags[string(ext.PeerPort)])
+	assertEqual(t, "my-service", rawSpan.Tags["peer.service"])
+	assertEqual(t, "my-hostname", rawSpan.Tags["peer.hostname"])
+	assertEqual(t, uint32(127<<24|1), rawSpan.Tags["peer.ipv4"])
+	assertEqual(t, "::", rawSpan.Tags["peer.ipv6"])
+	assertEqual(t, uint16(8080), rawSpan.Tags["peer.port"])
 }
 
 func TestHTTPTags(t *testing.T) {
@@ -48,9 +48,21 @@ func TestHTTPTags(t *testing.T) {
 	span.Finish()
 
 	rawSpan := span.(*noopSpan)
-	assertEqual(t, "test.biz/uri?protocol=false", rawSpan.Tags[string(ext.HTTPUrl)])
-	assertEqual(t, "GET", rawSpan.Tags[string(ext.HTTPMethod)])
-	assertEqual(t, uint16(301), rawSpan.Tags[string(ext.HTTPStatusCode)])
+	assertEqual(t, "test.biz/uri?protocol=false", rawSpan.Tags["http.url"])
+	assertEqual(t, "GET", rawSpan.Tags["http.method"])
+	assertEqual(t, uint16(301), rawSpan.Tags["http.status_code"])
+}
+
+func TestMiscTags(t *testing.T) {
+	tracer := noopTracer{}
+	span := tracer.StartSpan("my-trace")
+	ext.Component.Set(span, "my-awesome-library")
+	ext.SamplingPriority.Set(span, 1)
+	span.Finish()
+
+	rawSpan := span.(*noopSpan)
+	assertEqual(t, "my-awesome-library", rawSpan.Tags["component"])
+	assertEqual(t, uint16(1), rawSpan.Tags["sampling.priority"])
 }
 
 // noopTracer and noopSpan with span tags implemented
