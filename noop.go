@@ -5,23 +5,28 @@ package opentracing
 type NoopTracer struct{}
 
 type noopSpan struct{}
+type noopSpanContext struct{}
 
 var (
-	defaultNoopSpan   = noopSpan{}
-	defaultNoopTracer = NoopTracer{}
+	defaultNoopSpanContext = noopSpanContext{}
+	defaultNoopSpan        = noopSpan{}
+	defaultNoopTracer      = NoopTracer{}
 )
 
 const (
 	emptyString = ""
 )
 
+// noopSpanContext:
+func (n noopSpanContext) SetBaggageItem(key, val string) SpanContext        { return n }
+func (n noopSpanContext) BaggageItem(key string) string                     { return emptyString }
+func (n noopSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+
 // noopSpan:
+func (n noopSpan) Context() SpanContext                                  { return defaultNoopSpanContext }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
-func (n noopSpan) SetBaggageItem(key, val string) Span                   { return n }
-func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
-func (n noopSpan) ForeachBaggageItem(handler func(k, v string) bool)     {}
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
@@ -29,21 +34,16 @@ func (n noopSpan) SetOperationName(operationName string) Span            { retur
 func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 
 // StartSpan belongs to the Tracer interface.
-func (n NoopTracer) StartSpan(operationName string) Span {
-	return defaultNoopSpan
-}
-
-// StartSpanWithOptions belongs to the Tracer interface.
-func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
+func (n NoopTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
 	return defaultNoopSpan
 }
 
 // Inject belongs to the Tracer interface.
-func (n NoopTracer) Inject(sp Span, format interface{}, carrier interface{}) error {
+func (n NoopTracer) Inject(sp SpanContext, format interface{}, carrier interface{}) error {
 	return nil
 }
 
-// Join belongs to the Tracer interface.
-func (n NoopTracer) Join(operationName string, format interface{}, carrier interface{}) (Span, error) {
-	return nil, ErrTraceNotFound
+// Extract belongs to the Tracer interface.
+func (n NoopTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
+	return nil, ErrSpanContextNotFound
 }

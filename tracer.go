@@ -2,47 +2,57 @@ package opentracing
 
 import "time"
 
-// Tracer is a simple, thin interface for Span creation.
-//
-// A straightforward implementation is available via the
-// `opentracing/basictracer-go` package's `standardtracer.New()'.
+// Tracer is a simple, thin interface for Span creation and SpanContext
+// propagation.
 type Tracer interface {
-	// Create, start, and return a new Span with the given `operationName`, all
-	// without specifying a parent Span that can be used to incorporate the
-	// newly-returned Span into an existing trace. (I.e., the returned Span is
-	// the "root" of its trace).
+
+	// Create, start, and return a new Span with the given `operationName` and
+	// incorporate the given StartSpanOptions. (See StartSpanOption for all of
+	// the options on that front)
+	//
+	// A Span with no SpanReference options (e.g., opentracing.ChildOf() or
+	// opentracing.FollowsFrom()) becomes the root of its own trace.
 	//
 	// Examples:
 	//
 	//     var tracer opentracing.Tracer = ...
 	//
+	//     // The root-span case:
 	//     sp := tracer.StartSpan("GetFeed")
 	//
-	//     sp := tracer.StartSpanWithOptions(opentracing.SpanOptions{
-	//         OperationName: "LoggedHTTPRequest",
-	//         Tags: opentracing.Tags{"user_agent", loggedReq.UserAgent},
-	//         StartTime: loggedReq.Timestamp,
-	//     })
+	//     // The vanilla child span case:
+	//     sp := tracer.StartSpan(
+	//         "GetFeed",
+	//         opentracing.ChildOf(parentSpan.Context()))
 	//
-	StartSpan(operationName string) Span
-	StartSpanWithOptions(opts StartSpanOptions) Span
+	//     // All the bells and whistles:
+	//     sp := tracer.StartSpan(
+	//         "GetFeed",
+	//         opentracing.ChildOf(parentSpan.Context()),
+	//         opentracing.Tags{
+	//             "user_agent": loggedReq.UserAgent,
+	//         },
+	//         opentracing.StartTime(loggedReq.Timestamp),
+	//     )
+	//
+	StartSpan(operationName string, opts ...StartSpanOption) Span
 
-	// Inject() takes the `sp` Span instance and represents it for propagation
-	// within `carrier`. The actual type of `carrier` depends on the value of
-	// `format`.
+	// Inject() takes the `sm` SpanContext instance and injects it for
+	// propagation within `carrier`. The actual type of `carrier` depends on
+	// the value of `format`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
 	//
 	// Other packages may declare their own `format` values, much like the keys
-	// used by the `net.Context` package (see
+	// used by `context.Context` (see
 	// https://godoc.org/golang.org/x/net/context#WithValue).
 	//
 	// Example usage (sans error handling):
 	//
 	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
-	//     tracer.Inject(
-	//         span,
+	//     err := tracer.Inject(
+	//         span.Context(),
 	//         opentracing.TextMap,
 	//         carrier)
 	//
@@ -50,68 +60,65 @@ type Tracer interface {
 	// BuiltinFormats.
 	//
 	// Implementations may return opentracing.ErrUnsupportedFormat if `format`
-	// is or not supported by (or not known by) the implementation.
+	// is not supported by (or not known by) the implementation.
 	//
 	// Implementations may return opentracing.ErrInvalidCarrier or any other
 	// implementation-specific error if the format is supported but injection
 	// fails anyway.
 	//
-	// See Tracer.Join().
-	Inject(sp Span, format interface{}, carrier interface{}) error
+	// See Tracer.Extract().
+	Inject(sm SpanContext, format interface{}, carrier interface{}) error
 
-	// Join() returns a Span instance with operation name `operationName` given
-	// `format` and `carrier`.
-	//
-	// Join() is responsible for extracting and joining to the trace of a Span
-	// instance embedded in a format-specific "carrier" object. Typically the
-	// joining will take place on the server side of an RPC boundary, but
-	// message queues and other IPC mechanisms are also reasonable places to
-	// use Join().
+	// Extract() returns a SpanContext instance given `format` and `carrier`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
 	//
 	// Other packages may declare their own `format` values, much like the keys
-	// used by the `net.Context` package (see
+	// used by `context.Context` (see
 	// https://godoc.org/golang.org/x/net/context#WithValue).
 	//
-	// Example usage (sans error handling):
+	// Example usage (with StartSpan):
+	//
 	//
 	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
-	//     span, err := tracer.Join(
-	//         operationName,
-	//         opentracing.TextMap,
-	//         carrier)
+	//     clientContext, err := tracer.Extract(opentracing.TextMap, carrier)
+	//
+	//     // ... assuming the ultimate goal here is to resume the trace with a
+	//     // server-side Span:
+	//     var serverSpan opentracing.Span
+	//     if err == nil {
+	//         span = tracer.StartSpan(
+	//             rpcMethodName, ext.RPCServerOption(clientContext))
+	//     } else {
+	//         span = tracer.StartSpan(rpcMethodName)
+	//     }
+	//
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
 	// BuiltinFormats.
 	//
 	// Return values:
-	//  - A successful join will return a started Span instance and a nil error
-	//  - If there was simply no trace to join with in `carrier`, Join()
+	//  - A successful Extract returns a SpanContext instance and a nil error
+	//  - If there was simply no SpanContext to extract in `carrier`, Extract()
 	//    returns (nil, opentracing.ErrTraceNotFound)
-	//  - If `format` is unsupported or unrecognized, Join() returns (nil,
+	//  - If `format` is unsupported or unrecognized, Extract() returns (nil,
 	//    opentracing.ErrUnsupportedFormat)
 	//  - If there are more fundamental problems with the `carrier` object,
-	//    Join() may return opentracing.ErrInvalidCarrier,
+	//    Extract() may return opentracing.ErrInvalidCarrier,
 	//    opentracing.ErrTraceCorrupted, or implementation-specific errors.
 	//
 	// See Tracer.Inject().
-	Join(operationName string, format interface{}, carrier interface{}) (Span, error)
+	Extract(format interface{}, carrier interface{}) (SpanContext, error)
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
 // start timestamp, specify a parent Span, and make sure that Tags are
 // available at Span initialization time.
 type StartSpanOptions struct {
-	// OperationName may be empty (and set later via Span.SetOperationName)
-	OperationName string
-
-	// Parent may specify Span instance that caused the new (child) Span to be
-	// created.
-	//
-	// If nil, start a "root" span (i.e., start a new trace).
-	Parent Span
+	// Zero or more causal references to other Spans (via their SpanContext).
+	// If empty, start a "root" Span (i.e., start a new trace).
+	References []SpanReference
 
 	// StartTime overrides the Span's start time, or implicitly becomes
 	// time.Now() if StartTime.IsZero().
@@ -121,6 +128,121 @@ type StartSpanOptions struct {
 	// identical to those for Span.SetTag(). May be nil.
 	//
 	// If specified, the caller hands off ownership of Tags at
-	// StartSpanWithOptions() invocation time.
+	// StartSpan() invocation time.
 	Tags map[string]interface{}
+}
+
+// StartSpanOption instances (zero or more) may be passed to Tracer.StartSpan.
+type StartSpanOption interface {
+	Apply(*StartSpanOptions)
+}
+
+// SpanReferenceType is an enum type describing different categories of
+// relationships between two Spans. If Span-2 refers to Span-1, the
+// SpanReferenceType describes Span-1 from Span-2's perspective. For example,
+// ChildOfRef means that Span-1 created Span-2.
+//
+// NOTE: Span-1 and Span-2 do *not* necessarily depend on each other for
+// completion; e.g., Span-2 may be part of a background job enqueued by Span-1,
+// or Span-2 may be sitting in a distributed queue behind Span-1.
+type SpanReferenceType int
+
+const (
+	// ChildOfRef refers to a parent Span that caused *and* somehow depends
+	// upon the new child Span. Often (but not always), the parent Span cannot
+	// finish unitl the child Span does.
+	//
+	// An timing diagram for a ChildOfRef that's blocked on the new Span:
+	//
+	//     [-Parent Span---------]
+	//          [-Child Span----]
+	//
+	// See http://opentracing.io/spec/
+	//
+	// See opentracing.ChildOf()
+	ChildOfRef SpanReferenceType = iota
+
+	// FollowsFromRef refers to a parent Span that does not depend in any way
+	// on the result of the new child Span. For instance, one might use
+	// FollowsFromRefs to describe pipeline stages separated by queues,
+	// or a fire-and-forget cache insert at the tail end of a web request.
+	//
+	// A FollowsFromRef Span is part of the same logical trace as the new Span:
+	// i.e., the new Span is somehow caused by the work of its FollowsFromRef.
+	//
+	// All of the following could be valid timing diagrams for children that
+	// "FollowFrom" a parent.
+	//
+	//     [-Parent Span-]  [-Child Span-]
+	//
+	//
+	//     [-Parent Span--]
+	//      [-Child Span-]
+	//
+	//
+	//     [-Parent Span-]
+	//                 [-Child Span-]
+	//
+	// See http://opentracing.io/spec/
+	//
+	// See opentracing.FollowsFrom()
+	FollowsFromRef
+)
+
+// SpanReference is a StartSpanOption that pairs a SpanReferenceType and a
+// referee SpanContext ("referee" is "the one who is referred to"). See the
+// SpanReferenceType documentation.
+type SpanReference struct {
+	Type    SpanReferenceType
+	Referee SpanContext
+}
+
+// Apply satisfies the StartSpanOption interface.
+func (r SpanReference) Apply(o *StartSpanOptions) {
+	o.References = append(o.References, r)
+}
+
+// ChildOf returns a StartSpanOption pointing to a dependent parent span.
+//
+// See ChildOfRef
+func ChildOf(sm SpanContext) SpanReference {
+	return SpanReference{
+		Type:    ChildOfRef,
+		Referee: sm,
+	}
+}
+
+// FollowsFrom returns a StartSpanOption pointing to a parent Span that caused
+// the child Span but does not directly depend on its result in any way.
+//
+// See FollowsFromRef
+func FollowsFrom(sm SpanContext) SpanReference {
+	return SpanReference{
+		Type:    FollowsFromRef,
+		Referee: sm,
+	}
+}
+
+// StartTime is a StartSpanOption that sets an explicit start timestamp for the
+// new Span.
+type StartTime time.Time
+
+// Apply satisfies the StartSpanOption interface.
+func (t StartTime) Apply(o *StartSpanOptions) {
+	o.StartTime = time.Time(t)
+}
+
+// Tags are a generic map from an arbitrary string key to an opaque value type.
+// The underlying tracing system is responsible for interpreting and
+// serializing the values.
+type Tags map[string]interface{}
+
+// Apply satisfies the StartSpanOption interface.
+func (t Tags) Apply(o *StartSpanOptions) {
+	if o.Tags == nil {
+		o.Tags = make(map[string]interface{})
+	}
+	for k, v := range t {
+		o.Tags[k] = v
+	}
 }

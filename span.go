@@ -1,39 +1,77 @@
 package opentracing
 
-import (
-	"regexp"
-	"strings"
-	"time"
-)
+import "time"
+
+// SpanContext represents Span state that must propagate to descendant Spans and across process
+// boundaries (e.g., a <trace_id, span_id, sampled> tuple).
+type SpanContext interface {
+	// SetBaggageItem sets a key:value pair on this SpanContext that also
+	// propagates to future children of the associated Span.
+	//
+	// SetBaggageItem() enables powerful functionality given a full-stack
+	// opentracing integration (e.g., arbitrary application data from a mobile
+	// app can make it, transparently, all the way into the depths of a storage
+	// system), and with it some powerful costs: use this feature with care.
+	//
+	// IMPORTANT NOTE #1: SetBaggageItem() will only propagate baggage items to
+	// *future* causal descendants of the associated Span.
+	//
+	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
+	// value is copied into every local *and remote* child of the associated
+	// Span, and that can add up to a lot of network and cpu overhead.
+	//
+	// Returns a reference to this SpanContext for chaining, etc.
+	SetBaggageItem(restrictedKey, value string) SpanContext
+
+	// Gets the value for a baggage item given its key. Returns the empty string
+	// if the value isn't found in this SpanContext.
+	//
+	// See the `SetBaggageItem` notes about `restrictedKey`.
+	BaggageItem(restrictedKey string) string
+
+	// ForeachBaggageItem grants access to all baggage items stored in the
+	// SpanContext.
+	// The handler function will be called for each baggage key/value pair.
+	// The ordering of items is not guaranteed.
+	//
+	// The bool return value indicates if the handler wants to continue iterating
+	// through the rest of the baggage items; for example if the handler is trying to
+	// find some baggage item by pattern matching the name, it can return false
+	// as soon as the item is found to stop further iterations.
+	ForeachBaggageItem(handler func(k, v string) bool)
+}
 
 // Span represents an active, un-finished span in the OpenTracing system.
 //
 // Spans are created by the Tracer interface.
 type Span interface {
-	// Sets or changes the operation name.
-	SetOperationName(operationName string) Span
-
-	// Adds a tag to the span.
+	// Sets the end timestamp and finalizes Span state.
 	//
-	// Tag values can be of arbitrary types, however the treatment of complex
-	// types is dependent on the underlying tracing system implementation.
-	// It is expected that most tracing systems will handle primitive types
-	// like strings and numbers. If a tracing system cannot understand how
-	// to handle a particular value type, it may ignore the tag, but shall
-	// not panic.
-	//
-	// If there is a pre-existing tag set for `key`, it is overwritten.
-	SetTag(key string, value interface{}) Span
-
-	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
-	// internally.
-	//
-	// Finish() should be the last call made to any span instance, and to do
+	// With the exception of calls to Context() (which are always allowed),
+	// Finish() must be the last call made to any span instance, and to do
 	// otherwise leads to undefined behavior.
 	Finish()
 	// FinishWithOptions is like Finish() but with explicit control over
 	// timestamps and log data.
 	FinishWithOptions(opts FinishOptions)
+
+	// Context() yields the SpanContext for this Span. Note that the return
+	// value of Context() is still valid after a call to Span.Finish(), as is
+	// a call to Span.Context() after a call to Span.Finish().
+	Context() SpanContext
+
+	// Sets or changes the operation name.
+	SetOperationName(operationName string) Span
+
+	// Adds a tag to the span.
+	//
+	// If there is a pre-existing tag set for `key`, it is overwritten.
+	//
+	// Tag values can be numeric types, strings, or bools. The behavior of
+	// other tag value types is undefined at the OpenTracing level. If a
+	// tracing system does not know how to handle a particular value type, it
+	// may ignore the tag, but shall not panic.
+	SetTag(key string, value interface{}) Span
 
 	// LogEvent() is equivalent to
 	//
@@ -52,57 +90,12 @@ type Span interface {
 	// See LogData for semantic details.
 	Log(data LogData)
 
-	// SetBaggageItem sets a key:value pair on this Span that also
-	// propagates to future Span children.
-	//
-	// SetBaggageItem() enables powerful functionality given a full-stack
-	// opentracing integration (e.g., arbitrary application data from a mobile
-	// app can make it, transparently, all the way into the depths of a storage
-	// system), and with it some powerful costs: use this feature with care.
-	//
-	// IMPORTANT NOTE #1: SetBaggageItem() will only propagate trace
-	// baggage items to *future* children of the Span.
-	//
-	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
-	// value is copied into every local *and remote* child of this Span, and
-	// that can add up to a lot of network and cpu overhead.
-	//
-	// IMPORTANT NOTE #3: Baggage item keys have a restricted format:
-	// implementations may wish to use them as HTTP header keys (or key
-	// suffixes), and of course HTTP headers are case insensitive.
-	//
-	// As such, `restrictedKey` MUST match the regular expression
-	// `(?i:[a-z0-9][-a-z0-9]*)` and is case-insensitive. That is, it must
-	// start with a letter or number, and the remaining characters must be
-	// letters, numbers, or hyphens. See CanonicalizeBaggageKey(). If
-	// `restrictedKey` does not meet these criteria, SetBaggageItem()
-	// results in undefined behavior.
-	//
-	// Returns a reference to this Span for chaining, etc.
-	SetBaggageItem(restrictedKey, value string) Span
-
-	// Gets the value for a baggage item given its key. Returns the empty string
-	// if the value isn't found in this Span.
-	//
-	// See the `SetBaggageItem` notes about `restrictedKey`.
-	BaggageItem(restrictedKey string) string
-
-	// ForeachBaggageItem allows reading all baggage items stored in the span.
-	// The handler function will be called for each baggage key/value pair.
-	// The ordering of items is not guaranteed.
-	//
-	// The bool return value indicates if the handler wants to continue iterating
-	// through the rest of the baggage items; for example if the handler is trying to
-	// find some baggage item by pattern matching the name, it can return false
-	// as soon as the item is found to stop further iterations.
-	ForeachBaggageItem(handler func(k, v string) bool)
-
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
 }
 
-// LogData is data associated to a Span. Every LogData instance should specify
-// at least one of Event and/or Payload.
+// LogData is data associated with a Span. Every LogData instance should
+// specify at least one of Event and/or Payload.
 type LogData struct {
 	// The timestamp of the log record; if set to the default value (the unix
 	// epoch), implementations should use time.Now() implicitly.
@@ -155,39 +148,4 @@ type FinishOptions struct {
 	// If specified, the caller hands off ownership of BulkLogData at
 	// FinishWithOptions() invocation time.
 	BulkLogData []LogData
-}
-
-// Tags are a generic map from an arbitrary string key to an opaque value type.
-// The underlying tracing system is responsible for interpreting and
-// serializing the values.
-type Tags map[string]interface{}
-
-// Merge incorporates the keys and values from `other` into this `Tags`
-// instance, then returns same.
-func (t Tags) Merge(other Tags) Tags {
-	for k, v := range other {
-		t[k] = v
-	}
-	return t
-}
-
-var regexBaggage = regexp.MustCompile("^(?i:[a-z0-9][-a-z0-9]*)$")
-
-// CanonicalizeBaggageKey returns the canonicalized version of baggage item
-// key `key`, and true if and only if the key was valid.
-//
-// It is more performant to use lowercase keys only.
-func CanonicalizeBaggageKey(key string) (string, bool) {
-	if !regexBaggage.MatchString(key) {
-		return "", false
-	}
-	return strings.ToLower(key), true
-}
-
-// StartChildSpan is a simple helper to start a child span given only its parent (per StartSpanOptions.Parent) and an operation name per Span.SetOperationName.
-func StartChildSpan(parent Span, operationName string) Span {
-	return parent.Tracer().StartSpanWithOptions(StartSpanOptions{
-		OperationName: operationName,
-		Parent:        parent,
-	})
 }

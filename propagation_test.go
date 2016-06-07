@@ -14,10 +14,10 @@ func TestTextMapCarrierInject(t *testing.T) {
 	m["opname"] = "AlsoNotOT"
 	tracer := testTracer{}
 	span := tracer.StartSpan("someSpan")
-	fakeID := span.(testSpan).FakeID
+	fakeID := span.Context().(testSpanContext).FakeID
 
 	carrier := TextMapCarrier(m)
-	if err := span.Tracer().Inject(span, TextMap, carrier); err != nil {
+	if err := span.Tracer().Inject(span.Context(), TextMap, carrier); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,7 +31,7 @@ func TestTextMapCarrierInject(t *testing.T) {
 	}
 }
 
-func TestTextMapCarrierJoin(t *testing.T) {
+func TestTextMapCarrierExtract(t *testing.T) {
 	m := make(map[string]string)
 	m["NotOT"] = "blah"
 	m["opname"] = "AlsoNotOT"
@@ -39,12 +39,12 @@ func TestTextMapCarrierJoin(t *testing.T) {
 	tracer := testTracer{}
 
 	carrier := TextMapCarrier(m)
-	span, err := tracer.Join("ignoredByImpl", TextMap, carrier)
+	extractedContext, err := tracer.Extract(TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if span.(testSpan).FakeID != 42 {
+	if extractedContext.(testSpanContext).FakeID != 42 {
 		t.Errorf("Failed to read testprefix-fakeid correctly")
 	}
 }
@@ -55,11 +55,11 @@ func TestHTTPHeaderInject(t *testing.T) {
 	h.Add("opname", "AlsoNotOT")
 	tracer := testTracer{}
 	span := tracer.StartSpan("someSpan")
-	fakeID := span.(testSpan).FakeID
+	fakeID := span.Context().(testSpanContext).FakeID
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
 	carrier := HTTPHeaderTextMapCarrier(h)
-	if err := span.Tracer().Inject(span, TextMap, carrier); err != nil {
+	if err := span.Tracer().Inject(span.Context(), TextMap, carrier); err != nil {
 		t.Fatal(err)
 	}
 
@@ -73,7 +73,7 @@ func TestHTTPHeaderInject(t *testing.T) {
 	}
 }
 
-func TestHTTPHeaderJoin(t *testing.T) {
+func TestHTTPHeaderExtract(t *testing.T) {
 	h := http.Header{}
 	h.Add("NotOT", "blah")
 	h.Add("opname", "AlsoNotOT")
@@ -82,12 +82,12 @@ func TestHTTPHeaderJoin(t *testing.T) {
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
 	carrier := HTTPHeaderTextMapCarrier(h)
-	span, err := tracer.Join("ignoredByImpl", TextMap, carrier)
+	spanContext, err := tracer.Extract(TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if span.(testSpan).FakeID != 42 {
+	if spanContext.(testSpanContext).FakeID != 42 {
 		t.Errorf("Failed to read testprefix-fakeid correctly")
 	}
 }

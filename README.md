@@ -26,8 +26,10 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
     import ".../some_tracing_impl"
 
     func main() {
-        tracerImpl := some_tracing_impl.New(...) // tracing impl specific
-        opentracing.InitGlobalTracer(tracerImpl)
+        opentracing.InitGlobalTracer(
+            // tracing impl specific:
+            some_tracing_impl.New(...),
+        )
         ...
     }
 ```
@@ -37,11 +39,11 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
 If you prefer direct control to singletons, manage ownership of the
 `opentracing.Tracer` implementation explicitly.
 
-#### Creating a Span given an existing Golang `context.Context`
+#### Creating a Span given an existing Go `context.Context`
 
 If you use `context.Context` in your application, OpenTracing's Go library will
-happily use it for `Span` propagation. To start a new (child) `Span`, you can use
-`StartSpanFromContext`.
+happily rely on it for `Span` propagation. To start a new (blocking child)
+`Span`, you can use `StartSpanFromContext`.
 
 ```go
     func xyz(ctx context.Context, ...) {
@@ -55,7 +57,8 @@ happily use it for `Span` propagation. To start a new (child) `Span`, you can us
 
 #### Starting an empty trace by creating a "root span"
 
-It's always possible to create a "root" (parentless) `Span`.
+It's always possible to create a "root" `Span` with no parent or other causal
+reference.
 
 ```go
     func xyz() {
@@ -72,7 +75,9 @@ It's always possible to create a "root" (parentless) `Span`.
 ```go
     func xyz(parentSpan opentracing.Span, ...) {
         ...
-        sp := opentracing.StartChildSpan(parentSpan, "operation_name")
+        sp := opentracing.StartSpan(
+            "operation_name",
+            opentracing.ChildOf(parentSpan.Context()))
         defer sp.Finish()
         sp.LogEvent("xyz_called")
         ...
@@ -90,7 +95,7 @@ It's always possible to create a "root" (parentless) `Span`.
             // Transmit the span's TraceContext as HTTP headers on our
             // outbound request.
             tracer.Inject(
-                span,
+                span.Context(),
                 opentracing.TextMap,
                 opentracing.HTTPHeaderTextMapCarrier(httpReq.Header))
 
@@ -105,18 +110,26 @@ It's always possible to create a "root" (parentless) `Span`.
 
 ```go
     http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-        serverSpan, err := opentracing.GlobalTracer().Join(
-            "serverSpan",
+        var serverSpan opentracing.Span
+        appSpecificOperationName := ...
+        wireContext, err := opentracing.GlobalTracer().Extract(
             opentracing.TextMap,
             opentracing.HTTPHeaderTextMapCarrier(req.Header))
-
         if err != nil {
-            // Create a root span if necessary
-            serverSpan = opentracing.StartTrace("serverSpan")
+            // Optionally record something about err here
         }
-        var goCtx context.Context = ...
-        goCtx, _ = opentracing.ContextWithSpan(goCtx, serverSpan)
+        if wireContext != nil {
+            // Create a span referring to the RPC client.
+            serverSpan = opentracing.StartSpan(
+                appSpecificOperationName,
+                opentracing.RPCServerOption(wireContext))
+        } else {
+            // Create a root span.
+            serverSpan = opentracing.StartSpan(appSpecificOperationName)
+        }
         defer serverSpan.Finish()
+
+        ctx := opentracing.ContextWithSpan(context.Background(), serverSpan)
         ...
     }
 ```

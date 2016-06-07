@@ -9,13 +9,14 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
-func TestMockTracer_StartSpanWithOptions(t *testing.T) {
+func TestMockTracer_StartSpan(t *testing.T) {
 	tracer := New()
-	span1 := tracer.StartSpanWithOptions(opentracing.StartSpanOptions{
-		OperationName: "a",
-		Tags:          map[string]interface{}{"x": "y"}})
+	span1 := tracer.StartSpan(
+		"a",
+		opentracing.Tags(map[string]interface{}{"x": "y"}))
 
-	span2 := span1.Tracer().StartSpanWithOptions(opentracing.StartSpanOptions{Parent: span1})
+	span2 := span1.Tracer().StartSpan(
+		"", opentracing.ChildOf(span1.Context()))
 	span2.Finish()
 	span1.Finish()
 	spans := tracer.GetFinishedSpans()
@@ -24,7 +25,7 @@ func TestMockTracer_StartSpanWithOptions(t *testing.T) {
 	parent := spans[1]
 	child := spans[0]
 	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.GetTags())
-	assert.Equal(t, child.ParentID, parent.SpanID)
+	assert.Equal(t, child.ParentID, parent.Context().(*MockSpanContext).SpanID)
 }
 
 func TestMockSpan_SetOperationName(t *testing.T) {
@@ -34,27 +35,27 @@ func TestMockSpan_SetOperationName(t *testing.T) {
 	assert.Equal(t, "x", span.(*MockSpan).OperationName)
 }
 
-func TestMockSpan_Baggage(t *testing.T) {
+func TestMockSpanContext_Baggage(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
-	span.SetBaggageItem("x", "y")
-	assert.Equal(t, "y", span.BaggageItem("x"))
-	assert.Equal(t, map[string]string{"x": "y"}, span.(*MockSpan).GetBaggage())
+	span.Context().SetBaggageItem("x", "y")
+	assert.Equal(t, "y", span.Context().BaggageItem("x"))
+	assert.Equal(t, map[string]string{"x": "y"}, span.Context().(*MockSpanContext).GetBaggage())
 
 	baggage := make(map[string]string)
-	span.ForeachBaggageItem(func(k, v string) bool {
+	span.Context().ForeachBaggageItem(func(k, v string) bool {
 		baggage[k] = v
 		return true
 	})
 	assert.Equal(t, map[string]string{"x": "y"}, baggage)
 
-	span.SetBaggageItem("a", "b")
+	span.Context().SetBaggageItem("a", "b")
 	baggage = make(map[string]string)
-	span.ForeachBaggageItem(func(k, v string) bool {
+	span.Context().ForeachBaggageItem(func(k, v string) bool {
 		baggage[k] = v
 		return false // exit early
 	})
-	assert.Equal(t, 2, len(span.(*MockSpan).GetBaggage()))
+	assert.Equal(t, 2, len(span.Context().(*MockSpanContext).GetBaggage()))
 	assert.Equal(t, 1, len(baggage))
 }
 
@@ -107,26 +108,26 @@ func TestMockSpan_Logs(t *testing.T) {
 func TestMockTracer_Propagation(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
-	span.SetBaggageItem("x", "y")
+	span.Context().SetBaggageItem("x", "y")
 
 	assert.Equal(t, opentracing.ErrUnsupportedFormat,
-		tracer.Inject(span, opentracing.Binary, nil))
+		tracer.Inject(span.Context(), opentracing.Binary, nil))
 	assert.Equal(t, opentracing.ErrInvalidCarrier,
-		tracer.Inject(span, opentracing.TextMap, span))
+		tracer.Inject(span.Context(), opentracing.TextMap, span))
 
 	carrier := make(map[string]string)
 
-	err := tracer.Inject(span, opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+	err := tracer.Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(carrier))
 	require.NoError(t, err)
 	t.Logf("%+v", carrier)
 	assert.Equal(t, 2, len(carrier), "expect baggage + id")
 
-	_, err = tracer.Join("y", opentracing.Binary, nil)
+	_, err = tracer.Extract(opentracing.Binary, nil)
 	assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
-	_, err = tracer.Join("y", opentracing.TextMap, tracer)
+	_, err = tracer.Extract(opentracing.TextMap, tracer)
 	assert.Equal(t, opentracing.ErrInvalidCarrier, err)
 
-	span2, err := tracer.Join("y", opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+	extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
 	require.NoError(t, err)
-	assert.Equal(t, "y", span2.BaggageItem("x"))
+	assert.Equal(t, "y", extractedContext.BaggageItem("x"))
 }
