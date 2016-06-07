@@ -6,52 +6,7 @@ import (
 	"time"
 )
 
-// Span represents an active, un-finished span in the OpenTracing system.
-//
-// Spans are created by the Tracer interface.
-type Span interface {
-	// Sets or changes the operation name.
-	SetOperationName(operationName string) Span
-
-	// Adds a tag to the span.
-	//
-	// Tag values can be of arbitrary types, however the treatment of complex
-	// types is dependent on the underlying tracing system implementation.
-	// It is expected that most tracing systems will handle primitive types
-	// like strings and numbers. If a tracing system cannot understand how
-	// to handle a particular value type, it may ignore the tag, but shall
-	// not panic.
-	//
-	// If there is a pre-existing tag set for `key`, it is overwritten.
-	SetTag(key string, value interface{}) Span
-
-	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
-	// internally.
-	//
-	// Finish() should be the last call made to any span instance, and to do
-	// otherwise leads to undefined behavior.
-	Finish()
-	// FinishWithOptions is like Finish() but with explicit control over
-	// timestamps and log data.
-	FinishWithOptions(opts FinishOptions)
-
-	// LogEvent() is equivalent to
-	//
-	//   Log(LogData{Event: event})
-	//
-	LogEvent(event string)
-
-	// LogEventWithPayload() is equivalent to
-	//
-	//   Log(LogData{Event: event, Payload: payload0})
-	//
-	LogEventWithPayload(event string, payload interface{})
-
-	// Log() records `data` to this Span.
-	//
-	// See LogData for semantic details.
-	Log(data LogData)
-
+type SpanContext interface {
 	// SetBaggageItem sets a key:value pair on this Span that also
 	// propagates to future Span children.
 	//
@@ -79,13 +34,66 @@ type Span interface {
 	// results in undefined behavior.
 	//
 	// Returns a reference to this Span for chaining, etc.
-	SetBaggageItem(restrictedKey, value string) Span
+	SetBaggageItem(restrictedKey, value string) SpanContext
 
 	// Gets the value for a baggage item given its key. Returns the empty string
 	// if the value isn't found in this Span.
 	//
 	// See the `SetBaggageItem` notes about `restrictedKey`.
 	BaggageItem(restrictedKey string) string
+}
+
+// Span represents an active, un-finished span in the OpenTracing system.
+//
+// Spans are created by the Tracer interface.
+type Span interface {
+	// Returns the SpanContext for this Span. Note that the return value of
+	// SpanContext() is still valid after a call to Span.Finish(), as is a call
+	// to Span.SpanContext() after a call to Span.Finish().
+	SpanContext() SpanContext
+
+	// Sets or changes the operation name.
+	SetOperationName(operationName string) Span
+
+	// Adds a tag to the span.
+	//
+	// Tag values can be of arbitrary types, however the treatment of complex
+	// types is dependent on the underlying tracing system implementation.
+	// It is expected that most tracing systems will handle primitive types
+	// like strings and numbers. If a tracing system cannot understand how
+	// to handle a particular value type, it may ignore the tag, but shall
+	// not panic.
+	//
+	// If there is a pre-existing tag set for `key`, it is overwritten.
+	SetTag(key string, value interface{}) Span
+
+	// Sets the end timestamp and calls the `Recorder`s RecordSpan()
+	// internally.
+	//
+	// With the exception of calls to SpanContext() (which are always allowed),
+	// Finish() must be the last call made to any span instance, and to do
+	// otherwise leads to undefined behavior.
+	Finish()
+	// FinishWithOptions is like Finish() but with explicit control over
+	// timestamps and log data.
+	FinishWithOptions(opts FinishOptions)
+
+	// LogEvent() is equivalent to
+	//
+	//   Log(LogData{Event: event})
+	//
+	LogEvent(event string)
+
+	// LogEventWithPayload() is equivalent to
+	//
+	//   Log(LogData{Event: event, Payload: payload0})
+	//
+	LogEventWithPayload(event string, payload interface{})
+
+	// Log() records `data` to this Span.
+	//
+	// See LogData for semantic details.
+	Log(data LogData)
 
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
@@ -178,6 +186,6 @@ func CanonicalizeBaggageKey(key string) (string, bool) {
 func StartChildSpan(parent Span, operationName string) Span {
 	return parent.Tracer().StartSpanWithOptions(StartSpanOptions{
 		OperationName: operationName,
-		Parent:        parent,
+		Parent:        parent.SpanContext(),
 	})
 }

@@ -7,23 +7,17 @@ type contextKey struct{}
 var activeSpanKey = contextKey{}
 
 // ContextWithSpan returns a new `context.Context` that holds a reference to
-// the given `Span`.
+// the given `Span`'s `SpanContext`.
 func ContextWithSpan(ctx context.Context, span Span) context.Context {
 	return context.WithValue(ctx, activeSpanKey, span)
-}
-
-// BackgroundContextWithSpan is a convenience wrapper around
-// `ContextWithSpan(context.BackgroundContext(), ...)`.
-func BackgroundContextWithSpan(span Span) context.Context {
-	return context.WithValue(context.Background(), activeSpanKey, span)
 }
 
 // SpanFromContext returns the `Span` previously associated with `ctx`, or
 // `nil` if no such `Span` could be found.
 func SpanFromContext(ctx context.Context) Span {
 	val := ctx.Value(activeSpanKey)
-	if span, ok := val.(Span); ok {
-		return span
+	if sp, ok := val.(Span); ok {
+		return sp
 	}
 	return nil
 }
@@ -48,10 +42,13 @@ func StartSpanFromContext(ctx context.Context, operationName string) (Span, cont
 
 // startSpanFromContextWithTracer is factored out for testing purposes.
 func startSpanFromContextWithTracer(ctx context.Context, operationName string, tracer Tracer) (Span, context.Context) {
-	parent := SpanFromContext(ctx)
+	var parentSpanCtx SpanContext
+	if span := SpanFromContext(ctx); span != nil {
+		parentSpanCtx = span.SpanContext()
+	}
 	span := tracer.StartSpanWithOptions(StartSpanOptions{
 		OperationName: operationName,
-		Parent:        parent,
+		Parent:        parentSpanCtx,
 	})
 	return span, ContextWithSpan(ctx, span)
 }

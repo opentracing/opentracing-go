@@ -14,11 +14,11 @@ func TestHTTPHeaderInject(t *testing.T) {
 	h.Add("opname", "AlsoNotOT")
 	tracer := testTracer{}
 	span := tracer.StartSpan("someSpan")
-	fakeID := span.(testSpan).FakeID
+	fakeID := span.SpanContext().(testSpanContext).FakeID
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
 	carrier := HTTPHeaderTextMapCarrier(h)
-	if err := span.Tracer().Inject(span, TextMap, carrier); err != nil {
+	if err := span.Tracer().Inject(span.SpanContext(), TextMap, carrier); err != nil {
 		t.Fatal(err)
 	}
 
@@ -41,12 +41,12 @@ func TestHTTPHeaderJoin(t *testing.T) {
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
 	carrier := HTTPHeaderTextMapCarrier(h)
-	span, err := tracer.Join("ignoredByImpl", TextMap, carrier)
+	spanContext, err := tracer.Join("ignoredByImpl", TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if span.(testSpan).FakeID != 42 {
+	if spanContext.SpanContext().(testSpanContext).FakeID != 42 {
 		t.Errorf("Failed to read testprefix-fakeid correctly")
 	}
 }

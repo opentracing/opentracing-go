@@ -27,9 +27,9 @@ type Tracer interface {
 	StartSpan(operationName string) Span
 	StartSpanWithOptions(opts StartSpanOptions) Span
 
-	// Inject() takes the `sp` Span instance and represents it for propagation
-	// within `carrier`. The actual type of `carrier` depends on the value of
-	// `format`.
+	// Inject() takes the `sc` SpanContext instance and represents it for
+	// propagation within `carrier`. The actual type of `carrier` depends on
+	// the value of `format`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
@@ -42,7 +42,7 @@ type Tracer interface {
 	//
 	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
 	//     tracer.Inject(
-	//         span,
+	//         span.SpanContext(),
 	//         opentracing.TextMap,
 	//         carrier)
 	//
@@ -57,7 +57,7 @@ type Tracer interface {
 	// fails anyway.
 	//
 	// See Tracer.Join().
-	Inject(sp Span, format interface{}, carrier interface{}) error
+	Inject(sc SpanContext, format interface{}, carrier interface{}) error
 
 	// Join() returns a Span instance with operation name `operationName` given
 	// `format` and `carrier`.
@@ -107,11 +107,11 @@ type StartSpanOptions struct {
 	// OperationName may be empty (and set later via Span.SetOperationName)
 	OperationName string
 
-	// Parent may specify Span instance that caused the new (child) Span to be
-	// created.
+	// Parent may specify the SpanContext that caused the new (child) Span to
+	// be created.
 	//
 	// If nil, start a "root" span (i.e., start a new trace).
-	Parent Span
+	Parent SpanContext
 
 	// StartTime overrides the Span's start time, or implicitly becomes
 	// time.Now() if StartTime.IsZero().

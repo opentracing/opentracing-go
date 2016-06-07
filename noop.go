@@ -5,22 +5,27 @@ package opentracing
 type NoopTracer struct{}
 
 type noopSpan struct{}
+type noopSpanContext struct{}
 
 var (
-	defaultNoopSpan   = noopSpan{}
-	defaultNoopTracer = NoopTracer{}
+	defaultNoopSpanContext = noopSpanContext{}
+	defaultNoopSpan        = noopSpan{}
+	defaultNoopTracer      = NoopTracer{}
 )
 
 const (
 	emptyString = ""
 )
 
+// noopSpanContext:
+func (n noopSpanContext) SetBaggageItem(key, val string) SpanContext { return n }
+func (n noopSpanContext) BaggageItem(key string) string              { return emptyString }
+
 // noopSpan:
+func (n noopSpan) SpanContext() SpanContext                              { return defaultNoopSpanContext }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
-func (n noopSpan) SetBaggageItem(key, val string) Span                   { return n }
-func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
@@ -38,7 +43,7 @@ func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 }
 
 // Inject belongs to the Tracer interface.
-func (n NoopTracer) Inject(sp Span, format interface{}, carrier interface{}) error {
+func (n NoopTracer) Inject(sp SpanContext, format interface{}, carrier interface{}) error {
 	return nil
 }
 

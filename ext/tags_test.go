@@ -68,9 +68,16 @@ func TestMiscTags(t *testing.T) {
 // noopTracer and noopSpan with span tags implemented
 type noopTracer struct{}
 
+type noopSpanContext struct{}
+
 type noopSpan struct {
 	Tags opentracing.Tags
 }
+
+func (n noopSpanContext) SetBaggageItem(key, val string) opentracing.SpanContext { return n }
+func (n noopSpanContext) BaggageItem(key string) string                          { return "" }
+
+func (n noopSpan) SpanContext() opentracing.SpanContext { return noopSpanContext{} }
 
 func (n noopSpan) SetTag(key string, value interface{}) opentracing.Span {
 	n.Tags[key] = value
@@ -79,8 +86,6 @@ func (n noopSpan) SetTag(key string, value interface{}) opentracing.Span {
 
 func (n noopSpan) Finish()                                                {}
 func (n noopSpan) FinishWithOptions(opts opentracing.FinishOptions)       {}
-func (n noopSpan) SetBaggageItem(key, val string) opentracing.Span        { return n }
-func (n noopSpan) BaggageItem(key string) string                          { return "" }
 func (n noopSpan) LogEvent(event string)                                  {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{})  {}
 func (n noopSpan) Log(data opentracing.LogData)                           {}
