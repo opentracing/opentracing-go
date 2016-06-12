@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// SpanContext represents Span state that should propagate to descendant Spans
+// and presumably across process boundaries.
 type SpanContext interface {
 	// SetBaggageItem sets a key:value pair on this Span that also
 	// propagates to future Span children.

@@ -23,15 +23,16 @@ type MockTracer struct {
 	FinishedSpans []*MockSpan
 }
 
+// MockSpanContext is an opentracing.SpanContext implementation.
 type MockSpanContext struct {
-	SpanID   int
-	ParentID int
-	Baggage  map[string]string
+	SpanID  int
+	Baggage map[string]string
 }
 
 // MockSpan is an opentracing.Span implementation that exports its internal
 // state for testing purposes.
 type MockSpan struct {
+	ParentID      int
 	OperationName string
 	StartTime     time.Time
 	FinishTime    time.Time
@@ -85,7 +86,7 @@ func (t *MockTracer) Inject(sc opentracing.SpanContext, format interface{}, carr
 func (t *MockTracer) Join(operationName string, format interface{}, carrier interface{}) (opentracing.Span, error) {
 	switch format {
 	case opentracing.TextMap:
-		sc := newMockSpanContext(nextMockID(), 0)
+		sc := newMockSpanContext(0)
 		err := carrier.(opentracing.TextMapReader).ForeachKey(func(key, val string) error {
 			lowerKey := strings.ToLower(key)
 			switch {
@@ -95,7 +96,7 @@ func (t *MockTracer) Join(operationName string, format interface{}, carrier inte
 				if err != nil {
 					return err
 				}
-				sc.ParentID = i
+				sc.SpanID = i
 			case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
 				// Baggage:
 				sc.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
@@ -117,11 +118,10 @@ func nextMockID() int {
 	return mockIDSource
 }
 
-func newMockSpanContext(spanID, parentID int) *MockSpanContext {
+func newMockSpanContext(spanID int) *MockSpanContext {
 	return &MockSpanContext{
-		SpanID:   spanID,
-		ParentID: parentID,
-		Baggage:  make(map[string]string),
+		SpanID:  spanID,
+		Baggage: make(map[string]string),
 	}
 }
 
@@ -150,16 +150,18 @@ func newMockSpan(t *MockTracer, opts opentracing.StartSpanOptions) *MockSpan {
 		startTime = time.Now()
 	}
 	return &MockSpan{
+		ParentID:      parentID,
 		OperationName: opts.OperationName,
 		StartTime:     startTime,
 		Tags:          tags,
 		Logs:          []opentracing.LogData{},
 
 		tracer:      t,
-		spanContext: newMockSpanContext(nextMockID(), parentID),
+		spanContext: newMockSpanContext(nextMockID()),
 	}
 }
 
+// SpanContext belongs to the Span interface
 func (s *MockSpan) SpanContext() opentracing.SpanContext {
 	return s.spanContext
 }
