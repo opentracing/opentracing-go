@@ -184,10 +184,12 @@ func CanonicalizeBaggageKey(key string) (string, bool) {
 	return strings.ToLower(key), true
 }
 
-// StartChildSpan is a simple helper to start a child span given only its parent (per StartSpanOptions.Parent) and an operation name per Span.SetOperationName.
+// StartChildSpan is a simple helper to start a child span given only its
+// parent (per StartSpanOptions.Parent) and an operation name per
+// Span.SetOperationName.
 func StartChildSpan(parent Span, operationName string) Span {
-	return parent.Tracer().StartSpanWithOptions(StartSpanOptions{
-		OperationName: operationName,
-		Parent:        parent.SpanContext(),
-	})
+	return parent.Tracer().StartSpan(
+		operationName,
+		Reference(RefBlockedParent, parent.SpanContext()),
+	)
 }

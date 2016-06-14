@@ -12,27 +12,27 @@ import (
 
 var (
 	// ErrUnsupportedFormat occurs when the `format` passed to Tracer.Inject() or
-	// Tracer.Join() is not recognized by the Tracer implementation.
-	ErrUnsupportedFormat = errors.New("opentracing: Unknown or unsupported Inject/Join format")
+	// Tracer.Extract() is not recognized by the Tracer implementation.
+	ErrUnsupportedFormat = errors.New("opentracing: Unknown or unsupported Inject/Extract format")
 
-	// ErrTraceNotFound occurs when the `carrier` passed to Tracer.Join() is
-	// valid and uncorrupted but has insufficient information to join or resume
-	// a trace.
-	ErrTraceNotFound = errors.New("opentracing: Trace not found in Join carrier")
+	// ErrContextNotFound occurs when the `carrier` passed to Tracer.Extract()
+	// is valid and uncorrupted but has insufficient information to extract a
+	// SpanContext.
+	ErrContextNotFound = errors.New("opentracing: Context not found in Extract carrier")
 
-	// ErrInvalidSpan errors occur when Tracer.Inject() is asked to operate on
-	// a Span which it is not prepared to handle (for example, since it was
-	// created by a different tracer implementation).
-	ErrInvalidSpan = errors.New("opentracing: Span type incompatible with tracer")
+	// ErrInvalidSpanContext errors occur when Tracer.Inject() is asked to
+	// operate on a SpanContext which it is not prepared to handle (for
+	// example, since it was created by a different tracer implementation).
+	ErrInvalidSpanContext = errors.New("opentracing: SpanContext type incompatible with tracer")
 
-	// ErrInvalidCarrier errors occur when Tracer.Inject() or Tracer.Join()
+	// ErrInvalidCarrier errors occur when Tracer.Inject() or Tracer.Extract()
 	// implementations expect a different type of `carrier` than they are
 	// given.
-	ErrInvalidCarrier = errors.New("opentracing: Invalid Inject/Join carrier")
+	ErrInvalidCarrier = errors.New("opentracing: Invalid Inject/Extract carrier")
 
-	// ErrTraceCorrupted occurs when the `carrier` passed to Tracer.Join() is
+	// ErrTraceCorrupted occurs when the `carrier` passed to Tracer.Extract() is
 	// of the expected type but is corrupted.
-	ErrTraceCorrupted = errors.New("opentracing: Trace data corrupted in Join carrier")
+	ErrContextCorrupted = errors.New("opentracing: Context data corrupted in Extract carrier")
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,14 +45,14 @@ var (
 type BuiltinFormat byte
 
 const (
-	// Binary encodes the Span for propagation as opaque binary data.
+	// Binary encodes the SpanContext for propagation as opaque binary data.
 	//
 	// For Tracer.Inject(): the carrier must be an `io.Writer`.
 	//
 	// For Tracer.Join(): the carrier must be an `io.Reader`.
 	Binary BuiltinFormat = iota
 
-	// TextMap encodes the Span as key:value pairs.
+	// TextMap encodes the SpanContext as key:value pairs.
 	//
 	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
 	//
@@ -74,8 +74,8 @@ const (
 )
 
 // TextMapWriter is the Inject() carrier for the TextMap builtin format. With
-// it, the caller can encode a Span for propagation as entries in a multimap of
-// unicode strings.
+// it, the caller can encode a SpanContext for propagation as entries in a
+// multimap of unicode strings.
 type TextMapWriter interface {
 	// Set a key:value pair to the carrier. Multiple calls to Set() for the
 	// same key leads to undefined behavior.
@@ -92,8 +92,8 @@ type TextMapWriter interface {
 }
 
 // TextMapReader is the Join() carrier for the TextMap builtin format. With it,
-// the caller can decode a propagated Span as entries in a multimap of unicode
-// strings.
+// the caller can decode a propagated SpanContext as entries in a multimap of
+// unicode strings.
 type TextMapReader interface {
 	// ForeachKey returns TextMap contents via repeated calls to the `handler`
 	// function. If any call to `handler` returns a non-nil error, ForeachKey

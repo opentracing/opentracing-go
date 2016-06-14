@@ -51,10 +51,14 @@ func (t *MockTracer) Reset() {
 }
 
 // StartSpan belongs to the Tracer interface.
-func (t *MockTracer) StartSpan(operationName string) opentracing.Span {
-	return newMockSpan(t, opentracing.StartSpanOptions{
+func (t *MockTracer) StartSpan(operationName string, opts ...opentracing.StartSpanOption) opentracing.Span {
+	sso := opentracing.StartSpanOptions{
 		OperationName: operationName,
-	})
+	}
+	for _, o := range opts {
+		o(&sso)
+	}
+	return newMockSpan(t, sso)
 }
 
 // StartSpanWithOptions belongs to the Tracer interface.
@@ -82,11 +86,11 @@ func (t *MockTracer) Inject(sc opentracing.SpanContext, format interface{}, carr
 	return opentracing.ErrUnsupportedFormat
 }
 
-// Join belongs to the Tracer interface.
-func (t *MockTracer) Join(operationName string, format interface{}, carrier interface{}) (opentracing.Span, error) {
+// Extract belongs to the Tracer interface.
+func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentracing.SpanContext, error) {
 	switch format {
 	case opentracing.TextMap:
-		sc := newMockSpanContext(0)
+		rval := newMockSpanContext(0)
 		err := carrier.(opentracing.TextMapReader).ForeachKey(func(key, val string) error {
 			lowerKey := strings.ToLower(key)
 			switch {
@@ -96,19 +100,16 @@ func (t *MockTracer) Join(operationName string, format interface{}, carrier inte
 				if err != nil {
 					return err
 				}
-				sc.SpanID = i
+				rval.SpanID = i
 			case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
 				// Baggage:
-				sc.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
+				rval.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
 			}
 			return nil
 		})
-		return newMockSpan(t, opentracing.StartSpanOptions{
-			OperationName: operationName,
-			Parent:        sc,
-		}), err
+		return rval, err
 	}
-	return nil, opentracing.ErrTraceNotFound
+	return nil, opentracing.ErrContextNotFound
 }
 
 var mockIDSource = 1
@@ -142,8 +143,8 @@ func newMockSpan(t *MockTracer, opts opentracing.StartSpanOptions) *MockSpan {
 		tags = map[string]interface{}{}
 	}
 	parentID := int(0)
-	if opts.Parent != nil {
-		parentID = opts.Parent.(*MockSpanContext).SpanID
+	if len(opts.CausalReferences) > 0 {
+		parentID = opts.CausalReferences[0].SpanContext.(*MockSpanContext).SpanID
 	}
 	startTime := opts.StartTime
 	if startTime.IsZero() {

@@ -46,9 +46,8 @@ func startSpanFromContextWithTracer(ctx context.Context, operationName string, t
 	if span := SpanFromContext(ctx); span != nil {
 		parentSpanCtx = span.SpanContext()
 	}
-	span := tracer.StartSpanWithOptions(StartSpanOptions{
-		OperationName: operationName,
-		Parent:        parentSpanCtx,
-	})
+	span := tracer.StartSpan(
+		operationName,
+		Reference(RefBlockedParent, parentSpanCtx))
 	return span, ContextWithSpan(ctx, span)
 }

@@ -24,8 +24,7 @@ type Tracer interface {
 	//         StartTime: loggedReq.Timestamp,
 	//     })
 	//
-	StartSpan(operationName string) Span
-	StartSpanWithOptions(opts StartSpanOptions) Span
+	StartSpan(operationName string, opts ...StartSpanOption) Span
 
 	// Inject() takes the `sc` SpanContext instance and represents it for
 	// propagation within `carrier`. The actual type of `carrier` depends on
@@ -59,14 +58,7 @@ type Tracer interface {
 	// See Tracer.Join().
 	Inject(sc SpanContext, format interface{}, carrier interface{}) error
 
-	// Join() returns a Span instance with operation name `operationName` given
-	// `format` and `carrier`.
-	//
-	// Join() is responsible for extracting and joining to the trace of a Span
-	// instance embedded in a format-specific "carrier" object. Typically the
-	// joining will take place on the server side of an RPC boundary, but
-	// message queues and other IPC mechanisms are also reasonable places to
-	// use Join().
+	// Extract() returns a SpanContext instance given `format` and `carrier`.
 	//
 	// OpenTracing defines a common set of `format` values (see BuiltinFormat),
 	// and each has an expected carrier type.
@@ -78,26 +70,23 @@ type Tracer interface {
 	// Example usage (sans error handling):
 	//
 	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
-	//     span, err := tracer.Join(
-	//         operationName,
-	//         opentracing.TextMap,
-	//         carrier)
+	//     spanContext, err := tracer.Extract(opentracing.TextMap, carrier)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
 	// BuiltinFormats.
 	//
 	// Return values:
-	//  - A successful join will return a started Span instance and a nil error
-	//  - If there was simply no trace to join with in `carrier`, Join()
+	//  - A successful Extract returns a SpanContext instance and a nil error
+	//  - If there was simply no SpanContext to extract in `carrier`, Extract()
 	//    returns (nil, opentracing.ErrTraceNotFound)
-	//  - If `format` is unsupported or unrecognized, Join() returns (nil,
+	//  - If `format` is unsupported or unrecognized, Extract() returns (nil,
 	//    opentracing.ErrUnsupportedFormat)
 	//  - If there are more fundamental problems with the `carrier` object,
-	//    Join() may return opentracing.ErrInvalidCarrier,
+	//    Extract() may return opentracing.ErrInvalidCarrier,
 	//    opentracing.ErrTraceCorrupted, or implementation-specific errors.
 	//
 	// See Tracer.Inject().
-	Join(operationName string, format interface{}, carrier interface{}) (Span, error)
+	Extract(format interface{}, carrier interface{}) (SpanContext, error)
 }
 
 // StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
@@ -105,13 +94,13 @@ type Tracer interface {
 // available at Span initialization time.
 type StartSpanOptions struct {
 	// OperationName may be empty (and set later via Span.SetOperationName)
+	//
+	// XXX: get rid of this... StartSpan() requires an opname anyway.
 	OperationName string
 
-	// Parent may specify the SpanContext that caused the new (child) Span to
-	// be created.
-	//
-	// If nil, start a "root" span (i.e., start a new trace).
-	Parent SpanContext
+	// Zero or more causal references to other Spans/SpanContexts. If empty,
+	// start a "root" Span (i.e., start a new trace).
+	CausalReferences []CausalReference
 
 	// StartTime overrides the Span's start time, or implicitly becomes
 	// time.Now() if StartTime.IsZero().
@@ -121,6 +110,66 @@ type StartSpanOptions struct {
 	// identical to those for Span.SetTag(). May be nil.
 	//
 	// If specified, the caller hands off ownership of Tags at
-	// StartSpanWithOptions() invocation time.
+	// StartSpan() invocation time.
 	Tags map[string]interface{}
+}
+
+type CausalReferenceType int
+
+const (
+	// RefStartsBefore refers to a span which MUST start before the Span
+	// that's starting.
+	RefStartsBefore CausalReferenceType = iota
+
+	// RefBlockedOnFinish refers to a span which CAN NOT finish successfully
+	// until the Span that's starting has finished.
+	RefBlockedOnFinish
+
+	// RefFinishesBefore refers to a span which MUST finish before the Span
+	// that's starting.
+	RefFinishesBefore
+
+	// RefBlockedParent is the union of RefStartedBefore and RefBlockedOnFinish.
+	RefBlockedParent
+
+	// RefRPCClient is the special case of RefBlockedParent for the RPC client
+	// peer of an RPC server span.
+	RefRPCClient
+
+	// TODO: etc etc, per
+	// https://github.com/opentracing/opentracing.github.io/issues/28
+)
+
+type CausalReference struct {
+	RefType CausalReferenceType
+	SpanContext
+}
+
+type StartSpanOption func(*StartSpanOptions)
+
+func OperationName(opName string) StartSpanOption {
+	return func(opts *StartSpanOptions) {
+		opts.OperationName = opName
+	}
+}
+
+func Reference(t CausalReferenceType, sc SpanContext) StartSpanOption {
+	return func(opts *StartSpanOptions) {
+		opts.CausalReferences = append(opts.CausalReferences, CausalReference{
+			RefType:     t,
+			SpanContext: sc,
+		})
+	}
+}
+
+func StartTime(t time.Time) StartSpanOption {
+	return func(opts *StartSpanOptions) {
+		opts.StartTime = t
+	}
+}
+
+func StartTags(t map[string]interface{}) StartSpanOption {
+	return func(opts *StartSpanOptions) {
+		opts.Tags = t
+	}
 }

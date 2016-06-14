@@ -33,12 +33,7 @@ func (n noopSpan) SetOperationName(operationName string) Span            { retur
 func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 
 // StartSpan belongs to the Tracer interface.
-func (n NoopTracer) StartSpan(operationName string) Span {
-	return defaultNoopSpan
-}
-
-// StartSpanWithOptions belongs to the Tracer interface.
-func (n NoopTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
+func (n NoopTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
 	return defaultNoopSpan
 }
 
@@ -48,6 +43,6 @@ func (n NoopTracer) Inject(sp SpanContext, format interface{}, carrier interface
 }
 
 // Join belongs to the Tracer interface.
-func (n NoopTracer) Join(operationName string, format interface{}, carrier interface{}) (Span, error) {
-	return nil, ErrTraceNotFound
+func (n NoopTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
+	return nil, ErrContextNotFound
 }
