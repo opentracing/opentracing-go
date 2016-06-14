@@ -109,7 +109,7 @@ func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentraci
 		})
 		return rval, err
 	}
-	return nil, opentracing.ErrContextNotFound
+	return nil, opentracing.ErrSpanContextNotFound
 }
 
 var mockIDSource = 1

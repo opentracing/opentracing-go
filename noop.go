@@ -44,5 +44,5 @@ func (n NoopTracer) Inject(sp SpanContext, format interface{}, carrier interface
 
 // Join belongs to the Tracer interface.
 func (n NoopTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
-	return nil, ErrContextNotFound
+	return nil, ErrSpanContextNotFound
 }

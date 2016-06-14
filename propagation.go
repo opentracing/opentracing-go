@@ -18,7 +18,7 @@ var (
 	// ErrContextNotFound occurs when the `carrier` passed to Tracer.Extract()
 	// is valid and uncorrupted but has insufficient information to extract a
 	// SpanContext.
-	ErrContextNotFound = errors.New("opentracing: Context not found in Extract carrier")
+	ErrSpanContextNotFound = errors.New("opentracing: SpanContext not found in Extract carrier")
 
 	// ErrInvalidSpanContext errors occur when Tracer.Inject() is asked to
 	// operate on a SpanContext which it is not prepared to handle (for
@@ -32,7 +32,7 @@ var (
 
 	// ErrTraceCorrupted occurs when the `carrier` passed to Tracer.Extract() is
 	// of the expected type but is corrupted.
-	ErrContextCorrupted = errors.New("opentracing: Context data corrupted in Extract carrier")
+	ErrSpanContextCorrupted = errors.New("opentracing: SpanContext data corrupted in Extract carrier")
 )
 
 ///////////////////////////////////////////////////////////////////////////////

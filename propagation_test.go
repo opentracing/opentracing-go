@@ -41,12 +41,12 @@ func TestHTTPHeaderJoin(t *testing.T) {
 
 	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
 	carrier := HTTPHeaderTextMapCarrier(h)
-	spanContext, err := tracer.Join("ignoredByImpl", TextMap, carrier)
+	spanContext, err := tracer.Extract(TextMap, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if spanContext.SpanContext().(testSpanContext).FakeID != 42 {
+	if spanContext.(testSpanContext).FakeID != 42 {
 		t.Errorf("Failed to read testprefix-fakeid correctly")
 	}
 }

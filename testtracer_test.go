@@ -43,26 +43,26 @@ func (n testSpan) SetOperationName(operationName string) Span            { retur
 func (n testSpan) Tracer() Tracer                                        { return testTracer{} }
 
 // StartSpan belongs to the Tracer interface.
-func (n testTracer) StartSpan(operationName string) Span {
-	return testSpan{
+func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
+	sso := StartSpanOptions{
 		OperationName: operationName,
-		spanContext: testSpanContext{
-			HasParent: false,
-			FakeID:    nextFakeID(),
-		},
 	}
+	for _, o := range opts {
+		o(&sso)
+	}
+	return n.StartSpanWithOptions(sso)
 }
 
 // StartSpanWithOptions belongs to the Tracer interface.
 func (n testTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
 	fakeID := nextFakeID()
-	if opts.Parent != nil {
-		fakeID = opts.Parent.(testSpanContext).FakeID
+	if len(opts.CausalReferences) > 0 {
+		fakeID = opts.CausalReferences[0].SpanContext.(testSpanContext).FakeID
 	}
 	return testSpan{
 		OperationName: opts.OperationName,
 		spanContext: testSpanContext{
-			HasParent: opts.Parent != nil,
+			HasParent: len(opts.CausalReferences) > 0,
 			FakeID:    fakeID,
 		},
 	}
@@ -79,8 +79,8 @@ func (n testTracer) Inject(sp SpanContext, format interface{}, carrier interface
 	return ErrUnsupportedFormat
 }
 
-// Join belongs to the Tracer interface.
-func (n testTracer) Join(operationName string, format interface{}, carrier interface{}) (Span, error) {
+// Extract belongs to the Tracer interface.
+func (n testTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
 	switch format {
 	case TextMap:
 		// Just for testing purposes... generally not a worthwhile thing to
@@ -97,10 +97,7 @@ func (n testTracer) Join(operationName string, format interface{}, carrier inter
 			}
 			return nil
 		})
-		return n.StartSpanWithOptions(StartSpanOptions{
-			Parent:        sc,
-			OperationName: operationName,
-		}), err
+		return sc, err
 	}
-	return nil, ErrTraceNotFound
+	return nil, ErrSpanContextNotFound
 }
