@@ -112,8 +112,27 @@ type TextMapReader interface {
 	ForeachKey(handler func(key, val string) error) error
 }
 
+// TextMapCarrier allows the use of regular map[string]string
+// as both TextMapWriter and TextMapReader.
+type TextMapCarrier map[string]string
+
+// ForeachKey conforms to the TextMapReader interface.
+func (c TextMapCarrier) ForeachKey(handler func(key, val string) error) error {
+	for k, v := range c {
+		if err := handler(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Set implements Set() of opentracing.TextMapWriter
+func (c TextMapCarrier) Set(key, val string) {
+	c[key] = val
+}
+
+
 // HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
-//
 type HTTPHeaderTextMapCarrier http.Header
 
 // Set conforms to the TextMapWriter interface.

@@ -79,6 +79,13 @@ var (
 	// HTTPStatusCode is the numeric HTTP status code (200, 404, etc) of the
 	// HTTP response.
 	HTTPStatusCode = uint16Tag("http.status_code")
+
+	//////////////////////////////////////////////////////////////////////
+	// Error Tag
+	//////////////////////////////////////////////////////////////////////
+
+	// Error indicates that operation represented by the span resulted in an error.
+	Error = boolTag("error")
 )
 
 // ---
@@ -117,5 +124,14 @@ type uint16Tag string
 
 // Add adds a uint16 tag to the `span`
 func (tag uint16Tag) Set(span opentracing.Span, value uint16) {
+	span.SetTag(string(tag), value)
+}
+
+// ---
+
+type boolTag string
+
+// Add adds a bool tag to the `span`
+func (tag boolTag) Set(span opentracing.Span, value bool) {
 	span.SetTag(string(tag), value)
 }

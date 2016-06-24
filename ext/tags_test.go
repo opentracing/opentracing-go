@@ -58,11 +58,14 @@ func TestMiscTags(t *testing.T) {
 	span := tracer.StartSpan("my-trace")
 	ext.Component.Set(span, "my-awesome-library")
 	ext.SamplingPriority.Set(span, 1)
+	ext.Error.Set(span, true)
+
 	span.Finish()
 
 	rawSpan := span.(*noopSpan)
 	assertEqual(t, "my-awesome-library", rawSpan.Tags["component"])
 	assertEqual(t, uint16(1), rawSpan.Tags["sampling.priority"])
+	assertEqual(t, true, rawSpan.Tags["error"])
 }
 
 // noopTracer and noopSpan with span tags implemented
