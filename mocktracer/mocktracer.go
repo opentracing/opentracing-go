@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -169,14 +170,14 @@ func (t *MockTracer) Join(operationName string, format interface{}, carrier inte
 		})
 		return rval, err
 	}
-	return nil, opentracing.ErrTraceNotFound
+	return nil, opentracing.ErrUnsupportedFormat
 }
 
-var mockIDSource = 1
+var mockIDSource = uint32(42)
 
 func nextMockID() int {
-	mockIDSource++
-	return mockIDSource
+	atomic.AddUint32(&mockIDSource, 1)
+	return int(atomic.LoadUint32(&mockIDSource))
 }
 
 func newMockSpan(t *MockTracer, opts opentracing.StartSpanOptions) *MockSpan {
