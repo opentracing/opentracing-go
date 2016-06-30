@@ -6,17 +6,11 @@
 test:
 	go test -v -cover ./...
 
-.PHONY: fmt
-fmt:
-	go fmt ./...
-
 .PHONY: lint
 lint:
+	go fmt ./...
 	golint ./...
 	@# Run again with magic to exit non-zero if golint outputs anything.
 	@! (golint ./... | read dummy)
-
-.PHONY: vet
-vet:
 	go vet ./...
 
