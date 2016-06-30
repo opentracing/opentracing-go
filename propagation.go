@@ -131,7 +131,6 @@ func (c TextMapCarrier) Set(key, val string) {
 	c[key] = val
 }
 
-
 // HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
 type HTTPHeaderTextMapCarrier http.Header
 

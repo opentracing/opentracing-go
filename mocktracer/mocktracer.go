@@ -170,6 +170,13 @@ func (s *MockSpan) BaggageItem(key string) string {
 	return s.Baggage[key]
 }
 
+// ForeachBaggageItem belongs to the Span interface
+func (s *MockSpan) ForeachBaggageItem(handler func(k, v string)) {
+	for k, v := range s.Baggage {
+		handler(k, v)
+	}
+}
+
 // LogEvent belongs to the Span interface
 func (s *MockSpan) LogEvent(event string) {
 	s.Log(opentracing.LogData{

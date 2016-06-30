@@ -30,6 +30,7 @@ func (n testSpan) Finish()                                               {}
 func (n testSpan) FinishWithOptions(opts FinishOptions)                  {}
 func (n testSpan) SetBaggageItem(key, val string) Span                   { return n }
 func (n testSpan) BaggageItem(key string) string                         { return "" }
+func (n testSpan) ForeachBaggageItem(handler func(k, v string))          {}
 func (n testSpan) LogEvent(event string)                                 {}
 func (n testSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n testSpan) Log(data LogData)                                      {}

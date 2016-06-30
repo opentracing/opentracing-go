@@ -87,6 +87,10 @@ type Span interface {
 	// See the `SetBaggageItem` notes about `restrictedKey`.
 	BaggageItem(restrictedKey string) string
 
+	// ForeachBaggageItem allows reading all baggage items stored in the span.
+	// The handler function will be called for each baggage key/value pair.
+	ForeachBaggageItem(handler func(k, v string))
+
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
 }
