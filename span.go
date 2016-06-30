@@ -89,7 +89,11 @@ type Span interface {
 
 	// ForeachBaggageItem allows reading all baggage items stored in the span.
 	// The handler function will be called for each baggage key/value pair.
-	ForeachBaggageItem(handler func(k, v string))
+	// The bool return value indicates if the handler wants to continue iterating
+	// through the rest of the baggage items; for example if the handler is trying to
+	// find some baggage item by pattern matching the name, it can return false
+	// as soon as the item is found to stop further iterations.
+	ForeachBaggageItem(handler func(k, v string) bool)
 
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer

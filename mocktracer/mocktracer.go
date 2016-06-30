@@ -171,9 +171,11 @@ func (s *MockSpan) BaggageItem(key string) string {
 }
 
 // ForeachBaggageItem belongs to the Span interface
-func (s *MockSpan) ForeachBaggageItem(handler func(k, v string)) {
+func (s *MockSpan) ForeachBaggageItem(handler func(k, v string) bool) {
 	for k, v := range s.Baggage {
-		handler(k, v)
+		if !handler(k, v) {
+			break
+		}
 	}
 }
 
