@@ -33,7 +33,7 @@ var (
 	// Component name
 	//////////////////////////////////////////////////////////////////////
 
-	// Component is a low-cardinality identifier of the module, library, 
+	// Component is a low-cardinality identifier of the module, library,
 	// or package that is generating a span.
 	Component = stringTag("component")
 

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/mocktracer"
 )
 
 func assertEqual(t *testing.T, expected, actual interface{}) {
@@ -19,7 +19,7 @@ func TestPeerTags(t *testing.T) {
 	if ext.PeerService != "peer.service" {
 		t.Fatalf("Invalid PeerService %v", ext.PeerService)
 	}
-	tracer := noopTracer{}
+	tracer := mocktracer.New()
 	span := tracer.StartSpan("my-trace")
 	ext.PeerService.Set(span, "my-service")
 	ext.PeerHostname.Set(span, "my-hostname")
@@ -31,7 +31,7 @@ func TestPeerTags(t *testing.T) {
 	ext.SpanKind.Set(span, ext.SpanKindRPCClient)
 	span.Finish()
 
-	rawSpan := span.(*noopSpan)
+	rawSpan := span.(*mocktracer.MockSpan)
 	assertEqual(t, "my-service", rawSpan.Tags["peer.service"])
 	assertEqual(t, "my-hostname", rawSpan.Tags["peer.hostname"])
 	assertEqual(t, uint32(127<<24|1), rawSpan.Tags["peer.ipv4"])
@@ -40,21 +40,21 @@ func TestPeerTags(t *testing.T) {
 }
 
 func TestHTTPTags(t *testing.T) {
-	tracer := noopTracer{}
+	tracer := mocktracer.New()
 	span := tracer.StartSpan("my-trace")
 	ext.HTTPUrl.Set(span, "test.biz/uri?protocol=false")
 	ext.HTTPMethod.Set(span, "GET")
 	ext.HTTPStatusCode.Set(span, 301)
 	span.Finish()
 
-	rawSpan := span.(*noopSpan)
+	rawSpan := span.(*mocktracer.MockSpan)
 	assertEqual(t, "test.biz/uri?protocol=false", rawSpan.Tags["http.url"])
 	assertEqual(t, "GET", rawSpan.Tags["http.method"])
 	assertEqual(t, uint16(301), rawSpan.Tags["http.status_code"])
 }
 
 func TestMiscTags(t *testing.T) {
-	tracer := noopTracer{}
+	tracer := mocktracer.New()
 	span := tracer.StartSpan("my-trace")
 	ext.Component.Set(span, "my-awesome-library")
 	ext.SamplingPriority.Set(span, 1)
@@ -62,46 +62,8 @@ func TestMiscTags(t *testing.T) {
 
 	span.Finish()
 
-	rawSpan := span.(*noopSpan)
+	rawSpan := span.(*mocktracer.MockSpan)
 	assertEqual(t, "my-awesome-library", rawSpan.Tags["component"])
 	assertEqual(t, uint16(1), rawSpan.Tags["sampling.priority"])
 	assertEqual(t, true, rawSpan.Tags["error"])
-}
-
-// noopTracer and noopSpan with span tags implemented
-type noopTracer struct{}
-
-type noopSpan struct {
-	Tags opentracing.Tags
-}
-
-func (n noopSpan) SetTag(key string, value interface{}) opentracing.Span {
-	n.Tags[key] = value
-	return n
-}
-
-func (n noopSpan) Finish()                                                {}
-func (n noopSpan) FinishWithOptions(opts opentracing.FinishOptions)       {}
-func (n noopSpan) SetBaggageItem(key, val string) opentracing.Span        { return n }
-func (n noopSpan) BaggageItem(key string) string                          { return "" }
-func (n noopSpan) LogEvent(event string)                                  {}
-func (n noopSpan) LogEventWithPayload(event string, payload interface{})  {}
-func (n noopSpan) Log(data opentracing.LogData)                           {}
-func (n noopSpan) SetOperationName(operationName string) opentracing.Span { return n }
-func (n noopSpan) Tracer() opentracing.Tracer                             { return nil }
-
-func (n noopTracer) StartSpan(operationName string) opentracing.Span {
-	return &noopSpan{Tags: make(opentracing.Tags)}
-}
-
-func (n noopTracer) StartSpanWithOptions(opts opentracing.StartSpanOptions) opentracing.Span {
-	return noopSpan{Tags: make(opentracing.Tags)}
-}
-
-func (n noopTracer) Inject(sp opentracing.Span, format interface{}, carrier interface{}) error {
-	panic("not implemented")
-}
-
-func (n noopTracer) Join(operationName string, format interface{}, carrier interface{}) (opentracing.Span, error) {
-	panic("not implemented")
 }
