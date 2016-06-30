@@ -31,12 +31,16 @@ func TestPeerTags(t *testing.T) {
 	ext.SpanKind.Set(span, ext.SpanKindRPCClient)
 	span.Finish()
 
-	rawSpan := span.(*mocktracer.MockSpan)
-	assertEqual(t, "my-service", rawSpan.Tags["peer.service"])
-	assertEqual(t, "my-hostname", rawSpan.Tags["peer.hostname"])
-	assertEqual(t, uint32(127<<24|1), rawSpan.Tags["peer.ipv4"])
-	assertEqual(t, "::", rawSpan.Tags["peer.ipv6"])
-	assertEqual(t, uint16(8080), rawSpan.Tags["peer.port"])
+	rawSpan := tracer.GetFinishedSpans()[0]
+	assertEqual(t, map[string]interface{}{
+		"peer.service":      "my-service",
+		"peer.hostname":     "my-hostname",
+		"peer.ipv4":         uint32(127<<24 | 1),
+		"peer.ipv6":         "::",
+		"peer.port":         uint16(8080),
+		"span.kind":         ext.SpanKindRPCClient,
+		"sampling.priority": uint16(1),
+	}, rawSpan.GetTags())
 }
 
 func TestHTTPTags(t *testing.T) {
@@ -47,10 +51,12 @@ func TestHTTPTags(t *testing.T) {
 	ext.HTTPStatusCode.Set(span, 301)
 	span.Finish()
 
-	rawSpan := span.(*mocktracer.MockSpan)
-	assertEqual(t, "test.biz/uri?protocol=false", rawSpan.Tags["http.url"])
-	assertEqual(t, "GET", rawSpan.Tags["http.method"])
-	assertEqual(t, uint16(301), rawSpan.Tags["http.status_code"])
+	rawSpan := tracer.GetFinishedSpans()[0]
+	assertEqual(t, map[string]interface{}{
+		"http.url":         "test.biz/uri?protocol=false",
+		"http.method":      "GET",
+		"http.status_code": uint16(301),
+	}, rawSpan.GetTags())
 }
 
 func TestMiscTags(t *testing.T) {
@@ -62,8 +68,10 @@ func TestMiscTags(t *testing.T) {
 
 	span.Finish()
 
-	rawSpan := span.(*mocktracer.MockSpan)
-	assertEqual(t, "my-awesome-library", rawSpan.Tags["component"])
-	assertEqual(t, uint16(1), rawSpan.Tags["sampling.priority"])
-	assertEqual(t, true, rawSpan.Tags["error"])
+	rawSpan := tracer.GetFinishedSpans()[0]
+	assertEqual(t, map[string]interface{}{
+		"component":         "my-awesome-library",
+		"sampling.priority": uint16(1),
+		"error":             true,
+	}, rawSpan.GetTags())
 }
