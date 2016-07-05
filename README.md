@@ -122,7 +122,7 @@ reference.
             // Create a span referring to the RPC client.
             serverSpan = opentracing.StartSpan(
                 appSpecificOperationName,
-                opentracing.RPCServerOption(wireContext))
+                ext.RPCServerOption(wireContext))
         } else {
             // Create a root span.
             serverSpan = opentracing.StartSpan(appSpecificOperationName)
