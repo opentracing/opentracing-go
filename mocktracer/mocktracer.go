@@ -224,9 +224,12 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	if tags == nil {
 		tags = map[string]interface{}{}
 	}
+	spanContext := newMockSpanContext(nextMockID())
 	parentID := int(0)
 	if len(opts.References) > 0 {
 		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
+		baggage := opts.References[0].Referee.(*MockSpanContext).GetBaggage()
+		spanContext.baggage = baggage
 	}
 	startTime := opts.StartTime
 	if startTime.IsZero() {
@@ -238,9 +241,9 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 		StartTime:     startTime,
 		tags:          tags,
 		logs:          []opentracing.LogData{},
+		spanContext:   spanContext,
 
-		tracer:      t,
-		spanContext: newMockSpanContext(nextMockID()),
+		tracer: t,
 	}
 }
 
