@@ -118,15 +118,13 @@ reference.
         if err != nil {
             // Optionally record something about err here
         }
-        if wireContext != nil {
-            // Create a span referring to the RPC client.
-            serverSpan = opentracing.StartSpan(
-                appSpecificOperationName,
-                ext.RPCServerOption(wireContext))
-        } else {
-            // Create a root span.
-            serverSpan = opentracing.StartSpan(appSpecificOperationName)
-        }
+
+        // Create the span referring to the RPC client if available.
+        // If wireContext == nil, a root span will be created.
+        serverSpan = opentracing.StartSpan(
+            appSpecificOperationName,
+            ext.RPCServerOption(wireContext))
+
         defer serverSpan.Finish()
 
         ctx := opentracing.ContextWithSpan(context.Background(), serverSpan)
