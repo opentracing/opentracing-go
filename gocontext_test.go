@@ -8,7 +8,7 @@ import (
 
 func TestContextWithSpan(t *testing.T) {
 	span := &noopSpan{}
-	ctx := BackgroundContextWithSpan(span)
+	ctx := ContextWithSpan(context.Background(), span)
 	span2 := SpanFromContext(ctx)
 	if span != span2 {
 		t.Errorf("Not the same span returned from context, expected=%+v, actual=%+v", span, span2)
@@ -33,9 +33,9 @@ func TestStartSpanFromContext(t *testing.T) {
 	// Test the case where there *is* a Span in the Context.
 	{
 		parentSpan := &testSpan{}
-		parentCtx := BackgroundContextWithSpan(parentSpan)
-		childSpan, childCtx := startSpanFromContextWithTracer(parentCtx, "child", testTracer)
-		if !childSpan.(testSpan).HasParent {
+		parentCtx := ContextWithSpan(context.Background(), parentSpan)
+		childSpan, childCtx := startSpanFromContextWithTracer(parentCtx, testTracer, "child")
+		if !childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Failed to find parent: %v", childSpan)
 		}
 		if childSpan != SpanFromContext(childCtx) {
@@ -46,8 +46,8 @@ func TestStartSpanFromContext(t *testing.T) {
 	// Test the case where there *is not* a Span in the Context.
 	{
 		emptyCtx := context.Background()
-		childSpan, childCtx := startSpanFromContextWithTracer(emptyCtx, "child", testTracer)
-		if childSpan.(testSpan).HasParent {
+		childSpan, childCtx := startSpanFromContextWithTracer(emptyCtx, testTracer, "child")
+		if childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Should not have found parent: %v", childSpan)
 		}
 		if childSpan != SpanFromContext(childCtx) {

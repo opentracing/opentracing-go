@@ -7,30 +7,28 @@ type contextKey struct{}
 var activeSpanKey = contextKey{}
 
 // ContextWithSpan returns a new `context.Context` that holds a reference to
-// the given `Span`.
+// `span`'s SpanContext.
 func ContextWithSpan(ctx context.Context, span Span) context.Context {
 	return context.WithValue(ctx, activeSpanKey, span)
 }
 
-// BackgroundContextWithSpan is a convenience wrapper around
-// `ContextWithSpan(context.BackgroundContext(), ...)`.
-func BackgroundContextWithSpan(span Span) context.Context {
-	return context.WithValue(context.Background(), activeSpanKey, span)
-}
-
 // SpanFromContext returns the `Span` previously associated with `ctx`, or
 // `nil` if no such `Span` could be found.
+//
+// NOTE: context.Context != SpanContext: the former is Go's intra-process
+// context propagation mechanism, and the latter houses OpenTracing's per-Span
+// identity and baggage information.
 func SpanFromContext(ctx context.Context) Span {
 	val := ctx.Value(activeSpanKey)
-	if span, ok := val.(Span); ok {
-		return span
+	if sp, ok := val.(Span); ok {
+		return sp
 	}
 	return nil
 }
 
 // StartSpanFromContext starts and returns a Span with `operationName`, using
-// any Span found within `ctx` as a parent. If no such parent could be found,
-// StartSpanFromContext creates a root (parentless) Span.
+// any Span found within `ctx` as a ChildOfRef. If no such parent could be
+// found, StartSpanFromContext creates a root (parentless) Span.
 //
 // The second return value is a context.Context object built around the
 // returned Span.
@@ -42,16 +40,18 @@ func SpanFromContext(ctx context.Context) Span {
 //        defer sp.Finish()
 //        ...
 //    }
-func StartSpanFromContext(ctx context.Context, operationName string) (Span, context.Context) {
-	return startSpanFromContextWithTracer(ctx, operationName, GlobalTracer())
+func StartSpanFromContext(ctx context.Context, operationName string, opts ...StartSpanOption) (Span, context.Context) {
+	return startSpanFromContextWithTracer(ctx, GlobalTracer(), operationName, opts...)
 }
 
 // startSpanFromContextWithTracer is factored out for testing purposes.
-func startSpanFromContextWithTracer(ctx context.Context, operationName string, tracer Tracer) (Span, context.Context) {
-	parent := SpanFromContext(ctx)
-	span := tracer.StartSpanWithOptions(StartSpanOptions{
-		OperationName: operationName,
-		Parent:        parent,
-	})
+func startSpanFromContextWithTracer(ctx context.Context, tracer Tracer, operationName string, opts ...StartSpanOption) (Span, context.Context) {
+	var span Span
+	if parentSpan := SpanFromContext(ctx); parentSpan != nil {
+		span = tracer.StartSpan(
+			operationName, ChildOf(parentSpan.Context()))
+	} else {
+		span = tracer.StartSpan(operationName)
+	}
 	return span, ContextWithSpan(ctx, span)
 }

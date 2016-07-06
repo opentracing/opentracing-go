@@ -18,19 +18,25 @@ func nextFakeID() int {
 	return fakeIDSource
 }
 
+type testSpanContext struct {
+	HasParent bool
+	FakeID    int
+}
+
+func (n testSpanContext) SetBaggageItem(key, val string) SpanContext        { return n }
+func (n testSpanContext) BaggageItem(key string) string                     { return "" }
+func (n testSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+
 type testSpan struct {
+	spanContext   testSpanContext
 	OperationName string
-	HasParent     bool
-	FakeID        int
 }
 
 // testSpan:
+func (n testSpan) Context() SpanContext                                  { return n.spanContext }
 func (n testSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n testSpan) Finish()                                               {}
 func (n testSpan) FinishWithOptions(opts FinishOptions)                  {}
-func (n testSpan) SetBaggageItem(key, val string) Span                   { return n }
-func (n testSpan) BaggageItem(key string) string                         { return "" }
-func (n testSpan) ForeachBaggageItem(handler func(k, v string) bool)     {}
 func (n testSpan) LogEvent(event string)                                 {}
 func (n testSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n testSpan) Log(data LogData)                                      {}
@@ -38,41 +44,46 @@ func (n testSpan) SetOperationName(operationName string) Span            { retur
 func (n testSpan) Tracer() Tracer                                        { return testTracer{} }
 
 // StartSpan belongs to the Tracer interface.
-func (n testTracer) StartSpan(operationName string) Span {
-	return testSpan{
-		OperationName: operationName,
-		HasParent:     false,
-		FakeID:        nextFakeID(),
+func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
+	sso := StartSpanOptions{}
+	for _, o := range opts {
+		o.Apply(&sso)
 	}
+	return n.startSpanWithOptions(operationName, sso)
 }
 
-// StartSpanWithOptions belongs to the Tracer interface.
-func (n testTracer) StartSpanWithOptions(opts StartSpanOptions) Span {
+func (n testTracer) startSpanWithOptions(name string, opts StartSpanOptions) Span {
+	fakeID := nextFakeID()
+	if len(opts.References) > 0 {
+		fakeID = opts.References[0].Referee.(testSpanContext).FakeID
+	}
 	return testSpan{
-		OperationName: opts.OperationName,
-		HasParent:     opts.Parent != nil,
-		FakeID:        nextFakeID(),
+		OperationName: name,
+		spanContext: testSpanContext{
+			HasParent: len(opts.References) > 0,
+			FakeID:    fakeID,
+		},
 	}
 }
 
 // Inject belongs to the Tracer interface.
-func (n testTracer) Inject(sp Span, format interface{}, carrier interface{}) error {
-	span := sp.(testSpan)
+func (n testTracer) Inject(sp SpanContext, format interface{}, carrier interface{}) error {
+	spanContext := sp.(testSpanContext)
 	switch format {
 	case TextMap:
-		carrier.(TextMapWriter).Set(testHTTPHeaderPrefix+"fakeid", strconv.Itoa(span.FakeID))
+		carrier.(TextMapWriter).Set(testHTTPHeaderPrefix+"fakeid", strconv.Itoa(spanContext.FakeID))
 		return nil
 	}
 	return ErrUnsupportedFormat
 }
 
-// Join belongs to the Tracer interface.
-func (n testTracer) Join(operationName string, format interface{}, carrier interface{}) (Span, error) {
+// Extract belongs to the Tracer interface.
+func (n testTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
 	switch format {
 	case TextMap:
 		// Just for testing purposes... generally not a worthwhile thing to
 		// propagate.
-		rval := testSpan{}
+		sm := testSpanContext{}
 		err := carrier.(TextMapReader).ForeachKey(func(key, val string) error {
 			switch strings.ToLower(key) {
 			case testHTTPHeaderPrefix + "fakeid":
@@ -80,11 +91,11 @@ func (n testTracer) Join(operationName string, format interface{}, carrier inter
 				if err != nil {
 					return err
 				}
-				rval.FakeID = i
+				sm.FakeID = i
 			}
 			return nil
 		})
-		return rval, err
+		return sm, err
 	}
-	return nil, ErrTraceNotFound
+	return nil, ErrSpanContextNotFound
 }
