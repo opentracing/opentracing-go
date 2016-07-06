@@ -105,12 +105,16 @@ type rpcServerOption struct {
 }
 
 func (r rpcServerOption) Apply(o *opentracing.StartSpanOptions) {
-	opentracing.ChildOf(r.clientContext).Apply(o)
+	if r.clientContext != nil {
+		opentracing.ChildOf(r.clientContext).Apply(o)
+	}
 	(opentracing.Tags{string(SpanKind): SpanKindRPCServer}).Apply(o)
 }
 
 // RPCServerOption returns a StartSpanOption appropriate for an RPC server span
-// with `client` representing the metadata for the remote peer Span.
+// with `client` representing the metadata for the remote peer Span if available.
+// In case client == nil, due to the client not being instrumented, this RPC
+// server span will be a root span.
 func RPCServerOption(client opentracing.SpanContext) opentracing.StartSpanOption {
 	return rpcServerOption{client}
 }
