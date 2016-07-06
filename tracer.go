@@ -7,8 +7,9 @@ import "time"
 type Tracer interface {
 
 	// Create, start, and return a new Span with the given `operationName` and
-	// incorporate the given StartSpanOptions. (See StartSpanOption for all of
-	// the options on that front)
+	// incorporate the given StartSpanOption `opts`. (Note that `opts` borrows
+	// from the "functional options" pattern, per
+	// http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis)
 	//
 	// A Span with no SpanReference options (e.g., opentracing.ChildOf() or
 	// opentracing.FollowsFrom()) becomes the root of its own trace.
@@ -101,20 +102,36 @@ type Tracer interface {
 	// Return values:
 	//  - A successful Extract returns a SpanContext instance and a nil error
 	//  - If there was simply no SpanContext to extract in `carrier`, Extract()
-	//    returns (nil, opentracing.ErrTraceNotFound)
+	//    returns (nil, opentracing.ErrSpanContextNotFound)
 	//  - If `format` is unsupported or unrecognized, Extract() returns (nil,
 	//    opentracing.ErrUnsupportedFormat)
 	//  - If there are more fundamental problems with the `carrier` object,
 	//    Extract() may return opentracing.ErrInvalidCarrier,
-	//    opentracing.ErrTraceCorrupted, or implementation-specific errors.
+	//    opentracing.ErrSpanContextCorrupted, or implementation-specific
+	//    errors.
 	//
 	// See Tracer.Inject().
 	Extract(format interface{}, carrier interface{}) (SpanContext, error)
 }
 
-// StartSpanOptions allows Tracer.StartSpanWithOptions callers to override the
-// start timestamp, specify a parent Span, and make sure that Tags are
-// available at Span initialization time.
+// StartSpanOptions allows Tracer.StartSpan() callers and implementors a
+// mechanism to override the start timestamp, specify Span References, and make
+// Tags available at Span start time.
+//
+// StartSpan() callers should look at the StartSpanOption interface and
+// implementations available in this package.
+//
+// Tracer implementations can convert a slice of `StartSpanOption` instances
+// into a `StartSpanOptions` struct like so:
+//
+//     func StartSpan(opName string, opts ...opentracing.StartSpanOption) {
+//         sso := opentracing.StartSpanOptions{}
+//         for _, o := range opts {
+//             o.Apply(&sso)
+//         }
+//         ...
+//     }
+//
 type StartSpanOptions struct {
 	// Zero or more causal references to other Spans (via their SpanContext).
 	// If empty, start a "root" Span (i.e., start a new trace).
@@ -133,6 +150,9 @@ type StartSpanOptions struct {
 }
 
 // StartSpanOption instances (zero or more) may be passed to Tracer.StartSpan.
+//
+// StartSpanOption borrows from the "functional options" pattern, per
+// http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type StartSpanOption interface {
 	Apply(*StartSpanOptions)
 }
