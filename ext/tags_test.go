@@ -29,7 +29,7 @@ func TestPeerTags(t *testing.T) {
 	ext.PeerPort.Set(span, uint16(8080))
 	ext.SamplingPriority.Set(span, uint16(1))
 	ext.SpanKind.Set(span, ext.SpanKindRPCServerEnum)
-	ext.SpanKind.Set(span, ext.SpanKindRPCClientEnum)
+	ext.SpanKindRPCClient.Set(span)
 	span.Finish()
 
 	rawSpan := tracer.GetFinishedSpans()[0]

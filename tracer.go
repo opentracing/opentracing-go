@@ -265,7 +265,15 @@ func (t Tags) Apply(o *StartSpanOptions) {
 	}
 }
 
-// Tag may be passed as a StartSpanOption to add a tag to new spans.
+// Tag may be passed as a StartSpanOption to add a tag to new spans,
+// or its Set method may be used to apply the tag to an existing Span,
+// for example:
+//
+// tracer.StartSpan("opName", Tag{"Key", value})
+//
+//   or
+//
+// Tag{"key", value}.Set(span)
 type Tag struct {
 	Key   string
 	Value interface{}
@@ -277,4 +285,9 @@ func (t Tag) Apply(o *StartSpanOptions) {
 		o.Tags = make(map[string]interface{})
 	}
 	o.Tags[t.Key] = t.Value
+}
+
+// Set applies the tag to an existing Span.
+func (t Tag) Set(s Span) {
+	s.SetTag(t.Key, t.Value)
 }
