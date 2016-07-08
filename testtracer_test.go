@@ -47,7 +47,7 @@ func (n testSpan) Tracer() Tracer                                        { retur
 func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
 	sso := StartSpanOptions{}
 	for _, o := range opts {
-		o.Apply(&sso)
+		o.Apply(n, &sso)
 	}
 	return n.startSpanWithOptions(operationName, sso)
 }
