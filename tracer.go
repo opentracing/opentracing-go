@@ -30,9 +30,7 @@ type Tracer interface {
 	//     sp := tracer.StartSpan(
 	//         "GetFeed",
 	//         opentracing.ChildOf(parentSpan.Context()),
-	//         opentracing.Tags{
-	//             "user_agent": loggedReq.UserAgent,
-	//         },
+	//         opentracing.Tag("user_agent", loggedReq.UserAgent),
 	//         opentracing.StartTime(loggedReq.Timestamp),
 	//     )
 	//
@@ -116,7 +114,7 @@ type Tracer interface {
 
 // StartSpanOptions allows Tracer.StartSpan() callers and implementors a
 // mechanism to override the start timestamp, specify Span References, and make
-// Tags available at Span start time.
+// a single Tag or multiple Tags available at Span start time.
 //
 // StartSpan() callers should look at the StartSpanOption interface and
 // implementations available in this package.
@@ -265,4 +263,31 @@ func (t Tags) Apply(o *StartSpanOptions) {
 	for k, v := range t {
 		o.Tags[k] = v
 	}
+}
+
+// Tag may be passed as a StartSpanOption to add a tag to new spans,
+// or its Set method may be used to apply the tag to an existing Span,
+// for example:
+//
+// tracer.StartSpan("opName", Tag{"Key", value})
+//
+//   or
+//
+// Tag{"key", value}.Set(span)
+type Tag struct {
+	Key   string
+	Value interface{}
+}
+
+// Apply satisfies the StartSpanOption interface.
+func (t Tag) Apply(o *StartSpanOptions) {
+	if o.Tags == nil {
+		o.Tags = make(map[string]interface{})
+	}
+	o.Tags[t.Key] = t.Value
+}
+
+// Set applies the tag to an existing Span.
+func (t Tag) Set(s Span) {
+	s.SetTag(t.Key, t.Value)
 }
