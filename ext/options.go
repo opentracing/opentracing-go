@@ -29,15 +29,22 @@ func (e extractedOption) Apply(tracer opentracing.Tracer, o *opentracing.StartSp
 	}
 }
 
+// CarriedSpanRefOption extracts a context from "carrier" (of type "format")
+// and returns a StartSpanOption that will the associated context as a span
+// reference of type "ref" to a newly started span.
 func CarriedSpanRefOption(ref opentracing.SpanReferenceType,
 	format, carrier interface{}) opentracing.StartSpanOption {
 	return extractedOption{ref, format, carrier}
 }
 
+// CarriedChildOfOption constructs a opentracing.ChildOfRef SpanReference option
+// for use in StartSpan with a carried context.
 func CarriedChildOfOption(format, carrier interface{}) opentracing.StartSpanOption {
 	return CarriedSpanRefOption(opentracing.ChildOfRef, format, carrier)
 }
 
+// FollowsFrom constructs a opentracing.FollowsFrom SpanReference option
+// for use in StartSpan with a carried context.
 func CarriedFollowsFromOption(format, carrier interface{}) opentracing.StartSpanOption {
 	return CarriedSpanRefOption(opentracing.FollowsFromRef, format, carrier)
 }
