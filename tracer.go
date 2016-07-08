@@ -122,10 +122,10 @@ type Tracer interface {
 // Tracer implementations can convert a slice of `StartSpanOption` instances
 // into a `StartSpanOptions` struct like so:
 //
-//     func StartSpan(opName string, opts ...opentracing.StartSpanOption) {
+//     func (t *TracerType) StartSpan(opName string, opts ...opentracing.StartSpanOption) {
 //         sso := opentracing.StartSpanOptions{}
 //         for _, o := range opts {
-//             o.Apply(&sso)
+//             o.Apply(t, &sso)
 //         }
 //         ...
 //     }
@@ -152,7 +152,7 @@ type StartSpanOptions struct {
 // StartSpanOption borrows from the "functional options" pattern, per
 // http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type StartSpanOption interface {
-	Apply(*StartSpanOptions)
+	Apply(Tracer, *StartSpanOptions)
 }
 
 // SpanReferenceType is an enum type describing different categories of
@@ -166,6 +166,9 @@ type StartSpanOption interface {
 type SpanReferenceType int
 
 const (
+	// InvalidSpanRef indicates an unset span reference.
+	InvalidSpanRef SpanReferenceType = iota
+
 	// ChildOfRef refers to a parent Span that caused *and* somehow depends
 	// upon the new child Span. Often (but not always), the parent Span cannot
 	// finish unitl the child Span does.
@@ -178,7 +181,7 @@ const (
 	// See http://opentracing.io/spec/
 	//
 	// See opentracing.ChildOf()
-	ChildOfRef SpanReferenceType = iota
+	ChildOfRef
 
 	// FollowsFromRef refers to a parent Span that does not depend in any way
 	// on the result of the new child Span. For instance, one might use
@@ -216,7 +219,7 @@ type SpanReference struct {
 }
 
 // Apply satisfies the StartSpanOption interface.
-func (r SpanReference) Apply(o *StartSpanOptions) {
+func (r SpanReference) Apply(_ Tracer, o *StartSpanOptions) {
 	o.References = append(o.References, r)
 }
 
@@ -246,7 +249,7 @@ func FollowsFrom(sm SpanContext) SpanReference {
 type StartTime time.Time
 
 // Apply satisfies the StartSpanOption interface.
-func (t StartTime) Apply(o *StartSpanOptions) {
+func (t StartTime) Apply(_ Tracer, o *StartSpanOptions) {
 	o.StartTime = time.Time(t)
 }
 
@@ -256,7 +259,7 @@ func (t StartTime) Apply(o *StartSpanOptions) {
 type Tags map[string]interface{}
 
 // Apply satisfies the StartSpanOption interface.
-func (t Tags) Apply(o *StartSpanOptions) {
+func (t Tags) Apply(_ Tracer, o *StartSpanOptions) {
 	if o.Tags == nil {
 		o.Tags = make(map[string]interface{})
 	}
@@ -272,7 +275,7 @@ type Tag struct {
 }
 
 // Apply satisfies the StartSpanOption interface.
-func (t Tag) Apply(o *StartSpanOptions) {
+func (t Tag) Apply(_ Tracer, o *StartSpanOptions) {
 	if o.Tags == nil {
 		o.Tags = make(map[string]interface{})
 	}

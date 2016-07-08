@@ -78,7 +78,8 @@ func (s *MockSpanContext) GetBaggage() map[string]string {
 // MockSpan is an opentracing.Span implementation that exports its internal
 // state for testing purposes.
 type MockSpan struct {
-	ParentID int
+	ParentID           int
+	ParentRelationship opentracing.SpanReferenceType
 
 	OperationName string
 	StartTime     time.Time
@@ -142,7 +143,7 @@ func (s *MockSpan) GetLogs() []opentracing.LogData {
 func (t *MockTracer) StartSpan(operationName string, opts ...opentracing.StartSpanOption) opentracing.Span {
 	sso := opentracing.StartSpanOptions{}
 	for _, o := range opts {
-		o.Apply(&sso)
+		o.Apply(t, &sso)
 	}
 	return newMockSpan(t, operationName, sso)
 }
@@ -226,8 +227,10 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	}
 	spanContext := newMockSpanContext(nextMockID())
 	parentID := int(0)
+	parentRel := opentracing.InvalidSpanRef
 	if len(opts.References) > 0 {
 		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
+		parentRel = opts.References[0].Type
 		baggage := opts.References[0].Referee.(*MockSpanContext).GetBaggage()
 		spanContext.baggage = baggage
 	}
@@ -236,12 +239,13 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 		startTime = time.Now()
 	}
 	return &MockSpan{
-		ParentID:      parentID,
-		OperationName: name,
-		StartTime:     startTime,
-		tags:          tags,
-		logs:          []opentracing.LogData{},
-		spanContext:   spanContext,
+		ParentID:           parentID,
+		ParentRelationship: parentRel,
+		OperationName:      name,
+		StartTime:          startTime,
+		tags:               tags,
+		logs:               []opentracing.LogData{},
+		spanContext:        spanContext,
 
 		tracer: t,
 	}

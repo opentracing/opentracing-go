@@ -35,6 +35,8 @@ var (
 	// Component name
 	//////////////////////////////////////////////////////////////////////
 
+	CarriedContextError = stringTag("carried.context.error")
+
 	// Component is a low-cardinality identifier of the module, library,
 	// or package that is generating a span.
 	Component = stringTag("component")
@@ -106,11 +108,11 @@ type rpcServerOption struct {
 	clientContext opentracing.SpanContext
 }
 
-func (r rpcServerOption) Apply(o *opentracing.StartSpanOptions) {
+func (r rpcServerOption) Apply(t opentracing.Tracer, o *opentracing.StartSpanOptions) {
 	if r.clientContext != nil {
-		opentracing.ChildOf(r.clientContext).Apply(o)
+		opentracing.ChildOf(r.clientContext).Apply(t, o)
 	}
-	SpanKindRPCServer.Apply(o)
+	SpanKindRPCServer.Apply(t, o)
 }
 
 // RPCServerOption returns a StartSpanOption appropriate for an RPC server span
