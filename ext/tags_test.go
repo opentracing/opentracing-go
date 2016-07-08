@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/mocktracer"
 )
@@ -75,4 +76,31 @@ func TestMiscTags(t *testing.T) {
 		"sampling.priority": uint16(1),
 		"error":             true,
 	}, rawSpan.GetTags())
+}
+
+func TestRPCServerOption(t *testing.T) {
+	tracer := mocktracer.New()
+	parent := tracer.StartSpan("my-trace")
+	parent.Context().SetBaggageItem("bag", "gage")
+
+	carrier := opentracing.HTTPHeaderTextMapCarrier{}
+	err := tracer.Inject(parent.Context(), opentracing.TextMap, carrier)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parCtx, err := tracer.Extract(opentracing.TextMap, carrier)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tracer.StartSpan("my-child", ext.RPCServerOption(parCtx)).Finish()
+
+	rawSpan := tracer.GetFinishedSpans()[0]
+	assertEqual(t, map[string]interface{}{
+		"span.kind": ext.SpanKindRPCServerEnum,
+	}, rawSpan.GetTags())
+	assertEqual(t, map[string]string{
+		"bag": "gage",
+	}, rawSpan.Context().(*mocktracer.MockSpanContext).GetBaggage())
 }
