@@ -108,7 +108,7 @@ func (r rpcServerOption) Apply(o *opentracing.StartSpanOptions) {
 	if r.clientContext != nil {
 		opentracing.ChildOf(r.clientContext).Apply(o)
 	}
-	(opentracing.Tags{string(SpanKind): SpanKindRPCServer}).Apply(o)
+	opentracing.Tag{string(SpanKind), SpanKindRPCServer}.Apply(o)
 }
 
 // RPCServerOption returns a StartSpanOption appropriate for an RPC server span
