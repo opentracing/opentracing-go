@@ -27,8 +27,8 @@ func TestPeerTags(t *testing.T) {
 	ext.PeerHostIPv6.Set(span, "::")
 	ext.PeerPort.Set(span, uint16(8080))
 	ext.SamplingPriority.Set(span, uint16(1))
-	ext.SpanKind.Set(span, ext.SpanKindRPCServer)
-	ext.SpanKind.Set(span, ext.SpanKindRPCClient)
+	ext.SpanKind.Set(span, ext.SpanKindRPCServerEnum)
+	ext.SpanKind.Set(span, ext.SpanKindRPCClientEnum)
 	span.Finish()
 
 	rawSpan := tracer.GetFinishedSpans()[0]
@@ -38,14 +38,14 @@ func TestPeerTags(t *testing.T) {
 		"peer.ipv4":         uint32(127<<24 | 1),
 		"peer.ipv6":         "::",
 		"peer.port":         uint16(8080),
-		"span.kind":         ext.SpanKindRPCClient,
+		"span.kind":         ext.SpanKindRPCClientEnum,
 		"sampling.priority": uint16(1),
 	}, rawSpan.GetTags())
 }
 
 func TestHTTPTags(t *testing.T) {
 	tracer := mocktracer.New()
-	span := tracer.StartSpan("my-trace")
+	span := tracer.StartSpan("my-trace", ext.SpanKindRPCServer)
 	ext.HTTPUrl.Set(span, "test.biz/uri?protocol=false")
 	ext.HTTPMethod.Set(span, "GET")
 	ext.HTTPStatusCode.Set(span, 301)
@@ -56,6 +56,7 @@ func TestHTTPTags(t *testing.T) {
 		"http.url":         "test.biz/uri?protocol=false",
 		"http.method":      "GET",
 		"http.status_code": uint16(301),
+		"span.kind":        ext.SpanKindRPCServerEnum,
 	}, rawSpan.GetTags())
 }
 

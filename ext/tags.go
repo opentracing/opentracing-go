@@ -23,11 +23,13 @@ var (
 
 	// SpanKindRPCClient marks a span representing the client-side of an RPC
 	// or other remote call
-	SpanKindRPCClient = SpanKindEnum("client")
+	SpanKindRPCClientEnum = SpanKindEnum("client")
+	SpanKindRPCClient     = opentracing.Tag{string(SpanKind), SpanKindRPCClientEnum}
 
 	// SpanKindRPCServer marks a span representing the server-side of an RPC
 	// or other remote call
-	SpanKindRPCServer = SpanKindEnum("server")
+	SpanKindRPCServerEnum = SpanKindEnum("server")
+	SpanKindRPCServer     = opentracing.Tag{string(SpanKind), SpanKindRPCServerEnum}
 
 	//////////////////////////////////////////////////////////////////////
 	// Component name
