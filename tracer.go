@@ -113,7 +113,7 @@ type Tracer interface {
 }
 
 // StartSpanOptions allows Tracer.StartSpan() callers and implementors a
-// mechanism to override the start timestamp, specify Span References, and 
+// mechanism to override the start timestamp, specify Span References, and
 // specify one or more tags.
 //
 // StartSpan() callers should look at the StartSpanOption interface and

@@ -15,7 +15,7 @@ import opentracing "github.com/opentracing/opentracing-go"
 //
 var (
 	//////////////////////////////////////////////////////////////////////
-	// SpanKind (client/server)
+	// SpanKind (client/server) tag names
 	//////////////////////////////////////////////////////////////////////
 
 	// SpanKind hints at relationship between spans, e.g. client/server
@@ -23,16 +23,14 @@ var (
 
 	// SpanKindRPCClient marks a span representing the client-side of an RPC
 	// or other remote call
-	SpanKindRPCClientEnum = SpanKindEnum("client")
-	SpanKindRPCClient     = opentracing.Tag{string(SpanKind), SpanKindRPCClientEnum}
+	SpanKindRPCClientTagValue = SpanKindTagValue("client")
 
 	// SpanKindRPCServer marks a span representing the server-side of an RPC
 	// or other remote call
-	SpanKindRPCServerEnum = SpanKindEnum("server")
-	SpanKindRPCServer     = opentracing.Tag{string(SpanKind), SpanKindRPCServerEnum}
+	SpanKindRPCServerTagValue = SpanKindTagValue("server")
 
 	//////////////////////////////////////////////////////////////////////
-	// Component name
+	// Component tag names
 	//////////////////////////////////////////////////////////////////////
 
 	// Component is a low-cardinality identifier of the module, library,
@@ -40,14 +38,14 @@ var (
 	Component = stringTagName("component")
 
 	//////////////////////////////////////////////////////////////////////
-	// Sampling hint
+	// Sampling hint tag name
 	//////////////////////////////////////////////////////////////////////
 
 	// SamplingPriority determines the priority of sampling this Span.
 	SamplingPriority = uint16TagName("sampling.priority")
 
 	//////////////////////////////////////////////////////////////////////
-	// Peer tags. These tags can be emitted by either client-side of
+	// Peer tag names. These tag names can be emitted by either client-side of
 	// server-side to describe the other side/service in a peer-to-peer
 	// communications, like an RPC call.
 	//////////////////////////////////////////////////////////////////////
@@ -68,7 +66,7 @@ var (
 	PeerPort = uint16TagName("peer.port")
 
 	//////////////////////////////////////////////////////////////////////
-	// HTTP Tags
+	// HTTP Tag names
 	//////////////////////////////////////////////////////////////////////
 
 	// HTTPUrl should be the URL of the request being handled in this segment
@@ -83,22 +81,34 @@ var (
 	HTTPStatusCode = uint16TagName("http.status_code")
 
 	//////////////////////////////////////////////////////////////////////
-	// Error Tag
+	// Error Tag name
 	//////////////////////////////////////////////////////////////////////
 
 	// Error indicates that operation represented by the span resulted in an error.
 	Error = boolTagName("error")
 )
 
+var (
+	//////////////////////////////////////////////////////////////////////
+	// Conventional SpanKind Tags
+	//////////////////////////////////////////////////////////////////////
+
+	// TagSpanKindRPCClient is a tag indicating the span is a RPC client.
+	TagSpanKindRPCClient = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCClientTagValue}
+
+	// TagSpanKindRPCServer is a tag indicating the span is a RPC client.
+	TagSpanKindRPCServer = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCServerTagValue}
+)
+
 // ---
 
-// SpanKindEnum represents common span types
-type SpanKindEnum string
+// SpanKindTagValue represents common span types
+type SpanKindTagValue string
 
 type spanKindTagName string
 
 // Set adds a string tag to the `span`
-func (tag spanKindTagName) Set(span opentracing.Span, value SpanKindEnum) {
+func (tag spanKindTagName) Set(span opentracing.Span, value SpanKindTagValue) {
 	span.SetTag(string(tag), value)
 }
 
@@ -110,7 +120,7 @@ func (r rpcServerOption) Apply(o *opentracing.StartSpanOptions) {
 	if r.clientContext != nil {
 		opentracing.ChildOf(r.clientContext).Apply(o)
 	}
-	SpanKindRPCServer.Apply(o)
+	TagSpanKindRPCServer.Apply(o)
 }
 
 // RPCServerOption returns a StartSpanOption appropriate for an RPC server span
