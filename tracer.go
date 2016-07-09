@@ -217,7 +217,9 @@ type SpanReference struct {
 
 // Apply satisfies the StartSpanOption interface.
 func (r SpanReference) Apply(o *StartSpanOptions) {
-	o.References = append(o.References, r)
+	if r.Referee != nil {
+		o.References = append(o.References, r)
+	}
 }
 
 // ChildOf returns a StartSpanOption pointing to a dependent parent span.
