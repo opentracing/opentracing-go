@@ -33,6 +33,9 @@ type MockTracer struct {
 //
 // It is entirely unsuitable for production use, but appropriate for tests
 // that want to verify tracing behavior in other frameworks/applications.
+//
+// By default all spans have Sampled=true flag, unless {"sampling.priority": 0}
+// tag is set.
 type MockSpanContext struct {
 	sync.RWMutex
 
@@ -185,7 +188,7 @@ func (t *MockTracer) Inject(sm opentracing.SpanContext, format interface{}, carr
 func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentracing.SpanContext, error) {
 	switch format {
 	case opentracing.TextMap:
-		rval := newMockSpanContext(0, 0, nil)
+		rval := newMockSpanContext(0, 0, true, nil)
 		reader, ok := carrier.(opentracing.TextMapReader)
 		if !ok {
 			return nil, opentracing.ErrInvalidCarrier
@@ -237,11 +240,11 @@ func nextMockID() int {
 	return int(atomic.LoadUint32(&mockIDSource))
 }
 
-func newMockSpanContext(traceID int, spanID int, baggage map[string]string) *MockSpanContext {
+func newMockSpanContext(traceID int, spanID int, sampled bool, baggage map[string]string) *MockSpanContext {
 	return &MockSpanContext{
 		TraceID: traceID,
 		SpanID:  spanID,
-		Sampled: true,
+		Sampled: sampled,
 		baggage: baggage, // TODO make a copy
 	}
 }
@@ -254,12 +257,14 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	traceID := nextMockID()
 	parentID := int(0)
 	var baggage map[string]string
+	sampled := true
 	if len(opts.References) > 0 {
 		traceID = opts.References[0].Referee.(*MockSpanContext).TraceID
 		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
 		baggage = opts.References[0].Referee.(*MockSpanContext).GetBaggage()
+		sampled = opts.References[0].Referee.(*MockSpanContext).Sampled
 	}
-	spanContext := newMockSpanContext(traceID, nextMockID(), baggage)
+	spanContext := newMockSpanContext(traceID, nextMockID(), sampled, baggage)
 	startTime := opts.StartTime
 	if startTime.IsZero() {
 		startTime = time.Now()
@@ -290,6 +295,10 @@ func (s *MockSpan) SetTag(key string, value interface{}) opentracing.Span {
 			s.spanContext.Sampled = v > 0
 			return s
 		}
+		if v, ok := value.(int); ok {
+			s.spanContext.Sampled = v > 0
+			return s
+		}
 	}
 	s.tags[key] = value
 	return s
@@ -310,6 +319,14 @@ func (s *MockSpan) FinishWithOptions(opts opentracing.FinishOptions) {
 	s.logs = append(s.logs, opts.BulkLogData...)
 	s.spanContext.Unlock()
 	s.tracer.recordSpan(s)
+}
+
+// String allows printing span for debugging
+func (s *MockSpan) String() string {
+	return fmt.Sprintf(
+		"traceId=%d, spanId=%d, parentId=%d, sampled=%t, name=%s",
+		s.spanContext.TraceID, s.spanContext.SpanID, s.ParentID,
+		s.spanContext.Sampled, s.OperationName)
 }
 
 func (t *MockTracer) recordSpan(span *MockSpan) {
