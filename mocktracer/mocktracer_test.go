@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 func TestMockTracer_StartSpan(t *testing.T) {
@@ -106,28 +107,43 @@ func TestMockSpan_Logs(t *testing.T) {
 }
 
 func TestMockTracer_Propagation(t *testing.T) {
-	tracer := New()
-	span := tracer.StartSpan("x")
-	span.Context().SetBaggageItem("x", "y")
+	tests := []struct {
+		sampled bool
+	}{
+		{true},
+		{false},
+	}
+	for _, test := range tests {
+		tracer := New()
+		span := tracer.StartSpan("x")
+		span.Context().SetBaggageItem("x", "y")
+		if !test.sampled {
+			ext.SamplingPriority.Set(span, 0)
+		}
+		mSpan := span.(*MockSpan)
 
-	assert.Equal(t, opentracing.ErrUnsupportedFormat,
-		tracer.Inject(span.Context(), opentracing.Binary, nil))
-	assert.Equal(t, opentracing.ErrInvalidCarrier,
-		tracer.Inject(span.Context(), opentracing.TextMap, span))
+		assert.Equal(t, opentracing.ErrUnsupportedFormat,
+			tracer.Inject(span.Context(), opentracing.Binary, nil))
+		assert.Equal(t, opentracing.ErrInvalidCarrier,
+			tracer.Inject(span.Context(), opentracing.TextMap, span))
 
-	carrier := make(map[string]string)
+		carrier := make(map[string]string)
 
-	err := tracer.Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(carrier))
-	require.NoError(t, err)
-	t.Logf("%+v", carrier)
-	assert.Equal(t, 2, len(carrier), "expect baggage + id")
+		err := tracer.Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+		require.NoError(t, err)
+		t.Logf("%+v", carrier)
+		assert.Equal(t, 4, len(carrier), "expect baggage + 2 ids + sampled")
 
-	_, err = tracer.Extract(opentracing.Binary, nil)
-	assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
-	_, err = tracer.Extract(opentracing.TextMap, tracer)
-	assert.Equal(t, opentracing.ErrInvalidCarrier, err)
+		_, err = tracer.Extract(opentracing.Binary, nil)
+		assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
+		_, err = tracer.Extract(opentracing.TextMap, tracer)
+		assert.Equal(t, opentracing.ErrInvalidCarrier, err)
 
-	extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
-	require.NoError(t, err)
-	assert.Equal(t, "y", extractedContext.BaggageItem("x"))
+		extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+		require.NoError(t, err)
+		assert.Equal(t, mSpan.spanContext.TraceID, extractedContext.(*MockSpanContext).TraceID)
+		assert.Equal(t, mSpan.spanContext.SpanID, extractedContext.(*MockSpanContext).SpanID)
+		assert.Equal(t, test.sampled, extractedContext.(*MockSpanContext).Sampled)
+		assert.Equal(t, "y", extractedContext.BaggageItem("x"))
+	}
 }

@@ -1,6 +1,7 @@
 package mocktracer
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 // New returns a MockTracer opentracing.Tracer implementation that's intended
@@ -34,7 +36,9 @@ type MockTracer struct {
 type MockSpanContext struct {
 	sync.RWMutex
 
+	TraceID int
 	SpanID  int
+	Sampled bool
 	baggage map[string]string
 }
 
@@ -42,6 +46,9 @@ type MockSpanContext struct {
 func (s *MockSpanContext) SetBaggageItem(key, val string) opentracing.SpanContext {
 	s.Lock()
 	defer s.Unlock()
+	if s.baggage == nil {
+		s.baggage = make(map[string]string)
+	}
 	s.baggage[key] = val
 	return s
 }
@@ -162,7 +169,9 @@ func (t *MockTracer) Inject(sm opentracing.SpanContext, format interface{}, carr
 			return opentracing.ErrInvalidCarrier
 		}
 		// Ids:
+		writer.Set(mockTextMapIdsPrefix+"traceid", strconv.Itoa(spanContext.TraceID))
 		writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.SpanID))
+		writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
 		// Baggage:
 		for baggageKey, baggageVal := range spanContext.baggage {
 			writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
@@ -176,7 +185,7 @@ func (t *MockTracer) Inject(sm opentracing.SpanContext, format interface{}, carr
 func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentracing.SpanContext, error) {
 	switch format {
 	case opentracing.TextMap:
-		rval := newMockSpanContext(0)
+		rval := newMockSpanContext(0, 0, nil)
 		reader, ok := carrier.(opentracing.TextMapReader)
 		if !ok {
 			return nil, opentracing.ErrInvalidCarrier
@@ -184,6 +193,13 @@ func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentraci
 		err := reader.ForeachKey(func(key, val string) error {
 			lowerKey := strings.ToLower(key)
 			switch {
+			case lowerKey == mockTextMapIdsPrefix+"traceid":
+				// Ids:
+				i, err := strconv.Atoi(val)
+				if err != nil {
+					return err
+				}
+				rval.TraceID = i
 			case lowerKey == mockTextMapIdsPrefix+"spanid":
 				// Ids:
 				i, err := strconv.Atoi(val)
@@ -191,16 +207,25 @@ func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentraci
 					return err
 				}
 				rval.SpanID = i
+			case lowerKey == mockTextMapIdsPrefix+"sampled":
+				b, err := strconv.ParseBool(val)
+				if err != nil {
+					return err
+				}
+				rval.Sampled = b
 			case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
 				// Baggage:
-				rval.baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
+				rval.SetBaggageItem(lowerKey[len(mockTextMapBaggagePrefix):], val)
 			}
 			return nil
 		})
-		if rval.SpanID == 0 {
+		if rval.TraceID == 0 || rval.SpanID == 0 {
 			return nil, opentracing.ErrSpanContextNotFound
 		}
-		return rval, err
+		if err != nil {
+			return nil, err
+		}
+		return rval, nil
 	}
 	return nil, opentracing.ErrUnsupportedFormat
 }
@@ -212,10 +237,12 @@ func nextMockID() int {
 	return int(atomic.LoadUint32(&mockIDSource))
 }
 
-func newMockSpanContext(spanID int) *MockSpanContext {
+func newMockSpanContext(traceID int, spanID int, baggage map[string]string) *MockSpanContext {
 	return &MockSpanContext{
+		TraceID: traceID,
 		SpanID:  spanID,
-		baggage: make(map[string]string),
+		Sampled: true,
+		baggage: baggage, // TODO make a copy
 	}
 }
 
@@ -224,13 +251,15 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	if tags == nil {
 		tags = map[string]interface{}{}
 	}
-	spanContext := newMockSpanContext(nextMockID())
+	traceID := nextMockID()
 	parentID := int(0)
+	var baggage map[string]string
 	if len(opts.References) > 0 {
+		traceID = opts.References[0].Referee.(*MockSpanContext).TraceID
 		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
-		baggage := opts.References[0].Referee.(*MockSpanContext).GetBaggage()
-		spanContext.baggage = baggage
+		baggage = opts.References[0].Referee.(*MockSpanContext).GetBaggage()
 	}
+	spanContext := newMockSpanContext(traceID, nextMockID(), baggage)
 	startTime := opts.StartTime
 	if startTime.IsZero() {
 		startTime = time.Now()
@@ -256,6 +285,12 @@ func (s *MockSpan) Context() opentracing.SpanContext {
 func (s *MockSpan) SetTag(key string, value interface{}) opentracing.Span {
 	s.spanContext.Lock()
 	defer s.spanContext.Unlock()
+	if key == string(ext.SamplingPriority) {
+		if v, ok := value.(uint16); ok {
+			s.spanContext.Sampled = v > 0
+			return s
+		}
+	}
 	s.tags[key] = value
 	return s
 }
