@@ -231,25 +231,25 @@ func (r SpanReference) Apply(o *StartSpanOptions) {
 }
 
 // ChildOf returns a StartSpanOption pointing to a dependent parent span.
-// If sm == nil, the option has no effect.
+// If sc == nil, the option has no effect.
 //
 // See ChildOfRef, SpanReference
-func ChildOf(sm SpanContext) SpanReference {
+func ChildOf(sc SpanContext) SpanReference {
 	return SpanReference{
 		Type:    ChildOfRef,
-		Referee: sm,
+		Referee: sc,
 	}
 }
 
 // FollowsFrom returns a StartSpanOption pointing to a parent Span that caused
 // the child Span but does not directly depend on its result in any way.
-// If sm == nil, the option has no effect.
+// If sc == nil, the option has no effect.
 //
 // See FollowsFromRef, SpanReference
-func FollowsFrom(sm SpanContext) SpanReference {
+func FollowsFrom(sc SpanContext) SpanReference {
 	return SpanReference{
 		Type:    FollowsFromRef,
-		Referee: sm,
+		Referee: sc,
 	}
 }
 
