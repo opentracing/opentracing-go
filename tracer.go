@@ -214,7 +214,7 @@ const (
 // it allows for a more concise syntax for starting spans:
 //
 //     sc, _ := tracer.Extract(someFormat, someCarrier)
-//     span := tracer.StartSpan("operation", ChildOf(sc))
+//     span := tracer.StartSpan("operation", opentracing.ChildOf(sc))
 //
 // The `ChildOf(sc)` option above will not panic if sc == nil, it will just
 // not add the parent span reference to the options.
@@ -231,8 +231,9 @@ func (r SpanReference) Apply(o *StartSpanOptions) {
 }
 
 // ChildOf returns a StartSpanOption pointing to a dependent parent span.
+// If sm == nil, the option has no effect.
 //
-// See ChildOfRef
+// See ChildOfRef, SpanReference
 func ChildOf(sm SpanContext) SpanReference {
 	return SpanReference{
 		Type:    ChildOfRef,
@@ -242,8 +243,9 @@ func ChildOf(sm SpanContext) SpanReference {
 
 // FollowsFrom returns a StartSpanOption pointing to a parent Span that caused
 // the child Span but does not directly depend on its result in any way.
+// If sm == nil, the option has no effect.
 //
-// See FollowsFromRef
+// See FollowsFromRef, SpanReference
 func FollowsFrom(sm SpanContext) SpanReference {
 	return SpanReference{
 		Type:    FollowsFromRef,
