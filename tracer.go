@@ -209,7 +209,15 @@ const (
 
 // SpanReference is a StartSpanOption that pairs a SpanReferenceType and a
 // referee SpanContext ("referee" is "the one who is referred to"). See the
-// SpanReferenceType documentation.
+// SpanReferenceType documentation for supported relationships.
+// If SpanReference is created with Referee == nil, it has no effect. Thus
+// it allows for a more concise syntax for starting spans:
+//
+//     sc, _ := tracer.Extract(someFormat, someCarrier)
+//     span := tracer.StartSpan("operation", ChildOf(sc))
+//
+// The `ChildOf(sc)` option above will not panic if sc == nil, it will just
+// not add the parent span reference to the options.
 type SpanReference struct {
 	Type    SpanReferenceType
 	Referee SpanContext
