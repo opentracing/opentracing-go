@@ -131,7 +131,6 @@ func TestMockTracer_Propagation(t *testing.T) {
 
 		err := tracer.Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(carrier))
 		require.NoError(t, err)
-		t.Logf("%+v", carrier)
 		assert.Equal(t, 4, len(carrier), "expect baggage + 2 ids + sampled")
 
 		_, err = tracer.Extract(opentracing.Binary, nil)

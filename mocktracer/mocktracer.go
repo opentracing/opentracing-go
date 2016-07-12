@@ -241,11 +241,15 @@ func nextMockID() int {
 }
 
 func newMockSpanContext(traceID int, spanID int, sampled bool, baggage map[string]string) *MockSpanContext {
+	baggageCopy := make(map[string]string)
+	for k, v := range baggage {
+		baggageCopy[k] = v
+	}
 	return &MockSpanContext{
 		TraceID: traceID,
 		SpanID:  spanID,
 		Sampled: sampled,
-		baggage: baggage, // TODO make a copy
+		baggage: baggageCopy,
 	}
 }
 
