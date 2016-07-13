@@ -26,7 +26,7 @@ func TestPeerTags(t *testing.T) {
 	ext.SpanKindRPCClient.Set(span)
 	span.Finish()
 
-	rawSpan := tracer.GetFinishedSpans()[0]
+	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
 		"peer.service":  "my-service",
 		"peer.hostname": "my-hostname",
@@ -34,7 +34,7 @@ func TestPeerTags(t *testing.T) {
 		"peer.ipv6":     "::",
 		"peer.port":     uint16(8080),
 		"span.kind":     ext.SpanKindRPCClientEnum,
-	}, rawSpan.GetTags())
+	}, rawSpan.Tags())
 	assert.True(t, span.Context().(*mocktracer.MockSpanContext).Sampled)
 	ext.SamplingPriority.Set(span, uint16(0))
 	assert.False(t, span.Context().(*mocktracer.MockSpanContext).Sampled)
@@ -48,13 +48,13 @@ func TestHTTPTags(t *testing.T) {
 	ext.HTTPStatusCode.Set(span, 301)
 	span.Finish()
 
-	rawSpan := tracer.GetFinishedSpans()[0]
+	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
 		"http.url":         "test.biz/uri?protocol=false",
 		"http.method":      "GET",
 		"http.status_code": uint16(301),
 		"span.kind":        ext.SpanKindRPCServerEnum,
-	}, rawSpan.GetTags())
+	}, rawSpan.Tags())
 }
 
 func TestMiscTags(t *testing.T) {
@@ -66,11 +66,11 @@ func TestMiscTags(t *testing.T) {
 
 	span.Finish()
 
-	rawSpan := tracer.GetFinishedSpans()[0]
+	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
 		"component": "my-awesome-library",
 		"error":     true,
-	}, rawSpan.GetTags())
+	}, rawSpan.Tags())
 }
 
 func TestRPCServerOption(t *testing.T) {
@@ -91,11 +91,11 @@ func TestRPCServerOption(t *testing.T) {
 
 	tracer.StartSpan("my-child", ext.RPCServerOption(parCtx)).Finish()
 
-	rawSpan := tracer.GetFinishedSpans()[0]
+	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
 		"span.kind": ext.SpanKindRPCServerEnum,
-	}, rawSpan.GetTags())
+	}, rawSpan.Tags())
 	assert.Equal(t, map[string]string{
 		"bag": "gage",
-	}, rawSpan.Context().(*mocktracer.MockSpanContext).GetBaggage())
+	}, rawSpan.Context().(*mocktracer.MockSpanContext).Baggage())
 }

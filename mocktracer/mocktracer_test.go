@@ -20,12 +20,12 @@ func TestMockTracer_StartSpan(t *testing.T) {
 		"", opentracing.ChildOf(span1.Context()))
 	span2.Finish()
 	span1.Finish()
-	spans := tracer.GetFinishedSpans()
+	spans := tracer.FinishedSpans()
 	assert.Equal(t, 2, len(spans))
 
 	parent := spans[1]
 	child := spans[0]
-	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.GetTags())
+	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.Tags())
 	assert.Equal(t, child.ParentID, parent.Context().(*MockSpanContext).SpanID)
 }
 
@@ -41,7 +41,7 @@ func TestMockSpanContext_Baggage(t *testing.T) {
 	span := tracer.StartSpan("x")
 	span.Context().SetBaggageItem("x", "y")
 	assert.Equal(t, "y", span.Context().BaggageItem("x"))
-	assert.Equal(t, map[string]string{"x": "y"}, span.Context().(*MockSpanContext).GetBaggage())
+	assert.Equal(t, map[string]string{"x": "y"}, span.Context().(*MockSpanContext).Baggage())
 
 	baggage := make(map[string]string)
 	span.Context().ForeachBaggageItem(func(k, v string) bool {
@@ -56,35 +56,35 @@ func TestMockSpanContext_Baggage(t *testing.T) {
 		baggage[k] = v
 		return false // exit early
 	})
-	assert.Equal(t, 2, len(span.Context().(*MockSpanContext).GetBaggage()))
+	assert.Equal(t, 2, len(span.Context().(*MockSpanContext).Baggage()))
 	assert.Equal(t, 1, len(baggage))
 }
 
-func TestMockSpan_GetTag(t *testing.T) {
+func TestMockSpan_Tag(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
 	span.SetTag("x", "y")
-	assert.Equal(t, "y", span.(*MockSpan).GetTag("x"))
+	assert.Equal(t, "y", span.(*MockSpan).Tag("x"))
 }
 
-func TestMockSpan_GetTags(t *testing.T) {
+func TestMockSpan_Tags(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
 	span.SetTag("x", "y")
-	assert.Equal(t, map[string]interface{}{"x": "y"}, span.(*MockSpan).GetTags())
+	assert.Equal(t, map[string]interface{}{"x": "y"}, span.(*MockSpan).Tags())
 }
 
-func TestMockTracer_GetFinishedSpans_and_Reset(t *testing.T) {
+func TestMockTracer_FinishedSpans_and_Reset(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
 	span.SetTag("x", "y")
 	span.Finish()
-	spans := tracer.GetFinishedSpans()
+	spans := tracer.FinishedSpans()
 	assert.Equal(t, 1, len(spans))
-	assert.Equal(t, map[string]interface{}{"x": "y"}, spans[0].GetTags())
+	assert.Equal(t, map[string]interface{}{"x": "y"}, spans[0].Tags())
 
 	tracer.Reset()
-	spans = tracer.GetFinishedSpans()
+	spans = tracer.FinishedSpans()
 	assert.Equal(t, 0, len(spans))
 }
 
@@ -96,14 +96,14 @@ func TestMockSpan_Logs(t *testing.T) {
 	span.Log(opentracing.LogData{Event: "a"})
 	span.FinishWithOptions(opentracing.FinishOptions{
 		BulkLogData: []opentracing.LogData{opentracing.LogData{Event: "f"}}})
-	spans := tracer.GetFinishedSpans()
+	spans := tracer.FinishedSpans()
 	assert.Equal(t, 1, len(spans))
 	assert.Equal(t, []opentracing.LogData{
 		opentracing.LogData{Event: "x"},
 		opentracing.LogData{Event: "y", Payload: "z"},
 		opentracing.LogData{Event: "a"},
 		opentracing.LogData{Event: "f"},
-	}, spans[0].GetLogs())
+	}, spans[0].Logs())
 }
 
 func TestMockTracer_Propagation(t *testing.T) {
