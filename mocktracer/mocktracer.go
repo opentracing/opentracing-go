@@ -74,8 +74,8 @@ func (s *MockSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {
 	}
 }
 
-// GetBaggage returns a copy of baggage items in the span
-func (s *MockSpanContext) GetBaggage() map[string]string {
+// Baggage returns a copy of baggage items in the span
+func (s *MockSpanContext) Baggage() map[string]string {
 	s.RLock()
 	defer s.RUnlock()
 	baggage := make(map[string]string)
@@ -102,9 +102,9 @@ type MockSpan struct {
 	tracer      *MockTracer
 }
 
-// GetFinishedSpans returns all spans that have been Finish()'ed since the
+// FinishedSpans returns all spans that have been Finish()'ed since the
 // MockTracer was constructed or since the last call to its Reset() method.
-func (t *MockTracer) GetFinishedSpans() []*MockSpan {
+func (t *MockTracer) FinishedSpans() []*MockSpan {
 	t.RLock()
 	defer t.RUnlock()
 	spans := make([]*MockSpan, len(t.finishedSpans))
@@ -121,8 +121,8 @@ func (t *MockTracer) Reset() {
 	t.finishedSpans = []*MockSpan{}
 }
 
-// GetTags returns a copy of tags accumulated by the span so far
-func (s *MockSpan) GetTags() map[string]interface{} {
+// Tags returns a copy of tags accumulated by the span so far
+func (s *MockSpan) Tags() map[string]interface{} {
 	s.spanContext.RLock()
 	defer s.spanContext.RUnlock()
 	tags := make(map[string]interface{})
@@ -132,15 +132,15 @@ func (s *MockSpan) GetTags() map[string]interface{} {
 	return tags
 }
 
-// GetTag returns a single tag
-func (s *MockSpan) GetTag(k string) interface{} {
+// Tag returns a single tag
+func (s *MockSpan) Tag(k string) interface{} {
 	s.spanContext.RLock()
 	defer s.spanContext.RUnlock()
 	return s.tags[k]
 }
 
-// GetLogs returns a copy of logs accumulated in the span so far
-func (s *MockSpan) GetLogs() []opentracing.LogData {
+// Logs returns a copy of logs accumulated in the span so far
+func (s *MockSpan) Logs() []opentracing.LogData {
 	s.spanContext.RLock()
 	defer s.spanContext.RUnlock()
 	logs := make([]opentracing.LogData, len(s.logs))
@@ -265,7 +265,7 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	if len(opts.References) > 0 {
 		traceID = opts.References[0].Referee.(*MockSpanContext).TraceID
 		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
-		baggage = opts.References[0].Referee.(*MockSpanContext).GetBaggage()
+		baggage = opts.References[0].Referee.(*MockSpanContext).Baggage()
 		sampled = opts.References[0].Referee.(*MockSpanContext).Sampled
 	}
 	spanContext := newMockSpanContext(traceID, nextMockID(), sampled, baggage)
