@@ -15,9 +15,18 @@ import (
 // New returns a MockTracer opentracing.Tracer implementation that's intended
 // to facilitate tests of OpenTracing instrumentation.
 func New() *MockTracer {
-	return &MockTracer{
+	t := &MockTracer{
 		finishedSpans: []*MockSpan{},
+		injectors:     make(map[interface{}]Injector),
+		extractors:    make(map[interface{}]Extractor),
 	}
+
+	// register default injectors/extractors
+	textPropagator := new(TextMapPropagator)
+	t.RegisterInjector(opentracing.TextMap, textPropagator)
+	t.RegisterExtractor(opentracing.TextMap, textPropagator)
+
+	return t
 }
 
 // MockTracer is only intended for testing OpenTracing instrumentation.
@@ -27,6 +36,32 @@ func New() *MockTracer {
 type MockTracer struct {
 	sync.RWMutex
 	finishedSpans []*MockSpan
+	injectors     map[interface{}]Injector
+	extractors    map[interface{}]Extractor
+}
+
+// Injector is responsible for injecting SpanContext instances in a manner suitable
+// for propagation via a format-specific "carrier" object. Typically the
+// injection will take place across an RPC boundary, but message queues and
+// other IPC mechanisms are also reasonable places to use an Injector.
+type Injector interface {
+	// Inject takes `SpanContext` and injects it into `carrier`. The actual type
+	// of `carrier` depends on the `format` passed to `Tracer.Inject()`.
+	//
+	// Implementations may return opentracing.ErrInvalidCarrier or any other
+	// implementation-specific error if injection fails.
+	Inject(ctx *MockSpanContext, carrier interface{}) error
+}
+
+// Extractor is responsible for extracting SpanContext instances from a
+// format-specific "carrier" object. Typically the extraction will take place
+// on the server side of an RPC boundary, but message queues and other IPC
+// mechanisms are also reasonable places to use an Extractor.
+type Extractor interface {
+	// Extract decodes a SpanContext instance from the given `carrier`,
+	// or (nil, opentracing.ErrSpanContextNotFound) if no context could
+	// be found in the `carrier`.
+	Extract(carrier interface{}) (*MockSpanContext, error)
 }
 
 // MockSpanContext is an opentracing.SpanContext implementation.
@@ -94,9 +129,9 @@ type MockSpan struct {
 	StartTime     time.Time
 	FinishTime    time.Time
 
-	// All of the below (including spanContext) are protected by spanContext's
+	// All of the below (including SpanContext) are protected by spanContext's
 	// embedded RWMutex.
-	spanContext *MockSpanContext
+	SpanContext *MockSpanContext
 	tags        map[string]interface{}
 	logs        []opentracing.LogData
 	tracer      *MockTracer
@@ -123,8 +158,8 @@ func (t *MockTracer) Reset() {
 
 // Tags returns a copy of tags accumulated by the span so far
 func (s *MockSpan) Tags() map[string]interface{} {
-	s.spanContext.RLock()
-	defer s.spanContext.RUnlock()
+	s.SpanContext.RLock()
+	defer s.SpanContext.RUnlock()
 	tags := make(map[string]interface{})
 	for k, v := range s.tags {
 		tags[k] = v
@@ -134,15 +169,15 @@ func (s *MockSpan) Tags() map[string]interface{} {
 
 // Tag returns a single tag
 func (s *MockSpan) Tag(k string) interface{} {
-	s.spanContext.RLock()
-	defer s.spanContext.RUnlock()
+	s.SpanContext.RLock()
+	defer s.SpanContext.RUnlock()
 	return s.tags[k]
 }
 
 // Logs returns a copy of logs accumulated in the span so far
 func (s *MockSpan) Logs() []opentracing.LogData {
-	s.spanContext.RLock()
-	defer s.spanContext.RUnlock()
+	s.SpanContext.RLock()
+	defer s.SpanContext.RUnlock()
 	logs := make([]opentracing.LogData, len(s.logs))
 	copy(logs, s.logs)
 	return logs
@@ -160,77 +195,103 @@ func (t *MockTracer) StartSpan(operationName string, opts ...opentracing.StartSp
 const mockTextMapIdsPrefix = "mockpfx-ids-"
 const mockTextMapBaggagePrefix = "mockpfx-baggage-"
 
+// RegisterInjector registers injector for given format
+func (t *MockTracer) RegisterInjector(format interface{}, injector Injector) {
+	t.injectors[format] = injector
+}
+
+// RegisterExtractor registers extractor for given format
+func (t *MockTracer) RegisterExtractor(format interface{}, extractor Extractor) {
+	t.extractors[format] = extractor
+}
+
 // Inject belongs to the Tracer interface.
 func (t *MockTracer) Inject(sm opentracing.SpanContext, format interface{}, carrier interface{}) error {
-	spanContext := sm.(*MockSpanContext)
-	spanContext.RLock()
-	defer spanContext.RUnlock()
-	switch format {
-	case opentracing.TextMap:
-		writer, ok := carrier.(opentracing.TextMapWriter)
-		if !ok {
-			return opentracing.ErrInvalidCarrier
-		}
-		// Ids:
-		writer.Set(mockTextMapIdsPrefix+"traceid", strconv.Itoa(spanContext.TraceID))
-		writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.SpanID))
-		writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
-		// Baggage:
-		for baggageKey, baggageVal := range spanContext.baggage {
-			writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
-		}
-		return nil
+	spanContext, ok := sm.(*MockSpanContext)
+	if !ok {
+		return opentracing.ErrInvalidCarrier
 	}
-	return opentracing.ErrUnsupportedFormat
+	injector, ok := t.injectors[format]
+	if !ok {
+		return opentracing.ErrUnsupportedFormat
+	}
+	return injector.Inject(spanContext, carrier)
 }
 
 // Extract belongs to the Tracer interface.
 func (t *MockTracer) Extract(format interface{}, carrier interface{}) (opentracing.SpanContext, error) {
-	switch format {
-	case opentracing.TextMap:
-		rval := newMockSpanContext(0, 0, true, nil)
-		reader, ok := carrier.(opentracing.TextMapReader)
-		if !ok {
-			return nil, opentracing.ErrInvalidCarrier
-		}
-		err := reader.ForeachKey(func(key, val string) error {
-			lowerKey := strings.ToLower(key)
-			switch {
-			case lowerKey == mockTextMapIdsPrefix+"traceid":
-				// Ids:
-				i, err := strconv.Atoi(val)
-				if err != nil {
-					return err
-				}
-				rval.TraceID = i
-			case lowerKey == mockTextMapIdsPrefix+"spanid":
-				// Ids:
-				i, err := strconv.Atoi(val)
-				if err != nil {
-					return err
-				}
-				rval.SpanID = i
-			case lowerKey == mockTextMapIdsPrefix+"sampled":
-				b, err := strconv.ParseBool(val)
-				if err != nil {
-					return err
-				}
-				rval.Sampled = b
-			case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
-				// Baggage:
-				rval.SetBaggageItem(lowerKey[len(mockTextMapBaggagePrefix):], val)
-			}
-			return nil
-		})
-		if rval.TraceID == 0 || rval.SpanID == 0 {
-			return nil, opentracing.ErrSpanContextNotFound
-		}
-		if err != nil {
-			return nil, err
-		}
-		return rval, nil
+	extractor, ok := t.extractors[format]
+	if !ok {
+		return nil, opentracing.ErrUnsupportedFormat
 	}
-	return nil, opentracing.ErrUnsupportedFormat
+	return extractor.Extract(carrier)
+}
+
+// TextMapPropagator implements Injector/Extractor for TextMap format.
+type TextMapPropagator struct{}
+
+// Inject implements the Injector interface
+func (t *TextMapPropagator) Inject(spanContext *MockSpanContext, carrier interface{}) error {
+	spanContext.RLock()
+	defer spanContext.RUnlock()
+	writer, ok := carrier.(opentracing.TextMapWriter)
+	if !ok {
+		return opentracing.ErrInvalidCarrier
+	}
+	// Ids:
+	writer.Set(mockTextMapIdsPrefix+"traceid", strconv.Itoa(spanContext.TraceID))
+	writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.SpanID))
+	writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
+	// Baggage:
+	for baggageKey, baggageVal := range spanContext.baggage {
+		writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
+	}
+	return nil
+}
+
+// Extract implements the Extractor interface
+func (t *TextMapPropagator) Extract(carrier interface{}) (*MockSpanContext, error) {
+	reader, ok := carrier.(opentracing.TextMapReader)
+	if !ok {
+		return nil, opentracing.ErrInvalidCarrier
+	}
+	rval := newMockSpanContext(0, 0, true, nil)
+	err := reader.ForeachKey(func(key, val string) error {
+		lowerKey := strings.ToLower(key)
+		switch {
+		case lowerKey == mockTextMapIdsPrefix+"traceid":
+			// Ids:
+			i, err := strconv.Atoi(val)
+			if err != nil {
+				return err
+			}
+			rval.TraceID = i
+		case lowerKey == mockTextMapIdsPrefix+"spanid":
+			// Ids:
+			i, err := strconv.Atoi(val)
+			if err != nil {
+				return err
+			}
+			rval.SpanID = i
+		case lowerKey == mockTextMapIdsPrefix+"sampled":
+			b, err := strconv.ParseBool(val)
+			if err != nil {
+				return err
+			}
+			rval.Sampled = b
+		case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
+			// Baggage:
+			rval.SetBaggageItem(lowerKey[len(mockTextMapBaggagePrefix):], val)
+		}
+		return nil
+	})
+	if rval.TraceID == 0 || rval.SpanID == 0 {
+		return nil, opentracing.ErrSpanContextNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return rval, nil
 }
 
 var mockIDSource = uint32(42)
@@ -279,7 +340,7 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 		StartTime:     startTime,
 		tags:          tags,
 		logs:          []opentracing.LogData{},
-		spanContext:   spanContext,
+		SpanContext:   spanContext,
 
 		tracer: t,
 	}
@@ -287,20 +348,20 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 
 // Context belongs to the Span interface
 func (s *MockSpan) Context() opentracing.SpanContext {
-	return s.spanContext
+	return s.SpanContext
 }
 
 // SetTag belongs to the Span interface
 func (s *MockSpan) SetTag(key string, value interface{}) opentracing.Span {
-	s.spanContext.Lock()
-	defer s.spanContext.Unlock()
+	s.SpanContext.Lock()
+	defer s.SpanContext.Unlock()
 	if key == string(ext.SamplingPriority) {
 		if v, ok := value.(uint16); ok {
-			s.spanContext.Sampled = v > 0
+			s.SpanContext.Sampled = v > 0
 			return s
 		}
 		if v, ok := value.(int); ok {
-			s.spanContext.Sampled = v > 0
+			s.SpanContext.Sampled = v > 0
 			return s
 		}
 	}
@@ -310,18 +371,18 @@ func (s *MockSpan) SetTag(key string, value interface{}) opentracing.Span {
 
 // Finish belongs to the Span interface
 func (s *MockSpan) Finish() {
-	s.spanContext.Lock()
+	s.SpanContext.Lock()
 	s.FinishTime = time.Now()
-	s.spanContext.Unlock()
+	s.SpanContext.Unlock()
 	s.tracer.recordSpan(s)
 }
 
 // FinishWithOptions belongs to the Span interface
 func (s *MockSpan) FinishWithOptions(opts opentracing.FinishOptions) {
-	s.spanContext.Lock()
+	s.SpanContext.Lock()
 	s.FinishTime = opts.FinishTime
 	s.logs = append(s.logs, opts.BulkLogData...)
-	s.spanContext.Unlock()
+	s.SpanContext.Unlock()
 	s.tracer.recordSpan(s)
 }
 
@@ -329,8 +390,8 @@ func (s *MockSpan) FinishWithOptions(opts opentracing.FinishOptions) {
 func (s *MockSpan) String() string {
 	return fmt.Sprintf(
 		"traceId=%d, spanId=%d, parentId=%d, sampled=%t, name=%s",
-		s.spanContext.TraceID, s.spanContext.SpanID, s.ParentID,
-		s.spanContext.Sampled, s.OperationName)
+		s.SpanContext.TraceID, s.SpanContext.SpanID, s.ParentID,
+		s.SpanContext.Sampled, s.OperationName)
 }
 
 func (t *MockTracer) recordSpan(span *MockSpan) {
@@ -356,15 +417,15 @@ func (s *MockSpan) LogEventWithPayload(event string, payload interface{}) {
 
 // Log belongs to the Span interface
 func (s *MockSpan) Log(data opentracing.LogData) {
-	s.spanContext.Lock()
-	defer s.spanContext.Unlock()
+	s.SpanContext.Lock()
+	defer s.SpanContext.Unlock()
 	s.logs = append(s.logs, data)
 }
 
 // SetOperationName belongs to the Span interface
 func (s *MockSpan) SetOperationName(operationName string) opentracing.Span {
-	s.spanContext.Lock()
-	defer s.spanContext.Unlock()
+	s.SpanContext.Lock()
+	defer s.SpanContext.Unlock()
 	s.OperationName = operationName
 	return s
 }
