@@ -140,8 +140,8 @@ func TestMockTracer_Propagation(t *testing.T) {
 
 		extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
 		require.NoError(t, err)
-		assert.Equal(t, mSpan.spanContext.TraceID, extractedContext.(*MockSpanContext).TraceID)
-		assert.Equal(t, mSpan.spanContext.SpanID, extractedContext.(*MockSpanContext).SpanID)
+		assert.Equal(t, mSpan.SpanContext.TraceID, extractedContext.(*MockSpanContext).TraceID)
+		assert.Equal(t, mSpan.SpanContext.SpanID, extractedContext.(*MockSpanContext).SpanID)
 		assert.Equal(t, test.sampled, extractedContext.(*MockSpanContext).Sampled)
 		assert.Equal(t, "y", extractedContext.BaggageItem("x"))
 	}
