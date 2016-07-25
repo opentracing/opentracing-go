@@ -49,10 +49,10 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
-	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
+	//     carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
 	//     err := tracer.Inject(
 	//         span.Context(),
-	//         opentracing.TextMap,
+	//         opentracing.HttpHeaders,
 	//         carrier)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
@@ -80,8 +80,8 @@ type Tracer interface {
 	// Example usage (with StartSpan):
 	//
 	//
-	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
-	//     clientContext, err := tracer.Extract(opentracing.TextMap, carrier)
+	//     carrier := opentracing.HttpHeadersCarrier(httpReq.Header)
+	//     clientContext, err := tracer.Extract(opentracing.HttpHeaders, carrier)
 	//
 	//     // ... assuming the ultimate goal here is to resume the trace with a
 	//     // server-side Span:
