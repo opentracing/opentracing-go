@@ -55,7 +55,7 @@ func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Spa
 func (n testTracer) startSpanWithOptions(name string, opts StartSpanOptions) Span {
 	fakeID := nextFakeID()
 	if len(opts.References) > 0 {
-		fakeID = opts.References[0].Referee.(testSpanContext).FakeID
+		fakeID = opts.References[0].ReferencedContext.(testSpanContext).FakeID
 	}
 	return testSpan{
 		OperationName: name,
