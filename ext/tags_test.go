@@ -78,13 +78,13 @@ func TestRPCServerOption(t *testing.T) {
 	parent := tracer.StartSpan("my-trace")
 	parent.Context().SetBaggageItem("bag", "gage")
 
-	carrier := opentracing.HTTPHeaderTextMapCarrier{}
-	err := tracer.Inject(parent.Context(), opentracing.TextMap, carrier)
+	carrier := opentracing.HTTPHeadersCarrier{}
+	err := tracer.Inject(parent.Context(), opentracing.HTTPHeaders, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	parCtx, err := tracer.Extract(opentracing.TextMap, carrier)
+	parCtx, err := tracer.Extract(opentracing.HTTPHeaders, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}

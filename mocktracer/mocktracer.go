@@ -19,6 +19,8 @@ func New() *MockTracer {
 	textPropagator := new(TextMapPropagator)
 	t.RegisterInjector(opentracing.TextMap, textPropagator)
 	t.RegisterExtractor(opentracing.TextMap, textPropagator)
+	t.RegisterInjector(opentracing.HTTPHeaders, textPropagator)
+	t.RegisterExtractor(opentracing.HTTPHeaders, textPropagator)
 
 	return t
 }
