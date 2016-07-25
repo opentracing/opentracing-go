@@ -77,13 +77,15 @@ const (
 	// and TextMapReader that defers to an http.Header instance for storage.
 	// For example, Inject():
 	//
-	//    carrier := HTTPHeadersCarrier(httpReq.Header)
-	//    err := span.Tracer().Inject(span, HTTPHeaders, carrier)
+	//    carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+	//    err := span.Tracer().Inject(
+	//        span, opentracing.HTTPHeaders, carrier)
 	//
 	// Or Extract():
 	//
-	//    carrier := HTTPHeadersCarrier(httpReq.Header)
-	//    span, err := tracer.Extract("opName", HTTPHeaders, carrier)
+	//    carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+	//    span, err := tracer.Extract(
+	//        "opName", opentracing.HTTPHeaders, carrier)
 	//
 	HTTPHeaders
 )
