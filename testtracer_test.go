@@ -70,7 +70,7 @@ func (n testTracer) startSpanWithOptions(name string, opts StartSpanOptions) Spa
 func (n testTracer) Inject(sp SpanContext, format interface{}, carrier interface{}) error {
 	spanContext := sp.(testSpanContext)
 	switch format {
-	case TextMap:
+	case HTTPHeaders, TextMap:
 		carrier.(TextMapWriter).Set(testHTTPHeaderPrefix+"fakeid", strconv.Itoa(spanContext.FakeID))
 		return nil
 	}
@@ -80,7 +80,7 @@ func (n testTracer) Inject(sp SpanContext, format interface{}, carrier interface
 // Extract belongs to the Tracer interface.
 func (n testTracer) Extract(format interface{}, carrier interface{}) (SpanContext, error) {
 	switch format {
-	case TextMap:
+	case HTTPHeaders, TextMap:
 		// Just for testing purposes... generally not a worthwhile thing to
 		// propagate.
 		sm := testSpanContext{}
