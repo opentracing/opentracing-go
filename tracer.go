@@ -208,10 +208,10 @@ const (
 )
 
 // SpanReference is a StartSpanOption that pairs a SpanReferenceType and a
-// referee SpanContext ("referee" is "the one who is referred to"). See the
-// SpanReferenceType documentation for supported relationships.
-// If SpanReference is created with Referee == nil, it has no effect. Thus
-// it allows for a more concise syntax for starting spans:
+// referenced SpanContext. See the SpanReferenceType documentation for
+// supported relationships.  If SpanReference is created with
+// ReferencedContext==nil, it has no effect. Thus it allows for a more concise
+// syntax for starting spans:
 //
 //     sc, _ := tracer.Extract(someFormat, someCarrier)
 //     span := tracer.StartSpan("operation", opentracing.ChildOf(sc))
@@ -219,13 +219,13 @@ const (
 // The `ChildOf(sc)` option above will not panic if sc == nil, it will just
 // not add the parent span reference to the options.
 type SpanReference struct {
-	Type    SpanReferenceType
-	Referee SpanContext
+	Type              SpanReferenceType
+	ReferencedContext SpanContext
 }
 
 // Apply satisfies the StartSpanOption interface.
 func (r SpanReference) Apply(o *StartSpanOptions) {
-	if r.Referee != nil {
+	if r.ReferencedContext != nil {
 		o.References = append(o.References, r)
 	}
 }
@@ -236,8 +236,8 @@ func (r SpanReference) Apply(o *StartSpanOptions) {
 // See ChildOfRef, SpanReference
 func ChildOf(sc SpanContext) SpanReference {
 	return SpanReference{
-		Type:    ChildOfRef,
-		Referee: sc,
+		Type:              ChildOfRef,
+		ReferencedContext: sc,
 	}
 }
 
@@ -248,8 +248,8 @@ func ChildOf(sc SpanContext) SpanReference {
 // See FollowsFromRef, SpanReference
 func FollowsFrom(sc SpanContext) SpanReference {
 	return SpanReference{
-		Type:    FollowsFromRef,
-		Referee: sc,
+		Type:              FollowsFromRef,
+		ReferencedContext: sc,
 	}
 }
 

@@ -25,7 +25,7 @@ func TestChildOfAndFollowsFrom(t *testing.T) {
 		ctx := new(noopSpanContext)
 		test.newOpt(ctx).Apply(opts)
 		require.Equal(t, []SpanReference{
-			SpanReference{Referee: ctx, Type: test.refType},
+			SpanReference{ReferencedContext: ctx, Type: test.refType},
 		}, opts.References, "%s(ctx) must append a reference", test.name)
 	}
 }

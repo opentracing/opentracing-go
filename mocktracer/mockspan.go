@@ -113,10 +113,10 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	var baggage map[string]string
 	sampled := true
 	if len(opts.References) > 0 {
-		traceID = opts.References[0].Referee.(*MockSpanContext).TraceID
-		parentID = opts.References[0].Referee.(*MockSpanContext).SpanID
-		sampled = opts.References[0].Referee.(*MockSpanContext).Sampled
-		baggage = opts.References[0].Referee.(*MockSpanContext).Baggage()
+		traceID = opts.References[0].ReferencedContext.(*MockSpanContext).TraceID
+		parentID = opts.References[0].ReferencedContext.(*MockSpanContext).SpanID
+		sampled = opts.References[0].ReferencedContext.(*MockSpanContext).Sampled
+		baggage = opts.References[0].ReferencedContext.(*MockSpanContext).Baggage()
 	}
 	spanContext := newMockSpanContext(traceID, nextMockID(), sampled, baggage)
 	startTime := opts.StartTime
