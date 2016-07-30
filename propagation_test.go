@@ -80,7 +80,7 @@ func TestHTTPHeaderExtract(t *testing.T) {
 	h.Add("testprefix-fakeid", "42")
 	tracer := testTracer{}
 
-	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
+	// Use HTTPHeadersCarrier to wrap around `h`.
 	carrier := HTTPHeadersCarrier(h)
 	spanContext, err := tracer.Extract(HTTPHeaders, carrier)
 	if err != nil {
