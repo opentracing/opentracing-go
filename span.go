@@ -5,30 +5,6 @@ import "time"
 // SpanContext represents Span state that must propagate to descendant Spans and across process
 // boundaries (e.g., a <trace_id, span_id, sampled> tuple).
 type SpanContext interface {
-	// SetBaggageItem sets a key:value pair on this SpanContext that also
-	// propagates to future children of the associated Span.
-	//
-	// SetBaggageItem() enables powerful functionality given a full-stack
-	// opentracing integration (e.g., arbitrary application data from a mobile
-	// app can make it, transparently, all the way into the depths of a storage
-	// system), and with it some powerful costs: use this feature with care.
-	//
-	// IMPORTANT NOTE #1: SetBaggageItem() will only propagate baggage items to
-	// *future* causal descendants of the associated Span.
-	//
-	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
-	// value is copied into every local *and remote* child of the associated
-	// Span, and that can add up to a lot of network and cpu overhead.
-	//
-	// Returns a reference to this SpanContext for chaining, etc.
-	SetBaggageItem(restrictedKey, value string) SpanContext
-
-	// Gets the value for a baggage item given its key. Returns the empty string
-	// if the value isn't found in this SpanContext.
-	//
-	// See the `SetBaggageItem` notes about `restrictedKey`.
-	BaggageItem(restrictedKey string) string
-
 	// ForeachBaggageItem grants access to all baggage items stored in the
 	// SpanContext.
 	// The handler function will be called for each baggage key/value pair.
@@ -89,6 +65,28 @@ type Span interface {
 	//
 	// See LogData for semantic details.
 	Log(data LogData)
+
+	// SetBaggageItem sets a key:value pair on this Span and its SpanContext
+	// that also propagates to descendants of this Span.
+	//
+	// SetBaggageItem() enables powerful functionality given a full-stack
+	// opentracing integration (e.g., arbitrary application data from a mobile
+	// app can make it, transparently, all the way into the depths of a storage
+	// system), and with it some powerful costs: use this feature with care.
+	//
+	// IMPORTANT NOTE #1: SetBaggageItem() will only propagate baggage items to
+	// *future* causal descendants of the associated Span.
+	//
+	// IMPORTANT NOTE #2: Use this thoughtfully and with care. Every key and
+	// value is copied into every local *and remote* child of the associated
+	// Span, and that can add up to a lot of network and cpu overhead.
+	//
+	// Returns a reference to this Span for chaining.
+	SetBaggageItem(restrictedKey, value string) Span
+
+	// Gets the value for a baggage item given its key. Returns the empty string
+	// if the value isn't found in this Span.
+	BaggageItem(restrictedKey string) string
 
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
