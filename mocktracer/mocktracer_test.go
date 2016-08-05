@@ -26,7 +26,7 @@ func TestMockTracer_StartSpan(t *testing.T) {
 	parent := spans[1]
 	child := spans[0]
 	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.Tags())
-	assert.Equal(t, child.ParentID, parent.Context().(*MockSpanContext).SpanID)
+	assert.Equal(t, child.ParentID, parent.Context().(MockSpanContext).SpanID)
 }
 
 func TestMockSpan_SetOperationName(t *testing.T) {
@@ -39,9 +39,9 @@ func TestMockSpan_SetOperationName(t *testing.T) {
 func TestMockSpanContext_Baggage(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
-	span.Context().SetBaggageItem("x", "y")
-	assert.Equal(t, "y", span.Context().BaggageItem("x"))
-	assert.Equal(t, map[string]string{"x": "y"}, span.Context().(*MockSpanContext).Baggage())
+	span.SetBaggageItem("x", "y")
+	assert.Equal(t, "y", span.BaggageItem("x"))
+	assert.Equal(t, map[string]string{"x": "y"}, span.Context().(MockSpanContext).Baggage)
 
 	baggage := make(map[string]string)
 	span.Context().ForeachBaggageItem(func(k, v string) bool {
@@ -50,13 +50,13 @@ func TestMockSpanContext_Baggage(t *testing.T) {
 	})
 	assert.Equal(t, map[string]string{"x": "y"}, baggage)
 
-	span.Context().SetBaggageItem("a", "b")
+	span.SetBaggageItem("a", "b")
 	baggage = make(map[string]string)
 	span.Context().ForeachBaggageItem(func(k, v string) bool {
 		baggage[k] = v
 		return false // exit early
 	})
-	assert.Equal(t, 2, len(span.Context().(*MockSpanContext).Baggage()))
+	assert.Equal(t, 2, len(span.Context().(MockSpanContext).Baggage))
 	assert.Equal(t, 1, len(baggage))
 }
 
@@ -116,7 +116,7 @@ func TestMockTracer_Propagation(t *testing.T) {
 	for _, test := range tests {
 		tracer := New()
 		span := tracer.StartSpan("x")
-		span.Context().SetBaggageItem("x", "y")
+		span.SetBaggageItem("x", "y")
 		if !test.sampled {
 			ext.SamplingPriority.Set(span, 0)
 		}
@@ -140,9 +140,9 @@ func TestMockTracer_Propagation(t *testing.T) {
 
 		extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
 		require.NoError(t, err)
-		assert.Equal(t, mSpan.SpanContext.TraceID, extractedContext.(*MockSpanContext).TraceID)
-		assert.Equal(t, mSpan.SpanContext.SpanID, extractedContext.(*MockSpanContext).SpanID)
-		assert.Equal(t, test.sampled, extractedContext.(*MockSpanContext).Sampled)
-		assert.Equal(t, "y", extractedContext.BaggageItem("x"))
+		assert.Equal(t, mSpan.SpanContext.TraceID, extractedContext.(MockSpanContext).TraceID)
+		assert.Equal(t, mSpan.SpanContext.SpanID, extractedContext.(MockSpanContext).SpanID)
+		assert.Equal(t, test.sampled, extractedContext.(MockSpanContext).Sampled)
+		assert.Equal(t, "y", extractedContext.(MockSpanContext).Baggage["x"])
 	}
 }

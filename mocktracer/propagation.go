@@ -11,6 +11,8 @@ import (
 const mockTextMapIdsPrefix = "mockpfx-ids-"
 const mockTextMapBaggagePrefix = "mockpfx-baggage-"
 
+var emptyContext = MockSpanContext{}
+
 // Injector is responsible for injecting SpanContext instances in a manner suitable
 // for propagation via a format-specific "carrier" object. Typically the
 // injection will take place across an RPC boundary, but message queues and
@@ -21,7 +23,7 @@ type Injector interface {
 	//
 	// Implementations may return opentracing.ErrInvalidCarrier or any other
 	// implementation-specific error if injection fails.
-	Inject(ctx *MockSpanContext, carrier interface{}) error
+	Inject(ctx MockSpanContext, carrier interface{}) error
 }
 
 // Extractor is responsible for extracting SpanContext instances from a
@@ -32,16 +34,14 @@ type Extractor interface {
 	// Extract decodes a SpanContext instance from the given `carrier`,
 	// or (nil, opentracing.ErrSpanContextNotFound) if no context could
 	// be found in the `carrier`.
-	Extract(carrier interface{}) (*MockSpanContext, error)
+	Extract(carrier interface{}) (MockSpanContext, error)
 }
 
 // TextMapPropagator implements Injector/Extractor for TextMap format.
 type TextMapPropagator struct{}
 
 // Inject implements the Injector interface
-func (t *TextMapPropagator) Inject(spanContext *MockSpanContext, carrier interface{}) error {
-	spanContext.RLock()
-	defer spanContext.RUnlock()
+func (t *TextMapPropagator) Inject(spanContext MockSpanContext, carrier interface{}) error {
 	writer, ok := carrier.(opentracing.TextMapWriter)
 	if !ok {
 		return opentracing.ErrInvalidCarrier
@@ -51,19 +51,19 @@ func (t *TextMapPropagator) Inject(spanContext *MockSpanContext, carrier interfa
 	writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.SpanID))
 	writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
 	// Baggage:
-	for baggageKey, baggageVal := range spanContext.baggage {
+	for baggageKey, baggageVal := range spanContext.Baggage {
 		writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
 	}
 	return nil
 }
 
 // Extract implements the Extractor interface
-func (t *TextMapPropagator) Extract(carrier interface{}) (*MockSpanContext, error) {
+func (t *TextMapPropagator) Extract(carrier interface{}) (MockSpanContext, error) {
 	reader, ok := carrier.(opentracing.TextMapReader)
 	if !ok {
-		return nil, opentracing.ErrInvalidCarrier
+		return emptyContext, opentracing.ErrInvalidCarrier
 	}
-	rval := newMockSpanContext(0, 0, true, nil)
+	rval := MockSpanContext{0, 0, true, nil}
 	err := reader.ForeachKey(func(key, val string) error {
 		lowerKey := strings.ToLower(key)
 		switch {
@@ -89,15 +89,18 @@ func (t *TextMapPropagator) Extract(carrier interface{}) (*MockSpanContext, erro
 			rval.Sampled = b
 		case strings.HasPrefix(lowerKey, mockTextMapBaggagePrefix):
 			// Baggage:
-			rval.SetBaggageItem(lowerKey[len(mockTextMapBaggagePrefix):], val)
+			if rval.Baggage == nil {
+				rval.Baggage = make(map[string]string)
+			}
+			rval.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
 		}
 		return nil
 	})
 	if rval.TraceID == 0 || rval.SpanID == 0 {
-		return nil, opentracing.ErrSpanContextNotFound
+		return emptyContext, opentracing.ErrSpanContextNotFound
 	}
 	if err != nil {
-		return nil, err
+		return emptyContext, err
 	}
 	return rval, nil
 }

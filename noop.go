@@ -18,12 +18,12 @@ const (
 )
 
 // noopSpanContext:
-func (n noopSpanContext) SetBaggageItem(key, val string) SpanContext        { return n }
-func (n noopSpanContext) BaggageItem(key string) string                     { return emptyString }
 func (n noopSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
 
 // noopSpan:
 func (n noopSpan) Context() SpanContext                                  { return defaultNoopSpanContext }
+func (n noopSpan) SetBaggageItem(key, val string) Span                   { return defaultNoopSpan }
+func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}

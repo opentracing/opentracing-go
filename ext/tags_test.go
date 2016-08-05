@@ -35,9 +35,9 @@ func TestPeerTags(t *testing.T) {
 		"peer.port":     uint16(8080),
 		"span.kind":     ext.SpanKindRPCClientEnum,
 	}, rawSpan.Tags())
-	assert.True(t, span.Context().(*mocktracer.MockSpanContext).Sampled)
+	assert.True(t, span.Context().(mocktracer.MockSpanContext).Sampled)
 	ext.SamplingPriority.Set(span, uint16(0))
-	assert.False(t, span.Context().(*mocktracer.MockSpanContext).Sampled)
+	assert.False(t, span.Context().(mocktracer.MockSpanContext).Sampled)
 }
 
 func TestHTTPTags(t *testing.T) {
@@ -76,7 +76,7 @@ func TestMiscTags(t *testing.T) {
 func TestRPCServerOption(t *testing.T) {
 	tracer := mocktracer.New()
 	parent := tracer.StartSpan("my-trace")
-	parent.Context().SetBaggageItem("bag", "gage")
+	parent.SetBaggageItem("bag", "gage")
 
 	carrier := opentracing.HTTPHeadersCarrier{}
 	err := tracer.Inject(parent.Context(), opentracing.HTTPHeaders, carrier)
@@ -97,5 +97,5 @@ func TestRPCServerOption(t *testing.T) {
 	}, rawSpan.Tags())
 	assert.Equal(t, map[string]string{
 		"bag": "gage",
-	}, rawSpan.Context().(*mocktracer.MockSpanContext).Baggage())
+	}, rawSpan.Context().(mocktracer.MockSpanContext).Baggage)
 }
