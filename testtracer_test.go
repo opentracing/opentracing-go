@@ -23,8 +23,6 @@ type testSpanContext struct {
 	FakeID    int
 }
 
-func (n testSpanContext) SetBaggageItem(key, val string) SpanContext        { return n }
-func (n testSpanContext) BaggageItem(key string) string                     { return "" }
 func (n testSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
 
 type testSpan struct {
@@ -42,6 +40,8 @@ func (n testSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n testSpan) Log(data LogData)                                      {}
 func (n testSpan) SetOperationName(operationName string) Span            { return n }
 func (n testSpan) Tracer() Tracer                                        { return testTracer{} }
+func (n testSpan) SetBaggageItem(key, val string) Span                   { return n }
+func (n testSpan) BaggageItem(key string) string                         { return "" }
 
 // StartSpan belongs to the Tracer interface.
 func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {
