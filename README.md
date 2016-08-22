@@ -96,7 +96,7 @@ reference.
             // outbound request.
             tracer.Inject(
                 span.Context(),
-                opentracing.TextMap,
+                opentracing.HTTPHeaders,
                 opentracing.HTTPHeadersCarrier(httpReq.Header))
 
             resp, err := httpClient.Do(httpReq)
@@ -113,7 +113,7 @@ reference.
         var serverSpan opentracing.Span
         appSpecificOperationName := ...
         wireContext, err := opentracing.GlobalTracer().Extract(
-            opentracing.TextMap,
+            opentracing.HTTPHeaders,
             opentracing.HTTPHeadersCarrier(req.Header))
         if err != nil {
             // Optionally record something about err here
