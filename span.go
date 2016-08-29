@@ -1,6 +1,8 @@
 package opentracing
 
-import "time"
+import (
+	"time"
+)
 
 // SpanContext represents Span state that must propagate to descendant Spans and across process
 // boundaries (e.g., a <trace_id, span_id, sampled> tuple).
@@ -49,22 +51,36 @@ type Span interface {
 	// may ignore the tag, but shall not panic.
 	SetTag(key string, value interface{}) Span
 
-	// LogEvent() is equivalent to
+	// LogFields and LogKV are two ways to record logging data about a Span.
+	// Both allow for timestamped key-value logging of arbitrary data. Neither
+	// intrinsically supports message formatting; in fact, formatted log
+	// messages are discouraged (though not disallowed) in OpenTracing.
 	//
-	//   Log(LogData{Event: event})
+	// LogFields is designed to be type-checked, efficient, yet a little
+	// cumbersome from the caller's perspective.
 	//
-	LogEvent(event string)
-
-	// LogEventWithPayload() is equivalent to
+	// LogKV is designed to minimize boilerplate and leads to concise, readable
+	// calling code; unfortunately this also makes it less efficient and less
+	// type-safe.
 	//
-	//   Log(LogData{Event: event, Payload: payload0})
+	// For example, the following are equivalent:
 	//
-	LogEventWithPayload(event string, payload interface{})
-
-	// Log() records `data` to this Span.
+	//    span.LogFields(
+	//        opentracing.LogString("request_path", request.Path()),
+	//        opentracing.LogInt("request_size", request.Size()))
 	//
-	// See LogData for semantic details.
-	Log(data LogData)
+	//    span.LogKV(
+	//        "request_path", request.Path(),
+	//        "request_size", request.Size())
+	//
+	// Also see Span.FinishWithOptions() and FinishOptions.BulkLogData.
+	LogFields(fields ...LogField)
+	// For LogKV (as opposed to LogFields()), every even parameter must be a
+	// string. Odd parameters may be strings, numeric types, bools, Go error
+	// instances, or arbitrary structs.  If an odd parameter is a
+	// DeferredObjectGenerator, the the generator will be invoked lazily (in
+	// the future) and its return value substituted for itself.
+	LogKV(alternatingKeyValues ...interface{})
 
 	// SetBaggageItem sets a key:value pair on this Span and its SpanContext
 	// that also propagates to descendants of this Span.
@@ -92,37 +108,14 @@ type Span interface {
 	Tracer() Tracer
 }
 
-// LogData is data associated with a Span. Every LogData instance should
-// specify at least one of Event and/or Payload.
+// LogData is data associated with a single Span log. Every LogData instance
+// must specify at least one LogField.
 type LogData struct {
-	// The timestamp of the log record; if set to the default value (the unix
-	// epoch), implementations should use time.Now() implicitly.
+	// The timestamp of the LogField(s)
 	Timestamp time.Time
 
-	// Event (if non-empty) should be the stable name of some notable moment in
-	// the lifetime of a Span. For instance, a Span representing a browser page
-	// load might add an Event for each of the Performance.timing moments
-	// here: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming
-	//
-	// While it is not a formal requirement, Event strings will be most useful
-	// if they are *not* unique; rather, tracing systems should be able to use
-	// them to understand how two similar Spans relate from an internal timing
-	// perspective.
-	Event string
-
-	// Payload is a free-form potentially structured object which Tracer
-	// implementations may retain and record all, none, or part of.
-	//
-	// If included, `Payload` should be restricted to data derived from the
-	// instrumented application; in particular, it should not be used to pass
-	// semantic flags to a Log() implementation.
-	//
-	// For example, an RPC system could log the wire contents in both
-	// directions, or a SQL library could log the query (with or without
-	// parameter bindings); tracing implementations may truncate or otherwise
-	// record only a snippet of these payloads (or may strip out PII, etc,
-	// etc).
-	Payload interface{}
+	// One or more LogField instances that describe this LogData
+	Fields []LogField
 }
 
 // FinishOptions allows Span.FinishWithOptions callers to override the finish
