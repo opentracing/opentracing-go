@@ -85,7 +85,7 @@ const (
 	//
 	//    carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
 	//    span, err := tracer.Extract(
-	//        "opName", opentracing.HTTPHeaders, carrier)
+	//        opentracing.HTTPHeaders, carrier)
 	//
 	HTTPHeaders
 )
