@@ -168,7 +168,7 @@ type SpanReferenceType int
 const (
 	// ChildOfRef refers to a parent Span that caused *and* somehow depends
 	// upon the new child Span. Often (but not always), the parent Span cannot
-	// finish unitl the child Span does.
+	// finish until the child Span does.
 	//
 	// An timing diagram for a ChildOfRef that's blocked on the new Span:
 	//
