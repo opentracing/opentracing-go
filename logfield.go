@@ -16,6 +16,9 @@ const (
 // LogField instances are constructed via LogBool, LogString, and so on.
 // Tracing implementations may then handle them via the LogField.Process
 // method.
+//
+// "heavily influenced by" (i.e., partially stolen from)
+// https://github.com/uber-go/zap
 type LogField struct {
 	key          string
 	valType      valType
