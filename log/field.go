@@ -142,11 +142,9 @@ type LazyLogger func(fv FieldVisitor)
 // Lazy adds a LazyLogger to a Span.LogFields() record; the tracing
 // implementation will call the LazyLogger function at an indefinite time in
 // the future (after Lazy() returns).
-//
-// Note that `ignoredKey` is ignored (as the LazyLogger can control the key).
-func Lazy(ignoredKey string, ll LazyLogger) Field {
+func Lazy(ll LazyLogger) Field {
 	return Field{
-		key:          key,
+		key:          "Lazy", // will be overwritten
 		fieldType:    lazyLoggerType,
 		interfaceVal: ll,
 	}
