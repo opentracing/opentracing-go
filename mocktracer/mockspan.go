@@ -2,6 +2,7 @@ package mocktracer
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -236,9 +237,30 @@ func (s *MockSpan) logFieldsWithTimestamp(ts time.Time, fields ...log.Field) {
 	s.logs = append(s.logs, lr)
 }
 
-// LogKV belongs to the Span interface
+// LogKV belongs to the Span interface.
+//
+// This implementations coerces all "values" to strings, though that is not
+// something all implementations need to do. Indeed, a motivated person can and
+// probably should have this do a typed switch on the values.
 func (s *MockSpan) LogKV(keyValues ...interface{}) {
-	// XXX
+	if len(keyValues)%2 != 0 {
+		s.LogFields(log.Error(fmt.Errorf("Non-even keyValues len: %v", len(keyValues))))
+		return
+	}
+	fields := make([]log.Field, len(keyValues)/2)
+	for i := 0; i*2 < len(keyValues); i++ {
+		key, ok := keyValues[i*2].(string)
+		if !ok {
+			s.LogFields(log.Error(
+				fmt.Errorf(
+					"Non-string key (pair=%v): %v",
+					i, reflect.TypeOf(keyValues[i*2]))))
+			return
+		}
+		valStr := fmt.Sprint(keyValues[i*2+1])
+		fields[i] = log.String(key, valStr)
+	}
+	s.LogFields(fields...)
 }
 
 // LogEvent belongs to the Span interface

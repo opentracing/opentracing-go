@@ -98,6 +98,32 @@ func zeroOutTimestamps(recs []MockLogRecord) {
 	}
 }
 
+func TestMockSpan_LogKV(t *testing.T) {
+	tracer := New()
+	span := tracer.StartSpan("s")
+	span.LogKV("key0", "string0")
+	span.LogKV("key1", "string1", "key2", uint32(42))
+	span.Finish()
+	spans := tracer.FinishedSpans()
+	assert.Equal(t, 1, len(spans))
+	actual := spans[0].Logs()
+	zeroOutTimestamps(actual)
+	assert.Equal(t, []MockLogRecord{
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "key0", ValueKind: reflect.String, ValueString: "string0"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "key1", ValueKind: reflect.String, ValueString: "string1"},
+				// Note that the type is a String, not a Uint32, since we're using LogKV.
+				MockKeyValue{Key: "key2", ValueKind: reflect.String, ValueString: "42"},
+			},
+		},
+	}, actual)
+}
+
 func TestMockSpan_LogFields(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("s")
