@@ -2,13 +2,16 @@ package mocktracer
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 func TestMockTracer_StartSpan(t *testing.T) {
@@ -89,22 +92,89 @@ func TestMockTracer_FinishedSpans_and_Reset(t *testing.T) {
 	assert.Equal(t, 0, len(spans))
 }
 
-func TestMockSpan_Logs(t *testing.T) {
+func zeroOutTimestamps(recs []MockLogRecord) {
+	for i := range recs {
+		recs[i].Timestamp = time.Time{}
+	}
+}
+
+func TestMockSpan_LogFields(t *testing.T) {
+	tracer := New()
+	span := tracer.StartSpan("s")
+	span.LogFields(log.String("key0", "string0"))
+	span.LogFields(log.String("key1", "string1"), log.Uint32("key2", uint32(42)))
+	span.LogFields(log.Lazy("SHOULD_BE_IGNORED", func(fv log.FieldVisitor) {
+		fv.AddInt("key_lazy", 12)
+	}))
+	span.FinishWithOptions(opentracing.FinishOptions{
+		LogRecords: []opentracing.LogRecord{
+			{time.Now(), []log.Field{log.String("key9", "finish")}},
+		}})
+	spans := tracer.FinishedSpans()
+	assert.Equal(t, 1, len(spans))
+	actual := spans[0].Logs()
+	zeroOutTimestamps(actual)
+	assert.Equal(t, []MockLogRecord{
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "key0", ValueKind: reflect.String, ValueString: "string0"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "key1", ValueKind: reflect.String, ValueString: "string1"},
+				MockKeyValue{Key: "key2", ValueKind: reflect.Uint32, ValueString: "42"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				// Note that the LazyLogger gets to control the key as well as the value.
+				MockKeyValue{Key: "key_lazy", ValueKind: reflect.Int, ValueString: "12"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "key9", ValueKind: reflect.String, ValueString: "finish"},
+			},
+		},
+	}, actual)
+}
+
+func TestMockSpan_DeprecatedLogs(t *testing.T) {
 	tracer := New()
 	span := tracer.StartSpan("x")
 	span.LogEvent("x")
 	span.LogEventWithPayload("y", "z")
-	span.Log(opentracing.LogData{Event: "a"})
+	span.LogEvent("a")
 	span.FinishWithOptions(opentracing.FinishOptions{
 		BulkLogData: []opentracing.LogData{{Event: "f"}}})
 	spans := tracer.FinishedSpans()
 	assert.Equal(t, 1, len(spans))
-	assert.Equal(t, []opentracing.LogData{
-		{Event: "x"},
-		{Event: "y", Payload: "z"},
-		{Event: "a"},
-		{Event: "f"},
-	}, spans[0].Logs())
+	actual := spans[0].Logs()
+	zeroOutTimestamps(actual)
+	assert.Equal(t, []MockLogRecord{
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "event", ValueKind: reflect.String, ValueString: "x"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "event", ValueKind: reflect.String, ValueString: "y"},
+				MockKeyValue{Key: "payload", ValueKind: reflect.String, ValueString: "z"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "event", ValueKind: reflect.String, ValueString: "a"},
+			},
+		},
+		MockLogRecord{
+			Fields: []MockKeyValue{
+				MockKeyValue{Key: "event", ValueKind: reflect.String, ValueString: "f"},
+			},
+		},
+	}, actual)
 }
 
 func TestMockTracer_Propagation(t *testing.T) {

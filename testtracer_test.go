@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/opentracing/opentracing-go/log"
 )
 
 const testHTTPHeaderPrefix = "testprefix-"
@@ -65,13 +67,15 @@ func (n testSpan) Context() SpanContext                                  { retur
 func (n testSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n testSpan) Finish()                                               {}
 func (n testSpan) FinishWithOptions(opts FinishOptions)                  {}
-func (n testSpan) LogEvent(event string)                                 {}
-func (n testSpan) LogEventWithPayload(event string, payload interface{}) {}
-func (n testSpan) Log(data LogData)                                      {}
+func (n testSpan) LogFields(fields ...log.Field)                         {}
+func (n testSpan) LogKV(kvs ...interface{})                              {}
 func (n testSpan) SetOperationName(operationName string) Span            { return n }
 func (n testSpan) Tracer() Tracer                                        { return testTracer{} }
 func (n testSpan) SetBaggageItem(key, val string) Span                   { return n }
 func (n testSpan) BaggageItem(key string) string                         { return "" }
+func (n testSpan) LogEvent(event string)                                 {}
+func (n testSpan) LogEventWithPayload(event string, payload interface{}) {}
+func (n testSpan) Log(data LogData)                                      {}
 
 // StartSpan belongs to the Tracer interface.
 func (n testTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {

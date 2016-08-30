@@ -8,6 +8,7 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 // MockSpanContext is an opentracing.SpanContext implementation.
@@ -70,7 +71,7 @@ type MockSpan struct {
 	// All of the below are protected by the embedded RWMutex.
 	SpanContext MockSpanContext
 	tags        map[string]interface{}
-	logs        []opentracing.LogData
+	logs        []MockLogRecord
 	tracer      *MockTracer
 }
 
@@ -99,7 +100,7 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 		OperationName: name,
 		StartTime:     startTime,
 		tags:          tags,
-		logs:          []opentracing.LogData{},
+		logs:          []MockLogRecord{},
 		SpanContext:   spanContext,
 
 		tracer: t,
@@ -125,10 +126,10 @@ func (s *MockSpan) Tag(k string) interface{} {
 }
 
 // Logs returns a copy of logs accumulated in the span so far
-func (s *MockSpan) Logs() []opentracing.LogData {
+func (s *MockSpan) Logs() []MockLogRecord {
 	s.RLock()
 	defer s.RUnlock()
-	logs := make([]opentracing.LogData, len(s.logs))
+	logs := make([]MockLogRecord, len(s.logs))
 	copy(logs, s.logs)
 	return logs
 }
@@ -183,8 +184,26 @@ func (s *MockSpan) Finish() {
 func (s *MockSpan) FinishWithOptions(opts opentracing.FinishOptions) {
 	s.Lock()
 	s.FinishTime = opts.FinishTime
-	s.logs = append(s.logs, opts.BulkLogData...)
 	s.Unlock()
+
+	// Handle any late-bound LogRecords.
+	for _, lr := range opts.LogRecords {
+		s.logFieldsWithTimestamp(lr.Timestamp, lr.Fields...)
+	}
+	// Handle (deprecated) BulkLogData.
+	for _, ld := range opts.BulkLogData {
+		if ld.Payload != nil {
+			s.logFieldsWithTimestamp(
+				ld.Timestamp,
+				log.String("event", ld.Event),
+				log.Object("payload", ld.Payload))
+		} else {
+			s.logFieldsWithTimestamp(
+				ld.Timestamp,
+				log.String("event", ld.Event))
+		}
+	}
+
 	s.tracer.recordSpan(s)
 }
 
@@ -196,26 +215,45 @@ func (s *MockSpan) String() string {
 		s.SpanContext.Sampled, s.OperationName)
 }
 
+// LogFields belongs to the Span interface
+func (s *MockSpan) LogFields(fields ...log.Field) {
+	s.logFieldsWithTimestamp(time.Now(), fields...)
+}
+
+// The caller MUST NOT hold s.Lock
+func (s *MockSpan) logFieldsWithTimestamp(ts time.Time, fields ...log.Field) {
+	lr := MockLogRecord{
+		Timestamp: ts,
+		Fields:    make([]MockKeyValue, len(fields)),
+	}
+	for i, f := range fields {
+		outField := &(lr.Fields[i])
+		f.Visit(outField)
+	}
+
+	s.Lock()
+	defer s.Unlock()
+	s.logs = append(s.logs, lr)
+}
+
+// LogKV belongs to the Span interface
+func (s *MockSpan) LogKV(keyValues ...interface{}) {
+	// XXX
+}
+
 // LogEvent belongs to the Span interface
 func (s *MockSpan) LogEvent(event string) {
-	s.Log(opentracing.LogData{
-		Event: event,
-	})
+	s.LogFields(log.String("event", event))
 }
 
 // LogEventWithPayload belongs to the Span interface
 func (s *MockSpan) LogEventWithPayload(event string, payload interface{}) {
-	s.Log(opentracing.LogData{
-		Event:   event,
-		Payload: payload,
-	})
+	s.LogFields(log.String("event", event), log.Object("payload", payload))
 }
 
 // Log belongs to the Span interface
 func (s *MockSpan) Log(data opentracing.LogData) {
-	s.Lock()
-	defer s.Unlock()
-	s.logs = append(s.logs, data)
+	panic("MockSpan.Log() no longer supported")
 }
 
 // SetOperationName belongs to the Span interface

@@ -2,6 +2,8 @@ package opentracing
 
 import (
 	"time"
+
+	"github.com/opentracing/opentracing-go/log"
 )
 
 // SpanContext represents Span state that must propagate to descendant Spans and across process
@@ -60,7 +62,7 @@ type Span interface {
 	//        log.Uint32("request_size", request.Size()))
 	//
 	// Also see Span.FinishWithOptions() and FinishOptions.BulkLogData.
-	LogFields(fields ...LogField)
+	LogFields(fields ...log.Field)
 
 	// LogKV is a concise, readable way to record key:value logging data about
 	// a Span, though unfortunately this also makes it less efficient and less
@@ -103,6 +105,13 @@ type Span interface {
 
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
+
+	// DEPRECATED
+	LogEvent(event string)
+	// DEPRECATED
+	LogEventWithPayload(event string, payload interface{})
+	// DEPRECATED
+	Log(data LogData)
 }
 
 // LogRecord is data associated with a single Span log. Every LogRecord
@@ -132,5 +141,17 @@ type FinishOptions struct {
 	//
 	// If specified, the caller hands off ownership of LogRecords at
 	// FinishWithOptions() invocation time.
+	//
+	// If specified, the (deprecated) BulkLogData must be nil or empty.
 	LogRecords []LogRecord
+
+	// BulkLogData is DEPRECATED.
+	BulkLogData []LogData
+}
+
+// LogData is DEPRECATED
+type LogData struct {
+	Timestamp time.Time
+	Event     string
+	Payload   interface{}
 }

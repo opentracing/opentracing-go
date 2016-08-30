@@ -1,6 +1,8 @@
-package opentracing
+package log
 
 import "math"
+
+type fieldType int
 
 const (
 	stringType fieldType = iota
@@ -10,7 +12,7 @@ const (
 	uint32Type
 	int64Type
 	uint64Type
-	float324Type
+	float32Type
 	float64Type
 	errorType
 	objectType
@@ -25,7 +27,7 @@ const (
 // https://github.com/uber-go/zap
 type Field struct {
 	key          string
-	valType      valType
+	fieldType    fieldType
 	numericVal   int64
 	stringVal    string
 	interfaceVal interface{}
@@ -34,7 +36,7 @@ type Field struct {
 func String(key, val string) Field {
 	return Field{
 		key:       key,
-		valType:   stringType,
+		fieldType: stringType,
 		stringVal: val,
 	}
 }
@@ -46,7 +48,7 @@ func Bool(key string, val bool) Field {
 	}
 	return Field{
 		key:        key,
-		valType:    boolType,
+		fieldType:  boolType,
 		numericVal: numericVal,
 	}
 }
@@ -54,7 +56,7 @@ func Bool(key string, val bool) Field {
 func Int(key string, val int) Field {
 	return Field{
 		key:        key,
-		valType:    intType,
+		fieldType:  intType,
 		numericVal: int64(val),
 	}
 }
@@ -62,7 +64,7 @@ func Int(key string, val int) Field {
 func Int32(key string, val int32) Field {
 	return Field{
 		key:        key,
-		valType:    int32Type,
+		fieldType:  int32Type,
 		numericVal: int64(val),
 	}
 }
@@ -70,7 +72,7 @@ func Int32(key string, val int32) Field {
 func Int64(key string, val int64) Field {
 	return Field{
 		key:        key,
-		valType:    int64Type,
+		fieldType:  int64Type,
 		numericVal: val,
 	}
 }
@@ -78,7 +80,7 @@ func Int64(key string, val int64) Field {
 func Uint32(key string, val uint32) Field {
 	return Field{
 		key:        key,
-		valType:    uint32Type,
+		fieldType:  uint32Type,
 		numericVal: int64(val),
 	}
 }
@@ -86,7 +88,7 @@ func Uint32(key string, val uint32) Field {
 func Uint64(key string, val uint64) Field {
 	return Field{
 		key:        key,
-		valType:    int64Type,
+		fieldType:  int64Type,
 		numericVal: int64(val),
 	}
 }
@@ -94,7 +96,7 @@ func Uint64(key string, val uint64) Field {
 func Float32(key string, val float32) Field {
 	return Field{
 		key:        key,
-		valType:    float32Type,
+		fieldType:  float32Type,
 		numericVal: int64(math.Float32bits(val)),
 	}
 }
@@ -102,7 +104,7 @@ func Float32(key string, val float32) Field {
 func Float64(key string, val float64) Field {
 	return Field{
 		key:        key,
-		valType:    float64Type,
+		fieldType:  float64Type,
 		numericVal: int64(math.Float64bits(val)),
 	}
 }
@@ -110,7 +112,7 @@ func Float64(key string, val float64) Field {
 func Error(err error) Field {
 	return Field{
 		key:          "error",
-		valType:      errorType,
+		fieldType:    errorType,
 		interfaceVal: err,
 	}
 }
@@ -118,7 +120,7 @@ func Error(err error) Field {
 func Object(key string, obj interface{}) Field {
 	return Field{
 		key:          key,
-		valType:      objectType,
+		fieldType:    objectType,
 		interfaceVal: obj,
 	}
 }
@@ -128,7 +130,7 @@ type LazyLogger func(fv FieldVisitor)
 func Lazy(key string, ll LazyLogger) Field {
 	return Field{
 		key:          key,
-		valType:      lazyLoggerType,
+		fieldType:    lazyLoggerType,
 		interfaceVal: ll,
 	}
 }
@@ -156,7 +158,7 @@ type FieldVisitor interface {
 // Visit passes a Field instance through to the appropriate field-type-specific
 // method of a FieldVisitor.
 func (lf Field) Visit(visitor FieldVisitor) {
-	switch lf.valType {
+	switch lf.fieldType {
 	case stringType:
 		visitor.AddString(lf.key, lf.stringVal)
 	case boolType:
@@ -172,11 +174,11 @@ func (lf Field) Visit(visitor FieldVisitor) {
 	case uint64Type:
 		visitor.AddUint64(lf.key, uint64(lf.numericVal))
 	case float32Type:
-		visitor.AddFloat32(lf.key, math.Float32frombits(uint64(lf.numericVal)))
+		visitor.AddFloat32(lf.key, math.Float32frombits(uint32(lf.numericVal)))
 	case float64Type:
 		visitor.AddFloat64(lf.key, math.Float64frombits(uint64(lf.numericVal)))
 	case errorType:
-		visitor.AddString(lf.key, lf.obj.(error).Error())
+		visitor.AddString(lf.key, lf.interfaceVal.(error).Error())
 	case objectType:
 		visitor.AddObject(lf.key, lf.interfaceVal)
 	case lazyLoggerType:
