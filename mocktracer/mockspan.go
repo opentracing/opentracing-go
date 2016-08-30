@@ -229,7 +229,7 @@ func (s *MockSpan) logFieldsWithTimestamp(ts time.Time, fields ...log.Field) {
 	}
 	for i, f := range fields {
 		outField := &(lr.Fields[i])
-		f.Visit(outField)
+		f.Marshal(outField)
 	}
 
 	s.Lock()

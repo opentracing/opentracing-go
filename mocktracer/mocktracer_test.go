@@ -129,8 +129,8 @@ func TestMockSpan_LogFields(t *testing.T) {
 	span := tracer.StartSpan("s")
 	span.LogFields(log.String("key0", "string0"))
 	span.LogFields(log.String("key1", "string1"), log.Uint32("key2", uint32(42)))
-	span.LogFields(log.Lazy(func(fv log.FieldVisitor) {
-		fv.AddInt("key_lazy", 12)
+	span.LogFields(log.Lazy(func(fv log.Encoder) {
+		fv.EmitInt("key_lazy", 12)
 	}))
 	span.FinishWithOptions(opentracing.FinishOptions{
 		LogRecords: []opentracing.LogRecord{

@@ -137,7 +137,7 @@ func Object(key string, obj interface{}) Field {
 }
 
 // LazyLogger allows for user-defined, late-bound logging of arbitrary data
-type LazyLogger func(fv FieldVisitor)
+type LazyLogger func(fv Encoder)
 
 // Lazy adds a LazyLogger to a Span.LogFields() record; the tracing
 // implementation will call the LazyLogger function at an indefinite time in
@@ -150,53 +150,52 @@ func Lazy(ll LazyLogger) Field {
 	}
 }
 
-// FieldVisitor allows access to the contents of a Field (via a call to
+// Encoder allows access to the contents of a Field (via a call to
 // Field.Visit).
 //
-// Tracer implementations typically provide an implementation of
-// FieldVisitor; OpenTracing callers should not need to concern themselves
-// with it.
-type FieldVisitor interface {
-	AddString(key, value string)
-	AddBool(key string, value bool)
-	AddInt(key string, value int)
-	AddInt32(key string, value int32)
-	AddInt64(key string, value int64)
-	AddUint32(key string, value uint32)
-	AddUint64(key string, value uint64)
-	AddFloat32(key string, value float32)
-	AddFloat64(key string, value float64)
-	AddObject(key string, value interface{})
-	AddLazyLogger(key string, value LazyLogger)
+// Tracer implementations typically provide an implementation of Encoder;
+// OpenTracing callers typically do not need to concern themselves with it.
+type Encoder interface {
+	EmitString(key, value string)
+	EmitBool(key string, value bool)
+	EmitInt(key string, value int)
+	EmitInt32(key string, value int32)
+	EmitInt64(key string, value int64)
+	EmitUint32(key string, value uint32)
+	EmitUint64(key string, value uint64)
+	EmitFloat32(key string, value float32)
+	EmitFloat64(key string, value float64)
+	EmitObject(key string, value interface{})
+	EmitLazyLogger(key string, value LazyLogger)
 }
 
-// Visit passes a Field instance through to the appropriate field-type-specific
-// method of a FieldVisitor.
-func (lf Field) Visit(visitor FieldVisitor) {
+// Marshal passes a Field instance through to the appropriate
+// field-type-specific method of an Encoder.
+func (lf Field) Marshal(visitor Encoder) {
 	switch lf.fieldType {
 	case stringType:
-		visitor.AddString(lf.key, lf.stringVal)
+		visitor.EmitString(lf.key, lf.stringVal)
 	case boolType:
-		visitor.AddBool(lf.key, lf.numericVal != 0)
+		visitor.EmitBool(lf.key, lf.numericVal != 0)
 	case intType:
-		visitor.AddInt(lf.key, int(lf.numericVal))
+		visitor.EmitInt(lf.key, int(lf.numericVal))
 	case int32Type:
-		visitor.AddInt32(lf.key, int32(lf.numericVal))
+		visitor.EmitInt32(lf.key, int32(lf.numericVal))
 	case int64Type:
-		visitor.AddInt64(lf.key, int64(lf.numericVal))
+		visitor.EmitInt64(lf.key, int64(lf.numericVal))
 	case uint32Type:
-		visitor.AddUint32(lf.key, uint32(lf.numericVal))
+		visitor.EmitUint32(lf.key, uint32(lf.numericVal))
 	case uint64Type:
-		visitor.AddUint64(lf.key, uint64(lf.numericVal))
+		visitor.EmitUint64(lf.key, uint64(lf.numericVal))
 	case float32Type:
-		visitor.AddFloat32(lf.key, math.Float32frombits(uint32(lf.numericVal)))
+		visitor.EmitFloat32(lf.key, math.Float32frombits(uint32(lf.numericVal)))
 	case float64Type:
-		visitor.AddFloat64(lf.key, math.Float64frombits(uint64(lf.numericVal)))
+		visitor.EmitFloat64(lf.key, math.Float64frombits(uint64(lf.numericVal)))
 	case errorType:
-		visitor.AddString(lf.key, lf.interfaceVal.(error).Error())
+		visitor.EmitString(lf.key, lf.interfaceVal.(error).Error())
 	case objectType:
-		visitor.AddObject(lf.key, lf.interfaceVal)
+		visitor.EmitObject(lf.key, lf.interfaceVal)
 	case lazyLoggerType:
-		visitor.AddLazyLogger(lf.key, lf.interfaceVal.(LazyLogger))
+		visitor.EmitLazyLogger(lf.key, lf.interfaceVal.(LazyLogger))
 	}
 }
