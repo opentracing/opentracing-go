@@ -33,6 +33,7 @@ type Field struct {
 	interfaceVal interface{}
 }
 
+// String adds a string-valued key:value pair to a Span.LogFields() record
 func String(key, val string) Field {
 	return Field{
 		key:       key,
@@ -41,6 +42,7 @@ func String(key, val string) Field {
 	}
 }
 
+// Bool adds a bool-valued key:value pair to a Span.LogFields() record
 func Bool(key string, val bool) Field {
 	var numericVal int64
 	if val {
@@ -53,6 +55,7 @@ func Bool(key string, val bool) Field {
 	}
 }
 
+// Int adds an int-valued key:value pair to a Span.LogFields() record
 func Int(key string, val int) Field {
 	return Field{
 		key:        key,
@@ -61,6 +64,7 @@ func Int(key string, val int) Field {
 	}
 }
 
+// Int32 adds an int32-valued key:value pair to a Span.LogFields() record
 func Int32(key string, val int32) Field {
 	return Field{
 		key:        key,
@@ -69,6 +73,7 @@ func Int32(key string, val int32) Field {
 	}
 }
 
+// Int64 adds an int64-valued key:value pair to a Span.LogFields() record
 func Int64(key string, val int64) Field {
 	return Field{
 		key:        key,
@@ -77,6 +82,7 @@ func Int64(key string, val int64) Field {
 	}
 }
 
+// Uint32 adds a uint32-valued key:value pair to a Span.LogFields() record
 func Uint32(key string, val uint32) Field {
 	return Field{
 		key:        key,
@@ -85,6 +91,7 @@ func Uint32(key string, val uint32) Field {
 	}
 }
 
+// Uint64 adds a uint64-valued key:value pair to a Span.LogFields() record
 func Uint64(key string, val uint64) Field {
 	return Field{
 		key:        key,
@@ -93,6 +100,7 @@ func Uint64(key string, val uint64) Field {
 	}
 }
 
+// Float32 adds a float32-valued key:value pair to a Span.LogFields() record
 func Float32(key string, val float32) Field {
 	return Field{
 		key:        key,
@@ -101,6 +109,7 @@ func Float32(key string, val float32) Field {
 	}
 }
 
+// Float64 adds a float64-valued key:value pair to a Span.LogFields() record
 func Float64(key string, val float64) Field {
 	return Field{
 		key:        key,
@@ -109,6 +118,7 @@ func Float64(key string, val float64) Field {
 	}
 }
 
+// Error adds an error with the key "error" to a Span.LogFields() record
 func Error(err error) Field {
 	return Field{
 		key:          "error",
@@ -117,6 +127,7 @@ func Error(err error) Field {
 	}
 }
 
+// Object adds an object-valued key:value pair to a Span.LogFields() record
 func Object(key string, obj interface{}) Field {
 	return Field{
 		key:          key,
@@ -125,9 +136,15 @@ func Object(key string, obj interface{}) Field {
 	}
 }
 
+// LazyLogger allows for user-defined, late-bound logging of arbitrary data
 type LazyLogger func(fv FieldVisitor)
 
-func Lazy(key string, ll LazyLogger) Field {
+// Lazy adds a LazyLogger to a Span.LogFields() record; the tracing
+// implementation will call the LazyLogger function at an indefinite time in
+// the future (after Lazy() returns).
+//
+// Note that `ignoredKey` is ignored (as the LazyLogger can control the key).
+func Lazy(ignoredKey string, ll LazyLogger) Field {
 	return Field{
 		key:          key,
 		fieldType:    lazyLoggerType,
