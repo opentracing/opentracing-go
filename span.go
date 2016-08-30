@@ -51,35 +51,32 @@ type Span interface {
 	// may ignore the tag, but shall not panic.
 	SetTag(key string, value interface{}) Span
 
-	// LogFields and LogKV are two ways to record logging data about a Span.
-	// Both allow for timestamped key-value logging of arbitrary data. Neither
-	// intrinsically supports message formatting; in fact, formatted log
-	// messages are discouraged (though not disallowed) in OpenTracing.
-	//
-	// LogFields is designed to be type-checked, efficient, yet a little
-	// cumbersome from the caller's perspective.
-	//
-	// LogKV is designed to minimize boilerplate and leads to concise, readable
-	// calling code; unfortunately this also makes it less efficient and less
-	// type-safe.
-	//
-	// For example, the following are equivalent:
+	// LogFields is an efficient and type-checked way to record key:value
+	// logging data about a Span, though the programming interface is a little
+	// more verbose than LogKV(). Here's an example:
 	//
 	//    span.LogFields(
-	//        opentracing.LogString("request_path", request.Path()),
-	//        opentracing.LogInt("request_size", request.Size()))
+	//        log.String("request_path", request.Path()),
+	//        log.Uint32("request_size", request.Size()))
+	//
+	// Also see Span.FinishWithOptions() and FinishOptions.BulkLogData.
+	LogFields(fields ...LogField)
+
+	// LogKV is a concise, readable way to record key:value logging data about
+	// a Span, though unfortunately this also makes it less efficient and less
+	// type-safe than LogFields(). Here's an example:
 	//
 	//    span.LogKV(
 	//        "request_path", request.Path(),
 	//        "request_size", request.Size())
 	//
-	// Also see Span.FinishWithOptions() and FinishOptions.BulkLogData.
-	LogFields(fields ...LogField)
-	// For LogKV (as opposed to LogFields()), every even parameter must be a
-	// string. Odd parameters may be strings, numeric types, bools, Go error
-	// instances, or arbitrary structs.  If an odd parameter is a
-	// DeferredObjectGenerator, the the generator will be invoked lazily (in
-	// the future) and its return value substituted for itself.
+	// For LogKV (as opposed to LogFields()), the parameters must appear as
+	// key-value pairs, like
+	//
+	//    span.LogKV(key1, val1, key2, val2, key3, val3, ...)
+	//
+	// The keys must all be strings. The values may be strings, numeric types,
+	// bools, Go error instances, or arbitrary structs.
 	LogKV(alternatingKeyValues ...interface{})
 
 	// SetBaggageItem sets a key:value pair on this Span and its SpanContext
@@ -108,14 +105,11 @@ type Span interface {
 	Tracer() Tracer
 }
 
-// LogData is data associated with a single Span log. Every LogData instance
-// must specify at least one LogField.
-type LogData struct {
-	// The timestamp of the LogField(s)
+// LogRecord is data associated with a single Span log. Every LogRecord
+// instance must specify at least one Field.
+type LogRecord struct {
 	Timestamp time.Time
-
-	// One or more LogField instances that describe this LogData
-	Fields []LogField
+	Fields    []log.Field
 }
 
 // FinishOptions allows Span.FinishWithOptions callers to override the finish
@@ -128,15 +122,15 @@ type FinishOptions struct {
 	// (per StartSpanOptions).
 	FinishTime time.Time
 
-	// BulkLogData allows the caller to specify the contents of many Log()
+	// LogRecords allows the caller to specify the contents of many Log()
 	// calls with a single slice. May be nil.
 	//
-	// None of the LogData.Timestamp values may be .IsZero() (i.e., they must
+	// None of the LogRecord.Timestamp values may be .IsZero() (i.e., they must
 	// be set explicitly). Also, they must be >= the Span's start timestamp and
 	// <= the FinishTime (or time.Now() if FinishTime.IsZero()). Otherwise the
 	// behavior of FinishWithOptions() is undefined.
 	//
-	// If specified, the caller hands off ownership of BulkLogData at
+	// If specified, the caller hands off ownership of LogRecords at
 	// FinishWithOptions() invocation time.
-	BulkLogData []LogData
+	LogRecords []LogRecord
 }
