@@ -1,6 +1,7 @@
 package mocktracer
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,28 +96,48 @@ func TestMockSpan_Logs(t *testing.T) {
 	span.LogEventWithPayload("y", "z")
 	span.Log(opentracing.LogData{Event: "a"})
 	span.FinishWithOptions(opentracing.FinishOptions{
-		BulkLogData: []opentracing.LogData{opentracing.LogData{Event: "f"}}})
+		BulkLogData: []opentracing.LogData{{Event: "f"}}})
 	spans := tracer.FinishedSpans()
 	assert.Equal(t, 1, len(spans))
 	assert.Equal(t, []opentracing.LogData{
-		opentracing.LogData{Event: "x"},
-		opentracing.LogData{Event: "y", Payload: "z"},
-		opentracing.LogData{Event: "a"},
-		opentracing.LogData{Event: "f"},
+		{Event: "x"},
+		{Event: "y", Payload: "z"},
+		{Event: "a"},
+		{Event: "f"},
 	}, spans[0].Logs())
 }
 
 func TestMockTracer_Propagation(t *testing.T) {
+	textCarrier := func() interface{} {
+		return opentracing.TextMapCarrier(make(map[string]string))
+	}
+	textLen := func (c interface{}) int {
+		return len(c.(opentracing.TextMapCarrier))
+	}
+
+	httpCarrier := func() interface{} {
+		httpHeaders := http.Header(make(map[string][]string))
+		return opentracing.HTTPHeadersCarrier(httpHeaders)
+	}
+	httpLen := func (c interface{}) int {
+		return len(c.(opentracing.HTTPHeadersCarrier))
+	}
+
 	tests := []struct {
 		sampled bool
+		format  opentracing.BuiltinFormat
+		carrier func() interface{}
+		len func(interface{}) int
 	}{
-		{true},
-		{false},
+		{sampled: true, format: opentracing.TextMap, carrier: textCarrier, len: textLen},
+		{sampled: false, format: opentracing.TextMap, carrier: textCarrier, len: textLen},
+		{sampled: true, format: opentracing.HTTPHeaders, carrier: httpCarrier, len: httpLen},
+		{sampled: false, format: opentracing.HTTPHeaders, carrier: httpCarrier, len: httpLen},
 	}
 	for _, test := range tests {
 		tracer := New()
 		span := tracer.StartSpan("x")
-		span.SetBaggageItem("x", "y")
+		span.SetBaggageItem("x", "y:z") // colon should be URL encoded as %3A
 		if !test.sampled {
 			ext.SamplingPriority.Set(span, 0)
 		}
@@ -127,22 +148,26 @@ func TestMockTracer_Propagation(t *testing.T) {
 		assert.Equal(t, opentracing.ErrInvalidCarrier,
 			tracer.Inject(span.Context(), opentracing.TextMap, span))
 
-		carrier := make(map[string]string)
+		carrier := test.carrier()
 
-		err := tracer.Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+		err := tracer.Inject(span.Context(), test.format, carrier)
 		require.NoError(t, err)
-		assert.Equal(t, 4, len(carrier), "expect baggage + 2 ids + sampled")
+		assert.Equal(t, 4, test.len(carrier), "expect baggage + 2 ids + sampled")
+		if test.format == opentracing.HTTPHeaders {
+			c := carrier.(opentracing.HTTPHeadersCarrier)
+			assert.Equal(t, "y%3Az", c["Mockpfx-Baggage-X"][0])
+		}
 
 		_, err = tracer.Extract(opentracing.Binary, nil)
 		assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
 		_, err = tracer.Extract(opentracing.TextMap, tracer)
 		assert.Equal(t, opentracing.ErrInvalidCarrier, err)
 
-		extractedContext, err := tracer.Extract(opentracing.TextMap, opentracing.TextMapCarrier(carrier))
+		extractedContext, err := tracer.Extract(test.format, carrier)
 		require.NoError(t, err)
 		assert.Equal(t, mSpan.SpanContext.TraceID, extractedContext.(MockSpanContext).TraceID)
 		assert.Equal(t, mSpan.SpanContext.SpanID, extractedContext.(MockSpanContext).SpanID)
 		assert.Equal(t, test.sampled, extractedContext.(MockSpanContext).Sampled)
-		assert.Equal(t, "y", extractedContext.(MockSpanContext).Baggage["x"])
+		assert.Equal(t, "y:z", extractedContext.(MockSpanContext).Baggage["x"])
 	}
 }
