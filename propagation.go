@@ -141,6 +141,20 @@ func (c TextMapCarrier) Set(key, val string) {
 }
 
 // HTTPHeadersCarrier satisfies both TextMapWriter and TextMapReader.
+//
+// Example usage for server side:
+//
+//     carrier := opentracing.HttpHeadersCarrier(httpReq.Header)
+//     spanContext, err := tracer.Extract(opentracing.HttpHeaders, carrier)
+//
+// Example usage for client side:
+//
+//     carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+//     err := tracer.Inject(
+//         span.Context(),
+//         opentracing.HttpHeaders,
+//         carrier)
+//
 type HTTPHeadersCarrier http.Header
 
 // Set conforms to the TextMapWriter interface.
