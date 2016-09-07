@@ -2,6 +2,7 @@ package mocktracer
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -37,8 +38,10 @@ type Extractor interface {
 	Extract(carrier interface{}) (MockSpanContext, error)
 }
 
-// TextMapPropagator implements Injector/Extractor for TextMap format.
-type TextMapPropagator struct{}
+// TextMapPropagator implements Injector/Extractor for TextMap and HTTPHeaders formats.
+type TextMapPropagator struct {
+	HTTPHeaders bool
+}
 
 // Inject implements the Injector interface
 func (t *TextMapPropagator) Inject(spanContext MockSpanContext, carrier interface{}) error {
@@ -52,7 +55,11 @@ func (t *TextMapPropagator) Inject(spanContext MockSpanContext, carrier interfac
 	writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
 	// Baggage:
 	for baggageKey, baggageVal := range spanContext.Baggage {
-		writer.Set(mockTextMapBaggagePrefix+baggageKey, baggageVal)
+		safeVal := baggageVal
+		if t.HTTPHeaders {
+			safeVal = url.QueryEscape(baggageVal)
+		}
+		writer.Set(mockTextMapBaggagePrefix+baggageKey, safeVal)
 	}
 	return nil
 }
@@ -92,7 +99,14 @@ func (t *TextMapPropagator) Extract(carrier interface{}) (MockSpanContext, error
 			if rval.Baggage == nil {
 				rval.Baggage = make(map[string]string)
 			}
-			rval.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = val
+			safeVal := val
+			if t.HTTPHeaders {
+				// unescape errors are ignored, nothing can be done
+				if rawVal, err := url.QueryUnescape(val); err == nil {
+					safeVal = rawVal
+				}
+			}
+			rval.Baggage[lowerKey[len(mockTextMapBaggagePrefix):]] = safeVal
 		}
 		return nil
 	})
