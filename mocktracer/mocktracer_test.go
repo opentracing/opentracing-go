@@ -111,7 +111,7 @@ func TestMockTracer_Propagation(t *testing.T) {
 	textCarrier := func() interface{} {
 		return opentracing.TextMapCarrier(make(map[string]string))
 	}
-	textLen := func (c interface{}) int {
+	textLen := func(c interface{}) int {
 		return len(c.(opentracing.TextMapCarrier))
 	}
 
@@ -119,7 +119,7 @@ func TestMockTracer_Propagation(t *testing.T) {
 		httpHeaders := http.Header(make(map[string][]string))
 		return opentracing.HTTPHeadersCarrier(httpHeaders)
 	}
-	httpLen := func (c interface{}) int {
+	httpLen := func(c interface{}) int {
 		return len(c.(opentracing.HTTPHeadersCarrier))
 	}
 
@@ -127,7 +127,7 @@ func TestMockTracer_Propagation(t *testing.T) {
 		sampled bool
 		format  opentracing.BuiltinFormat
 		carrier func() interface{}
-		len func(interface{}) int
+		len     func(interface{}) int
 	}{
 		{sampled: true, format: opentracing.TextMap, carrier: textCarrier, len: textLen},
 		{sampled: false, format: opentracing.TextMap, carrier: textCarrier, len: textLen},
