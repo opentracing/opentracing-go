@@ -79,6 +79,8 @@ type Span interface {
 	//
 	// The keys must all be strings. The values may be strings, numeric types,
 	// bools, Go error instances, or arbitrary structs.
+	//
+	// (Note to implementors: consider the log.InterleavedKVToFields() helper)
 	LogKV(alternatingKeyValues ...interface{})
 
 	// SetBaggageItem sets a key:value pair on this Span and its SpanContext
@@ -154,4 +156,15 @@ type LogData struct {
 	Timestamp time.Time
 	Event     string
 	Payload   interface{}
+}
+
+// ToLogRecord converts a deprecated LogData to a non-deprecated LogRecord
+func (ld *LogData) ToLogRecord() LogRecord {
+	return LogRecord{
+		Timestamp: ld.Timestamp,
+		Fields: []log.Field{
+			log.String("event", ld.Event),
+			log.Object("payload", ld.Payload),
+		},
+	}
 }
