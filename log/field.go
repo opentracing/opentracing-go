@@ -151,7 +151,7 @@ func Lazy(ll LazyLogger) Field {
 }
 
 // Encoder allows access to the contents of a Field (via a call to
-// Field.Visit).
+// Field.Marshal).
 //
 // Tracer implementations typically provide an implementation of Encoder;
 // OpenTracing callers typically do not need to concern themselves with it.
