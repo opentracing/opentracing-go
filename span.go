@@ -131,7 +131,7 @@ type FinishOptions struct {
 	// (per StartSpanOptions).
 	FinishTime time.Time
 
-	// LogRecords allows the caller to specify the contents of many Log()
+	// LogRecords allows the caller to specify the contents of many LogFields()
 	// calls with a single slice. May be nil.
 	//
 	// None of the LogRecord.Timestamp values may be .IsZero() (i.e., they must
