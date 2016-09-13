@@ -117,8 +117,7 @@ func TestMockSpan_LogKV(t *testing.T) {
 		MockLogRecord{
 			Fields: []MockKeyValue{
 				MockKeyValue{Key: "key1", ValueKind: reflect.String, ValueString: "string1"},
-				// Note that the type is a String, not a Uint32, since we're using LogKV.
-				MockKeyValue{Key: "key2", ValueKind: reflect.String, ValueString: "42"},
+				MockKeyValue{Key: "key2", ValueKind: reflect.Uint32, ValueString: "42"},
 			},
 		},
 	}, actual)

@@ -2,7 +2,6 @@ package mocktracer
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -247,18 +246,10 @@ func (s *MockSpan) LogKV(keyValues ...interface{}) {
 		s.LogFields(log.Error(fmt.Errorf("Non-even keyValues len: %v", len(keyValues))))
 		return
 	}
-	fields := make([]log.Field, len(keyValues)/2)
-	for i := 0; i*2 < len(keyValues); i++ {
-		key, ok := keyValues[i*2].(string)
-		if !ok {
-			s.LogFields(log.Error(
-				fmt.Errorf(
-					"Non-string key (pair=%v): %v",
-					i, reflect.TypeOf(keyValues[i*2]))))
-			return
-		}
-		valStr := fmt.Sprint(keyValues[i*2+1])
-		fields[i] = log.String(key, valStr)
+	fields, err := log.InterleavedKVToFields(keyValues...)
+	if err != nil {
+		s.LogFields(log.Error(err), log.String("function", "LogKV"))
+		return
 	}
 	s.LogFields(fields...)
 }
