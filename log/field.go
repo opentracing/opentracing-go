@@ -144,7 +144,6 @@ type LazyLogger func(fv Encoder)
 // the future (after Lazy() returns).
 func Lazy(ll LazyLogger) Field {
 	return Field{
-		key:          "Lazy", // will be overwritten
 		fieldType:    lazyLoggerType,
 		interfaceVal: ll,
 	}
@@ -166,7 +165,7 @@ type Encoder interface {
 	EmitFloat32(key string, value float32)
 	EmitFloat64(key string, value float64)
 	EmitObject(key string, value interface{})
-	EmitLazyLogger(key string, value LazyLogger)
+	EmitLazyLogger(value LazyLogger)
 }
 
 // Marshal passes a Field instance through to the appropriate
@@ -196,6 +195,6 @@ func (lf Field) Marshal(visitor Encoder) {
 	case objectType:
 		visitor.EmitObject(lf.key, lf.interfaceVal)
 	case lazyLoggerType:
-		visitor.EmitLazyLogger(lf.key, lf.interfaceVal.(LazyLogger))
+		visitor.EmitLazyLogger(lf.interfaceVal.(LazyLogger))
 	}
 }

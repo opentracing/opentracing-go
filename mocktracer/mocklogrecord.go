@@ -96,7 +96,7 @@ func (m *MockKeyValue) EmitObject(key string, value interface{}) {
 }
 
 // EmitLazyLogger belongs to the log.Encoder interface
-func (m *MockKeyValue) EmitLazyLogger(key string, value log.LazyLogger) {
+func (m *MockKeyValue) EmitLazyLogger(value log.LazyLogger) {
 	var meta MockKeyValue
 	value(&meta)
 	m.Key = meta.Key
