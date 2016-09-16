@@ -160,11 +160,18 @@ type LogData struct {
 
 // ToLogRecord converts a deprecated LogData to a non-deprecated LogRecord
 func (ld *LogData) ToLogRecord() LogRecord {
-	return LogRecord{
+	rval := LogRecord{
 		Timestamp: ld.Timestamp,
-		Fields: []log.Field{
+	}
+	if ld.Payload == nil {
+		rval.Fields = []log.Field{
+			log.String("event", ld.Event),
+		}
+	} else {
+		rval.Fields = []log.Field{
 			log.String("event", ld.Event),
 			log.Object("payload", ld.Payload),
-		},
+		}
 	}
+	return rval
 }
