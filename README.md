@@ -51,8 +51,9 @@ happily rely on it for `Span` propagation. To start a new (blocking child)
         span, ctx := opentracing.StartSpanFromContext(ctx, "operation_name")
         defer span.Finish()
         span.LogFields(
-            log.String("event", "xyz called"),
-            log.Int("request.size", request.Size()))
+            log.String("event", "soft error"),
+            log.String("type", "cache timeout"),
+            log.Int("waited.millis", 1500))
         ...
     }
 ```
@@ -67,9 +68,6 @@ reference.
         ...
         sp := opentracing.StartSpan("operation_name")
         defer sp.Finish()
-        span.LogFields(
-            log.String("event", "xyz called"),
-            log.Int("request.size", request.Size()))
         ...
     }
 ```
@@ -83,9 +81,6 @@ reference.
             "operation_name",
             opentracing.ChildOf(parentSpan.Context()))
         defer sp.Finish()
-        span.LogFields(
-            log.String("event", "xyz called"),
-            log.Int("request.size", request.Size()))
         ...
     }
 ```

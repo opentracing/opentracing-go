@@ -58,8 +58,9 @@ type Span interface {
 	// more verbose than LogKV(). Here's an example:
 	//
 	//    span.LogFields(
-	//        log.String("request_path", request.Path()),
-	//        log.Uint32("request_size", request.Size()))
+	//        log.String("event", "soft error"),
+	//        log.String("type", "cache timeout"),
+	//        log.Int("waited.millis", 1500))
 	//
 	// Also see Span.FinishWithOptions() and FinishOptions.BulkLogData.
 	LogFields(fields ...log.Field)
@@ -69,8 +70,9 @@ type Span interface {
 	// type-safe than LogFields(). Here's an example:
 	//
 	//    span.LogKV(
-	//        "request_path", request.Path(),
-	//        "request_size", request.Size())
+	//        "event", "soft error",
+	//        "type", "cache timeout",
+	//        "waited.millis", 1500)
 	//
 	// For LogKV (as opposed to LogFields()), the parameters must appear as
 	// key-value pairs, like
