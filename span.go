@@ -110,11 +110,11 @@ type Span interface {
 	// Provides access to the Tracer that created this Span.
 	Tracer() Tracer
 
-	// DEPRECATED
+	// Deprecated: use LogFields or LogKV
 	LogEvent(event string)
-	// DEPRECATED
+	// Deprecated: use LogFields or LogKV
 	LogEventWithPayload(event string, payload interface{})
-	// DEPRECATED
+	// Deprecated: use LogFields or LogKV
 	Log(data LogData)
 }
 
