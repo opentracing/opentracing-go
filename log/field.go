@@ -95,7 +95,7 @@ func Uint32(key string, val uint32) Field {
 func Uint64(key string, val uint64) Field {
 	return Field{
 		key:        key,
-		fieldType:  int64Type,
+		fieldType:  uint64Type,
 		numericVal: int64(val),
 	}
 }

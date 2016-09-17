@@ -1,23 +1,20 @@
 package log
 
-import (
-	"fmt"
-	"reflect"
-)
+import "fmt"
 
 // InterleavedKVToFields converts keyValues a la Span.LogKV() to a Field slice
 // a la Span.LogFields().
 func InterleavedKVToFields(keyValues ...interface{}) ([]Field, error) {
 	if len(keyValues)%2 != 0 {
-		return nil, fmt.Errorf("Non-even keyValues len: %v", len(keyValues))
+		return nil, fmt.Errorf("non-even keyValues len: %d", len(keyValues))
 	}
 	fields := make([]Field, len(keyValues)/2)
 	for i := 0; i*2 < len(keyValues); i++ {
 		key, ok := keyValues[i*2].(string)
 		if !ok {
 			return nil, fmt.Errorf(
-				"Non-string key (pair=%v): %v",
-				i, reflect.TypeOf(keyValues[i*2]))
+				"non-string key (pair #%d): %T",
+				i, keyValues[i*2])
 		}
 		switch typedVal := keyValues[i*2+1].(type) {
 		case bool:
