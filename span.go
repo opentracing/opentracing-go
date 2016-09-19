@@ -162,8 +162,14 @@ type LogData struct {
 
 // ToLogRecord converts a deprecated LogData to a non-deprecated LogRecord
 func (ld *LogData) ToLogRecord() LogRecord {
+	var literalTimestamp time.Time
+	if ld.Timestamp.IsZero() {
+		literalTimestamp = time.Now()
+	} else {
+		literalTimestamp = ld.Timestamp
+	}
 	rval := LogRecord{
-		Timestamp: ld.Timestamp,
+		Timestamp: literalTimestamp,
 	}
 	if ld.Payload == nil {
 		rval.Fields = []log.Field{
