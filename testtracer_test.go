@@ -33,25 +33,25 @@ type testSpan struct {
 	Tags          map[string]interface{}
 }
 
-func (s testSpan) Equal(os Span) bool {
+func (n testSpan) Equal(os Span) bool {
 	other, ok := os.(testSpan)
 	if !ok {
 		return false
 	}
-	if s.spanContext != other.spanContext {
+	if n.spanContext != other.spanContext {
 		return false
 	}
-	if s.OperationName != other.OperationName {
+	if n.OperationName != other.OperationName {
 		return false
 	}
-	if !s.StartTime.Equal(other.StartTime) {
+	if !n.StartTime.Equal(other.StartTime) {
 		return false
 	}
-	if len(s.Tags) != len(other.Tags) {
+	if len(n.Tags) != len(other.Tags) {
 		return false
 	}
 
-	for k, v := range s.Tags {
+	for k, v := range n.Tags {
 		if ov, ok := other.Tags[k]; !ok || ov != v {
 			return false
 		}
