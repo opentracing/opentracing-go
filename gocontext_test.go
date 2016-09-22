@@ -2,7 +2,9 @@ package opentracing
 
 import (
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
 
@@ -38,7 +40,7 @@ func TestStartSpanFromContext(t *testing.T) {
 		if !childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Failed to find parent: %v", childSpan)
 		}
-		if childSpan != SpanFromContext(childCtx) {
+		if !childSpan.(testSpan).Equal(SpanFromContext(childCtx)) {
 			t.Errorf("Unable to find child span in context: %v", childCtx)
 		}
 	}
@@ -50,8 +52,30 @@ func TestStartSpanFromContext(t *testing.T) {
 		if childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Should not have found parent: %v", childSpan)
 		}
-		if childSpan != SpanFromContext(childCtx) {
+		if !childSpan.(testSpan).Equal(SpanFromContext(childCtx)) {
 			t.Errorf("Unable to find child span in context: %v", childCtx)
 		}
 	}
+}
+
+func TestStartSpanFromContextOptions(t *testing.T) {
+	testTracer := testTracer{}
+
+	// Test options are passed to tracer
+
+	startTime := time.Now().Add(-10 * time.Second) // ten seconds ago
+	span, ctx := startSpanFromContextWithTracer(
+		context.Background(), testTracer, "parent", StartTime(startTime), Tag{"component", "test"})
+
+	assert.Equal(t, "test", span.(testSpan).Tags["component"])
+	assert.Equal(t, startTime, span.(testSpan).StartTime)
+
+	// Test it also works for a child span
+
+	childStartTime := startTime.Add(3 * time.Second)
+	childSpan, _ := startSpanFromContextWithTracer(
+		ctx, testTracer, "child", StartTime(childStartTime))
+
+	assert.Equal(t, childSpan.(testSpan).Tags["component"], nil)
+	assert.Equal(t, childSpan.(testSpan).StartTime, childStartTime)
 }
