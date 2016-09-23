@@ -3,6 +3,7 @@ package opentracing
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 const testHTTPHeaderPrefix = "testprefix-"
@@ -28,6 +29,35 @@ func (n testSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
 type testSpan struct {
 	spanContext   testSpanContext
 	OperationName string
+	StartTime     time.Time
+	Tags          map[string]interface{}
+}
+
+func (n testSpan) Equal(os Span) bool {
+	other, ok := os.(testSpan)
+	if !ok {
+		return false
+	}
+	if n.spanContext != other.spanContext {
+		return false
+	}
+	if n.OperationName != other.OperationName {
+		return false
+	}
+	if !n.StartTime.Equal(other.StartTime) {
+		return false
+	}
+	if len(n.Tags) != len(other.Tags) {
+		return false
+	}
+
+	for k, v := range n.Tags {
+		if ov, ok := other.Tags[k]; !ok || ov != v {
+			return false
+		}
+	}
+
+	return true
 }
 
 // testSpan:
@@ -57,8 +87,11 @@ func (n testTracer) startSpanWithOptions(name string, opts StartSpanOptions) Spa
 	if len(opts.References) > 0 {
 		fakeID = opts.References[0].ReferencedContext.(testSpanContext).FakeID
 	}
+
 	return testSpan{
 		OperationName: name,
+		StartTime:     opts.StartTime,
+		Tags:          opts.Tags,
 		spanContext: testSpanContext{
 			HasParent: len(opts.References) > 0,
 			FakeID:    fakeID,
