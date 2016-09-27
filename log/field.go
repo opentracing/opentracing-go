@@ -1,6 +1,9 @@
 package log
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 type fieldType int
 
@@ -20,7 +23,7 @@ const (
 )
 
 // Field instances are constructed via LogBool, LogString, and so on.
-// Tracing implementations may then handle them via the Field.Process
+// Tracing implementations may then handle them via the Field.Marshal
 // method.
 //
 // "heavily influenced by" (i.e., partially stolen from)
@@ -197,4 +200,42 @@ func (lf Field) Marshal(visitor Encoder) {
 	case lazyLoggerType:
 		visitor.EmitLazyLogger(lf.interfaceVal.(LazyLogger))
 	}
+}
+
+// Key returns the field's key.
+func (lf Field) Key() string {
+	return lf.key
+}
+
+// Value returns the field's value as interface{}.
+func (lf Field) Value() interface{} {
+	switch lf.fieldType {
+	case stringType:
+		return lf.stringVal
+	case boolType:
+		return lf.numericVal != 0
+	case intType:
+		return int(lf.numericVal)
+	case int32Type:
+		return int32(lf.numericVal)
+	case int64Type:
+		return int64(lf.numericVal)
+	case uint32Type:
+		return uint32(lf.numericVal)
+	case uint64Type:
+		return uint64(lf.numericVal)
+	case float32Type:
+		return math.Float32frombits(uint32(lf.numericVal))
+	case float64Type:
+		return math.Float64frombits(uint64(lf.numericVal))
+	case errorType, objectType, lazyLoggerType:
+		return lf.interfaceVal
+	default:
+		return nil
+	}
+}
+
+// String returns a string representation of the key and value.
+func (lf Field) String() string {
+	return fmt.Sprint(lf.key, ":", lf.Value())
 }
