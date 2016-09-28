@@ -50,7 +50,10 @@ happily rely on it for `Span` propagation. To start a new (blocking child)
         ...
         span, ctx := opentracing.StartSpanFromContext(ctx, "operation_name")
         defer span.Finish()
-        span.LogEvent("xyz_called")
+        span.LogFields(
+            log.String("event", "soft error"),
+            log.String("type", "cache timeout"),
+            log.Int("waited.millis", 1500))
         ...
     }
 ```
@@ -65,7 +68,6 @@ reference.
         ...
         sp := opentracing.StartSpan("operation_name")
         defer sp.Finish()
-        sp.LogEvent("xyz_called")
         ...
     }
 ```
@@ -79,7 +81,6 @@ reference.
             "operation_name",
             opentracing.ChildOf(parentSpan.Context()))
         defer sp.Finish()
-        sp.LogEvent("xyz_called")
         ...
     }
 ```
@@ -96,8 +97,8 @@ reference.
             // outbound request.
             tracer.Inject(
                 span.Context(),
-                opentracing.TextMap,
-                opentracing.HTTPHeaderTextMapCarrier(httpReq.Header))
+                opentracing.HTTPHeaders,
+                opentracing.HTTPHeadersCarrier(httpReq.Header))
 
             resp, err := httpClient.Do(httpReq)
             ...
@@ -113,8 +114,8 @@ reference.
         var serverSpan opentracing.Span
         appSpecificOperationName := ...
         wireContext, err := opentracing.GlobalTracer().Extract(
-            opentracing.TextMap,
-            opentracing.HTTPHeaderTextMapCarrier(req.Header))
+            opentracing.HTTPHeaders,
+            opentracing.HTTPHeadersCarrier(req.Header))
         if err != nil {
             // Optionally record something about err here
         }

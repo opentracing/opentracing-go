@@ -1,5 +1,7 @@
 package opentracing
 
+import "github.com/opentracing/opentracing-go/log"
+
 // A NoopTracer is a trivial implementation of Tracer for which all operations
 // are no-ops.
 type NoopTracer struct{}
@@ -18,20 +20,22 @@ const (
 )
 
 // noopSpanContext:
-func (n noopSpanContext) SetBaggageItem(key, val string) SpanContext        { return n }
-func (n noopSpanContext) BaggageItem(key string) string                     { return emptyString }
 func (n noopSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
 
 // noopSpan:
 func (n noopSpan) Context() SpanContext                                  { return defaultNoopSpanContext }
+func (n noopSpan) SetBaggageItem(key, val string) Span                   { return defaultNoopSpan }
+func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
+func (n noopSpan) LogFields(fields ...log.Field)                         {}
+func (n noopSpan) LogKV(keyVals ...interface{})                          {}
 func (n noopSpan) Finish()                                               {}
 func (n noopSpan) FinishWithOptions(opts FinishOptions)                  {}
+func (n noopSpan) SetOperationName(operationName string) Span            { return n }
+func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 func (n noopSpan) LogEvent(event string)                                 {}
 func (n noopSpan) LogEventWithPayload(event string, payload interface{}) {}
 func (n noopSpan) Log(data LogData)                                      {}
-func (n noopSpan) SetOperationName(operationName string) Span            { return n }
-func (n noopSpan) Tracer() Tracer                                        { return defaultNoopTracer }
 
 // StartSpan belongs to the Tracer interface.
 func (n NoopTracer) StartSpan(operationName string, opts ...StartSpanOption) Span {

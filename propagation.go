@@ -3,7 +3,6 @@ package opentracing
 import (
 	"errors"
 	"net/http"
-	"net/url"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,32 +44,49 @@ var (
 type BuiltinFormat byte
 
 const (
-	// Binary encodes the SpanContext for propagation as opaque binary data.
+	// Binary represents SpanContexts as opaque binary data.
 	//
 	// For Tracer.Inject(): the carrier must be an `io.Writer`.
 	//
 	// For Tracer.Extract(): the carrier must be an `io.Reader`.
 	Binary BuiltinFormat = iota
 
-	// TextMap encodes the SpanContext as key:value pairs.
+	// TextMap represents SpanContexts as key:value string pairs.
+	//
+	// Unlike HTTPHeaders, the TextMap format does not restrict the key or
+	// value character sets in any way.
+	//
+	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
+	//
+	// For Tracer.Extract(): the carrier must be a `TextMapReader`.
+	TextMap
+
+	// HTTPHeaders represents SpanContexts as HTTP header string pairs.
+	//
+	// Unlike TextMap, the HTTPHeaders format requires that the keys and values
+	// be valid as HTTP headers as-is (i.e., character casing may be unstable
+	// and special characters are disallowed in keys, values should be
+	// URL-escaped, etc).
 	//
 	// For Tracer.Inject(): the carrier must be a `TextMapWriter`.
 	//
 	// For Tracer.Extract(): the carrier must be a `TextMapReader`.
 	//
-	// See HTTPHeaderTextMapCarrier for an implementation of both TextMapWriter
+	// See HTTPHeaderCarrier for an implementation of both TextMapWriter
 	// and TextMapReader that defers to an http.Header instance for storage.
 	// For example, Inject():
 	//
-	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
-	//    err := span.Tracer().Inject(span, TextMap, carrier)
+	//    carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+	//    err := span.Tracer().Inject(
+	//        span, opentracing.HTTPHeaders, carrier)
 	//
 	// Or Extract():
 	//
-	//    carrier := HTTPHeaderTextMapCarrier(httpReq.Header)
-	//    span, err := tracer.Extract("opName", TextMap, carrier)
+	//    carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+	//    span, err := tracer.Extract(
+	//        opentracing.HTTPHeaders, carrier)
 	//
-	TextMap
+	HTTPHeaders
 )
 
 // TextMapWriter is the Inject() carrier for the TextMap builtin format. With
@@ -124,27 +140,34 @@ func (c TextMapCarrier) Set(key, val string) {
 	c[key] = val
 }
 
-// HTTPHeaderTextMapCarrier satisfies both TextMapWriter and TextMapReader.
-type HTTPHeaderTextMapCarrier http.Header
+// HTTPHeadersCarrier satisfies both TextMapWriter and TextMapReader.
+//
+// Example usage for server side:
+//
+//     carrier := opentracing.HttpHeadersCarrier(httpReq.Header)
+//     spanContext, err := tracer.Extract(opentracing.HttpHeaders, carrier)
+//
+// Example usage for client side:
+//
+//     carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
+//     err := tracer.Inject(
+//         span.Context(),
+//         opentracing.HttpHeaders,
+//         carrier)
+//
+type HTTPHeadersCarrier http.Header
 
 // Set conforms to the TextMapWriter interface.
-func (c HTTPHeaderTextMapCarrier) Set(key, val string) {
+func (c HTTPHeadersCarrier) Set(key, val string) {
 	h := http.Header(c)
-	h.Add(key, url.QueryEscape(val))
+	h.Add(key, val)
 }
 
 // ForeachKey conforms to the TextMapReader interface.
-func (c HTTPHeaderTextMapCarrier) ForeachKey(handler func(key, val string) error) error {
+func (c HTTPHeadersCarrier) ForeachKey(handler func(key, val string) error) error {
 	for k, vals := range c {
 		for _, v := range vals {
-			rawV, err := url.QueryUnescape(v)
-			if err != nil {
-				// We don't know if there was an error escaping an
-				// OpenTracing-related header or something else; as such, we
-				// continue rather than return the error.
-				continue
-			}
-			if err = handler(k, rawV); err != nil {
+			if err := handler(k, v); err != nil {
 				return err
 			}
 		}

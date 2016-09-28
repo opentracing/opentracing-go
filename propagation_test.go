@@ -57,9 +57,9 @@ func TestHTTPHeaderInject(t *testing.T) {
 	span := tracer.StartSpan("someSpan")
 	fakeID := span.Context().(testSpanContext).FakeID
 
-	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
-	carrier := HTTPHeaderTextMapCarrier(h)
-	if err := span.Tracer().Inject(span.Context(), TextMap, carrier); err != nil {
+	// Use HTTPHeadersCarrier to wrap around `h`.
+	carrier := HTTPHeadersCarrier(h)
+	if err := span.Tracer().Inject(span.Context(), HTTPHeaders, carrier); err != nil {
 		t.Fatal(err)
 	}
 
@@ -80,9 +80,9 @@ func TestHTTPHeaderExtract(t *testing.T) {
 	h.Add("testprefix-fakeid", "42")
 	tracer := testTracer{}
 
-	// Use HTTPHeaderTextMapCarrier to wrap around `h`.
-	carrier := HTTPHeaderTextMapCarrier(h)
-	spanContext, err := tracer.Extract(TextMap, carrier)
+	// Use HTTPHeadersCarrier to wrap around `h`.
+	carrier := HTTPHeadersCarrier(h)
+	spanContext, err := tracer.Extract(HTTPHeaders, carrier)
 	if err != nil {
 		t.Fatal(err)
 	}

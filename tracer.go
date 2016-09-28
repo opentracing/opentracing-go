@@ -49,10 +49,10 @@ type Tracer interface {
 	//
 	// Example usage (sans error handling):
 	//
-	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
+	//     carrier := opentracing.HTTPHeadersCarrier(httpReq.Header)
 	//     err := tracer.Inject(
 	//         span.Context(),
-	//         opentracing.TextMap,
+	//         opentracing.HttpHeaders,
 	//         carrier)
 	//
 	// NOTE: All opentracing.Tracer implementations MUST support all
@@ -80,8 +80,8 @@ type Tracer interface {
 	// Example usage (with StartSpan):
 	//
 	//
-	//     carrier := opentracing.HTTPHeaderTextMapCarrier(httpReq.Header)
-	//     clientContext, err := tracer.Extract(opentracing.TextMap, carrier)
+	//     carrier := opentracing.HttpHeadersCarrier(httpReq.Header)
+	//     clientContext, err := tracer.Extract(opentracing.HttpHeaders, carrier)
 	//
 	//     // ... assuming the ultimate goal here is to resume the trace with a
 	//     // server-side Span:
@@ -168,7 +168,7 @@ type SpanReferenceType int
 const (
 	// ChildOfRef refers to a parent Span that caused *and* somehow depends
 	// upon the new child Span. Often (but not always), the parent Span cannot
-	// finish unitl the child Span does.
+	// finish until the child Span does.
 	//
 	// An timing diagram for a ChildOfRef that's blocked on the new Span:
 	//
@@ -208,36 +208,48 @@ const (
 )
 
 // SpanReference is a StartSpanOption that pairs a SpanReferenceType and a
-// referee SpanContext ("referee" is "the one who is referred to"). See the
-// SpanReferenceType documentation.
+// referenced SpanContext. See the SpanReferenceType documentation for
+// supported relationships.  If SpanReference is created with
+// ReferencedContext==nil, it has no effect. Thus it allows for a more concise
+// syntax for starting spans:
+//
+//     sc, _ := tracer.Extract(someFormat, someCarrier)
+//     span := tracer.StartSpan("operation", opentracing.ChildOf(sc))
+//
+// The `ChildOf(sc)` option above will not panic if sc == nil, it will just
+// not add the parent span reference to the options.
 type SpanReference struct {
-	Type    SpanReferenceType
-	Referee SpanContext
+	Type              SpanReferenceType
+	ReferencedContext SpanContext
 }
 
 // Apply satisfies the StartSpanOption interface.
 func (r SpanReference) Apply(o *StartSpanOptions) {
-	o.References = append(o.References, r)
+	if r.ReferencedContext != nil {
+		o.References = append(o.References, r)
+	}
 }
 
 // ChildOf returns a StartSpanOption pointing to a dependent parent span.
+// If sc == nil, the option has no effect.
 //
-// See ChildOfRef
-func ChildOf(sm SpanContext) SpanReference {
+// See ChildOfRef, SpanReference
+func ChildOf(sc SpanContext) SpanReference {
 	return SpanReference{
-		Type:    ChildOfRef,
-		Referee: sm,
+		Type:              ChildOfRef,
+		ReferencedContext: sc,
 	}
 }
 
 // FollowsFrom returns a StartSpanOption pointing to a parent Span that caused
 // the child Span but does not directly depend on its result in any way.
+// If sc == nil, the option has no effect.
 //
-// See FollowsFromRef
-func FollowsFrom(sm SpanContext) SpanReference {
+// See FollowsFromRef, SpanReference
+func FollowsFrom(sc SpanContext) SpanReference {
 	return SpanReference{
-		Type:    FollowsFromRef,
-		Referee: sm,
+		Type:              FollowsFromRef,
+		ReferencedContext: sc,
 	}
 }
 

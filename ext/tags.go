@@ -2,24 +2,24 @@ package ext
 
 import opentracing "github.com/opentracing/opentracing-go"
 
-// These constants define common tag names recommended for better portability across
+// These constants define common tag keys recommended for better portability across
 // tracing systems and languages/platforms.
 //
-// The tag names are defined as typed strings, so that in addition to the usual use
+// The tag keys are defined as typed strings, so that in addition to the usual use
 //
-//     span.setTag(TagName, value)
+//     span.SetTag(string(TagKey), value)
 //
 // they also support value type validation via this additional syntax:
 //
-//    TagName.Set(span, value)
+//    TagKey.Set(span, value)
 //
 var (
 	//////////////////////////////////////////////////////////////////////
-	// SpanKind (client/server) tag names
+	// SpanKind (client/server) tag keys
 	//////////////////////////////////////////////////////////////////////
 
 	// SpanKind hints at relationship between spans, e.g. client/server
-	SpanKind = spanKindTagName("span.kind")
+	SpanKind = spanKindTagKey("span.kind")
 
 	// SpanKindRPCClient marks a span representing the client-side of an RPC
 	// or other remote call
@@ -30,62 +30,62 @@ var (
 	SpanKindRPCServerTagValue = SpanKindTagValue("server")
 
 	//////////////////////////////////////////////////////////////////////
-	// Component tag names
+	// Component tag keys
 	//////////////////////////////////////////////////////////////////////
 
 	// Component is a low-cardinality identifier of the module, library,
 	// or package that is generating a span.
-	Component = stringTagName("component")
+	Component = stringTagKey("component")
 
 	//////////////////////////////////////////////////////////////////////
-	// Sampling hint tag name
+	// Sampling hint tag key
 	//////////////////////////////////////////////////////////////////////
 
 	// SamplingPriority determines the priority of sampling this Span.
-	SamplingPriority = uint16TagName("sampling.priority")
+	SamplingPriority = uint16TagKey("sampling.priority")
 
 	//////////////////////////////////////////////////////////////////////
-	// Peer tag names. These tag names can be emitted by either client-side of
+	// Peer tag keys. These tag keys can be emitted by either client-side of
 	// server-side to describe the other side/service in a peer-to-peer
 	// communications, like an RPC call.
 	//////////////////////////////////////////////////////////////////////
 
 	// PeerService records the service name of the peer
-	PeerService = stringTagName("peer.service")
+	PeerService = stringTagKey("peer.service")
 
-	// PeerHostname records the host name of the peer
-	PeerHostname = stringTagName("peer.hostname")
+	// PeerHostname records the host key of the peer
+	PeerHostname = stringTagKey("peer.hostname")
 
 	// PeerHostIPv4 records IP v4 host address of the peer
-	PeerHostIPv4 = uint32TagName("peer.ipv4")
+	PeerHostIPv4 = uint32TagKey("peer.ipv4")
 
 	// PeerHostIPv6 records IP v6 host address of the peer
-	PeerHostIPv6 = stringTagName("peer.ipv6")
+	PeerHostIPv6 = stringTagKey("peer.ipv6")
 
 	// PeerPort records port number of the peer
-	PeerPort = uint16TagName("peer.port")
+	PeerPort = uint16TagKey("peer.port")
 
 	//////////////////////////////////////////////////////////////////////
-	// HTTP Tag names
+	// HTTP Tag keys
 	//////////////////////////////////////////////////////////////////////
 
 	// HTTPUrl should be the URL of the request being handled in this segment
 	// of the trace, in standard URI format. The protocol is optional.
-	HTTPUrl = stringTagName("http.url")
+	HTTPUrl = stringTagKey("http.url")
 
 	// HTTPMethod is the HTTP method of the request, and is case-insensitive.
-	HTTPMethod = stringTagName("http.method")
+	HTTPMethod = stringTagKey("http.method")
 
 	// HTTPStatusCode is the numeric HTTP status code (200, 404, etc) of the
 	// HTTP response.
-	HTTPStatusCode = uint16TagName("http.status_code")
+	HTTPStatusCode = uint16TagKey("http.status_code")
 
 	//////////////////////////////////////////////////////////////////////
-	// Error Tag name
+	// Error Tag key
 	//////////////////////////////////////////////////////////////////////
 
 	// Error indicates that operation represented by the span resulted in an error.
-	Error = boolTagName("error")
+	Error = boolTagKey("error")
 )
 
 var (
@@ -93,11 +93,11 @@ var (
 	// Conventional SpanKind Tags
 	//////////////////////////////////////////////////////////////////////
 
-	// TagSpanKindRPCClient is a tag indicating the span is a RPC client.
-	TagSpanKindRPCClient = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCClientTagValue}
+	// SpanKindRPCClient is a tag indicating the span is a RPC client.
+	SpanKindRPCClient = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCClientTagValue}
 
-	// TagSpanKindRPCServer is a tag indicating the span is a RPC client.
-	TagSpanKindRPCServer = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCServerTagValue}
+	// SpanKindRPCServer is a tag indicating the span is a RPC client.
+	SpanKindRPCServer = opentracing.Tag{Key: string(SpanKind), Value: SpanKindRPCServerTagValue}
 )
 
 // ---
@@ -105,10 +105,10 @@ var (
 // SpanKindTagValue represents common span types
 type SpanKindTagValue string
 
-type spanKindTagName string
+type spanKindTagKey string
 
 // Set adds a string tag to the `span`
-func (tag spanKindTagName) Set(span opentracing.Span, value SpanKindTagValue) {
+func (tag spanKindTagKey) Set(span opentracing.Span, value SpanKindTagValue) {
 	span.SetTag(string(tag), value)
 }
 
@@ -120,7 +120,7 @@ func (r rpcServerOption) Apply(o *opentracing.StartSpanOptions) {
 	if r.clientContext != nil {
 		opentracing.ChildOf(r.clientContext).Apply(o)
 	}
-	TagSpanKindRPCServer.Apply(o)
+	SpanKindRPCServer.Apply(o)
 }
 
 // RPCServerOption returns a StartSpanOption appropriate for an RPC server span
@@ -133,36 +133,36 @@ func RPCServerOption(client opentracing.SpanContext) opentracing.StartSpanOption
 
 // ---
 
-type stringTagName string
+type stringTagKey string
 
 // Set adds a string tag to the `span`
-func (tag stringTagName) Set(span opentracing.Span, value string) {
+func (tag stringTagKey) Set(span opentracing.Span, value string) {
 	span.SetTag(string(tag), value)
 }
 
 // ---
 
-type uint32TagName string
+type uint32TagKey string
 
 // Set adds a uint32 tag to the `span`
-func (tag uint32TagName) Set(span opentracing.Span, value uint32) {
+func (tag uint32TagKey) Set(span opentracing.Span, value uint32) {
 	span.SetTag(string(tag), value)
 }
 
 // ---
 
-type uint16TagName string
+type uint16TagKey string
 
 // Set adds a uint16 tag to the `span`
-func (tag uint16TagName) Set(span opentracing.Span, value uint16) {
+func (tag uint16TagKey) Set(span opentracing.Span, value uint16) {
 	span.SetTag(string(tag), value)
 }
 
 // ---
 
-type boolTagName string
+type boolTagKey string
 
 // Add adds a bool tag to the `span`
-func (tag boolTagName) Set(span opentracing.Span, value bool) {
+func (tag boolTagKey) Set(span opentracing.Span, value bool) {
 	span.SetTag(string(tag), value)
 }
