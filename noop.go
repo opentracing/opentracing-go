@@ -13,6 +13,8 @@ import "github.com/opentracing/opentracing-go/log"
 //
 // For the same reason, the NoopTracer is the default "global" tracer
 // (see GlobalTracer and SetGlobalTracer functions).
+//
+// WARNING: NoopTracer does not support baggage propagation.
 type NoopTracer struct{}
 
 type noopSpan struct{}
