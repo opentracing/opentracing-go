@@ -133,7 +133,7 @@ func TestMockSpan_LogFields(t *testing.T) {
 	}))
 	span.FinishWithOptions(opentracing.FinishOptions{
 		LogRecords: []opentracing.LogRecord{
-			{time.Now(), []log.Field{log.String("key9", "finish")}},
+			{Timestamp: time.Now(), Fields: []log.Field{log.String("key9", "finish")}},
 		}})
 	spans := tracer.FinishedSpans()
 	assert.Equal(t, 1, len(spans))
