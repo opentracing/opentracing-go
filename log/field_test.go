@@ -26,6 +26,10 @@ func TestFieldString(t *testing.T) {
 			field:    Error(fmt.Errorf("err msg")),
 			expected: "error:err msg",
 		},
+		{
+			field:    Error(nil),
+			expected: "error:<nil>",
+		},
 	}
 	for i, tc := range testCases {
 		if str := tc.field.String(); str != tc.expected {
