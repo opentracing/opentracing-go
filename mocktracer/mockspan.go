@@ -28,8 +28,7 @@ type MockSpanContext struct {
 var mockIDSource = uint32(42)
 
 func nextMockID() int {
-	atomic.AddUint32(&mockIDSource, 1)
-	return int(atomic.LoadUint32(&mockIDSource))
+	return int(atomic.AddUint32(&mockIDSource, 1))
 }
 
 // ForeachBaggageItem belongs to the SpanContext interface
