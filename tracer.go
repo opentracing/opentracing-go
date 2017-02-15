@@ -113,8 +113,8 @@ type Tracer interface {
 }
 
 // StartSpanOptions allows Tracer.StartSpan() callers and implementors a
-// mechanism to override the start timestamp, specify Span References, and make
-// a single Tag or multiple Tags available at Span start time.
+// mechanism to override the start timestamp, specify Span References, and
+// specify one or more tags.
 //
 // StartSpan() callers should look at the StartSpanOption interface and
 // implementations available in this package.
@@ -281,11 +281,11 @@ func (t Tags) Apply(o *StartSpanOptions) {
 // or its Set method may be used to apply the tag to an existing Span,
 // for example:
 //
-// tracer.StartSpan("opName", Tag{"Key", value})
+//   tracer.StartSpan("opName", Tag{"Key", value})
 //
-//   or
+// or
 //
-// Tag{"key", value}.Set(span)
+//   Tag{"key", value}.Set(span)
 type Tag struct {
 	Key   string
 	Value interface{}

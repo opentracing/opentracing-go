@@ -22,7 +22,7 @@ func TestPeerTags(t *testing.T) {
 	ext.PeerHostIPv6.Set(span, "::")
 	ext.PeerPort.Set(span, uint16(8080))
 	ext.SamplingPriority.Set(span, uint16(1))
-	ext.SpanKind.Set(span, ext.SpanKindRPCServerEnum)
+	ext.SpanKind.Set(span, ext.SpanKindRPCServerTagValue)
 	ext.SpanKindRPCClient.Set(span)
 	span.Finish()
 
@@ -33,7 +33,7 @@ func TestPeerTags(t *testing.T) {
 		"peer.ipv4":     uint32(127<<24 | 1),
 		"peer.ipv6":     "::",
 		"peer.port":     uint16(8080),
-		"span.kind":     ext.SpanKindRPCClientEnum,
+		"span.kind":     ext.SpanKindRPCClientTagValue,
 	}, rawSpan.Tags())
 	assert.True(t, span.Context().(mocktracer.MockSpanContext).Sampled)
 	ext.SamplingPriority.Set(span, uint16(0))
@@ -53,7 +53,7 @@ func TestHTTPTags(t *testing.T) {
 		"http.url":         "test.biz/uri?protocol=false",
 		"http.method":      "GET",
 		"http.status_code": uint16(301),
-		"span.kind":        ext.SpanKindRPCServerEnum,
+		"span.kind":        ext.SpanKindRPCServerTagValue,
 	}, rawSpan.Tags())
 }
 
@@ -93,7 +93,7 @@ func TestRPCServerOption(t *testing.T) {
 
 	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
-		"span.kind": ext.SpanKindRPCServerEnum,
+		"span.kind": ext.SpanKindRPCServerTagValue,
 	}, rawSpan.Tags())
 	assert.Equal(t, map[string]string{
 		"bag": "gage",
