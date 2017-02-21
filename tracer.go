@@ -145,11 +145,6 @@ type StartSpanOptions struct {
 	// If specified, the caller hands off ownership of Tags at
 	// StartSpan() invocation time.
 	Tags map[string]interface{}
-
-	// Perfevent is the platform metric's name(s) or an event name
-	// supported by perfevents package
-	// (https://github.com/opentracing-contrib/perfevents/go)
-	Perfevent string
 }
 
 // StartSpanOption instances (zero or more) may be passed to Tracer.StartSpan.
@@ -265,14 +260,6 @@ type StartTime time.Time
 // Apply satisfies the StartSpanOption interface.
 func (t StartTime) Apply(o *StartSpanOptions) {
 	o.StartTime = time.Time(t)
-}
-
-// PerfString is the perf event's name.
-type PerfString string
-
-// Apply satisfies the StartSpanOption interface
-func (e PerfString) Apply(o *StartSpanOptions) {
-	o.Perfevent = string(e)
 }
 
 // Tags are a generic map from an arbitrary string key to an opaque value type.
