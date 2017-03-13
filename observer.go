@@ -1,8 +1,8 @@
 package opentracing
 
 // Note: The Observer API is at an alpha stage and it is subjected to change.
-//
-// An observer can be registered with the Tracer to recieve notifications
+
+// Observer can be registered with the Tracer to recieve notifications
 // about new Spans. Tracers are not required to support the Observer API.
 // The actual registration depends on the implementation, which might look
 // like the below e.g :
