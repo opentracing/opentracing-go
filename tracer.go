@@ -303,3 +303,12 @@ func (t Tag) Apply(o *StartSpanOptions) {
 func (t Tag) Set(s Span) {
 	s.SetTag(t.Key, t.Value)
 }
+
+const (
+	// OpenTracingGoAPISemVer is, well,tThe OpenTracing Go API's SemVer
+	// (http://semver.org/). Note that each OpenTracing platform API has its
+	// own semver (which has more to do with refactors or other compatibility
+	// changes and less to do with the platform-independent OpenTracing
+	// semantic specification).
+	OpenTracingSemVer = "0.9.0"
+)
