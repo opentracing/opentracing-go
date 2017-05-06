@@ -128,6 +128,18 @@ var (
 
 	// Error indicates that operation represented by the span resulted in an error.
 	Error = boolTagName("error")
+
+	//////////////////////////////////////////////////////////////////////
+	// PerfEvent Tag
+	//////////////////////////////////////////////////////////////////////
+
+	// PerfEvent records the list of events given in a comma separated string (e.g.
+	// "cpu-cycles,cache-misses,branch-misses") for a span.
+	// The tracer is expected to start the events in PerfEvent using the "perfevents"
+	// package (https://github.com/opentracing-contrib/perfevents/go) . On span
+	// Finish(), the events must be closed.
+
+	PerfEvent = stringTagName("perfevents")
 )
 
 // ---
