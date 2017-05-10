@@ -10,6 +10,6 @@ import (
 func TestAPI(t *testing.T) {
 	apiSuite := NewAPICheckSuite(func() (tracer opentracing.Tracer, closer func()) {
 		return opentracing.NoopTracer{}, nil
-	}, APICheckOpts{CheckBaggageValues: false})
+	}, APICheckCapabilities{CheckBaggageValues: false})
 	suite.Run(t, apiSuite)
 }

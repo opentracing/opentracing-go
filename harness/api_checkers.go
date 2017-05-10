@@ -11,15 +11,24 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// APICheckOpts describes options used by APICheckSuite when testing a Tracer.
-type APICheckOpts struct {
-	CheckBaggageValues bool // whether to check for propagation of baggage values
+// APICheckCapabilities describes options used by APICheckSuite when testing a Tracer.
+type APICheckCapabilities struct {
+	CheckBaggageValues bool          // whether to check for propagation of baggage values
+	CheckExtract       bool          // whether to check if extracting contexts from carriers works
+	CheckInject        bool          // whether to check if injecting contexts works
+	Probe              APICheckProbe // optional interface providing methods to check recorded data
+}
+
+// APICheckProbe exposes methods for testing data recorded by a Tracer.
+type APICheckProbe interface {
+	SameTrace(first, second opentracing.Span) bool // whether two spans are from the same trace
+	SameTraceContext(opentracing.Span, opentracing.SpanContext) bool
 }
 
 // APICheckSuite is a testify suite for checking a Tracer against the OpenTracing API.
 type APICheckSuite struct {
 	suite.Suite
-	opts      APICheckOpts
+	opts      APICheckCapabilities
 	newTracer func() (tracer opentracing.Tracer, closer func())
 	tracer    opentracing.Tracer
 	closer    func()
@@ -43,11 +52,10 @@ func (s *APICheckSuite) AfterTest(suiteName, testName string) {
 
 // NewAPICheckSuite returns a testify suite for checking a Tracer against the OpenTracing API.
 // It is provided a function that will be executed to create and destroy a tracer for each test
-// in the suite, and API test options described by APICheckOpts.
+// in the suite, and API test options described by APICheckCapabilities.
 func NewAPICheckSuite(
 	newTracer func() (tracer opentracing.Tracer, closer func()),
-	opts APICheckOpts,
-) *APICheckSuite {
+	opts APICheckCapabilities) *APICheckSuite {
 	return &APICheckSuite{newTracer: newTracer, opts: opts}
 }
 
@@ -137,6 +145,8 @@ func (s *APICheckSuite) TestSpanBaggage() {
 	val := span.BaggageItem("Kiff-loves")
 	if s.opts.CheckBaggageValues {
 		assert.Equal(s.T(), "Amy", val)
+	} else {
+		s.T().Log("Baggage propagation not supported, not checking")
 	}
 	span.Finish()
 }
@@ -155,6 +165,8 @@ func (s *APICheckSuite) TestContextBaggage() {
 			assert.Equal(s.T(), "Amy", v)
 			return true
 		})
+	} else {
+		s.T().Log("Baggage propagation not supported, not checking")
 	}
 	span.Finish()
 }
@@ -166,8 +178,12 @@ func (s *APICheckSuite) TestTextPropagation() {
 	assert.NoError(s.T(), err)
 
 	extractedContext, err := s.tracer.Extract(opentracing.TextMap, textCarrier)
-	assert.NoError(s.T(), err)
-	assertEmptyBaggage(s.T(), extractedContext)
+	if s.opts.CheckExtract {
+		assert.NoError(s.T(), err)
+		assertEmptyBaggage(s.T(), extractedContext)
+	} else {
+		s.T().Log("Tracer.Extract not supported, not checking")
+	}
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
@@ -180,8 +196,12 @@ func (s *APICheckSuite) TestHTTPPropagation() {
 	assert.NoError(s.T(), err)
 
 	extractedContext, err := s.tracer.Extract(opentracing.HTTPHeaders, textCarrier)
-	assert.NoError(s.T(), err)
-	assertEmptyBaggage(s.T(), extractedContext)
+	if s.opts.CheckExtract {
+		assert.NoError(s.T(), err)
+		assertEmptyBaggage(s.T(), extractedContext)
+	} else {
+		s.T().Log("Tracer.Extract not supported, skipping")
+	}
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
@@ -193,8 +213,12 @@ func (s *APICheckSuite) TestBinaryPropagation() {
 	assert.NoError(s.T(), err)
 
 	extractedContext, err := s.tracer.Extract(opentracing.Binary, buf)
-	assert.NoError(s.T(), err)
-	assertEmptyBaggage(s.T(), extractedContext)
+	if s.opts.CheckExtract {
+		assert.NoError(s.T(), err)
+		assertEmptyBaggage(s.T(), extractedContext)
+	} else {
+		s.T().Log("Tracer.Extract not supported, skipping")
+	}
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
@@ -210,8 +234,12 @@ func (s *APICheckSuite) TestMandatoryFormats() {
 		err := span.Tracer().Inject(span.Context(), fmtCarrier.Format, fmtCarrier.Carrier)
 		assert.NoError(s.T(), err)
 		spanCtx, err := s.tracer.Extract(fmtCarrier.Format, fmtCarrier.Carrier)
-		assert.NoError(s.T(), err)
-		assertEmptyBaggage(s.T(), spanCtx)
+		if s.opts.CheckExtract {
+			assert.NoError(s.T(), err)
+			assertEmptyBaggage(s.T(), spanCtx)
+		} else {
+			s.T().Log("Tracer.Extract not supported, skipping")
+		}
 	}
 }
 
@@ -220,9 +248,16 @@ func (s *APICheckSuite) TestUnknownFormat() {
 	span := s.tracer.StartSpan("Bender")
 
 	err := span.Tracer().Inject(span.Context(), customFormat, nil)
-	assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
-
+	if s.opts.CheckInject {
+		assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
+	} else {
+		s.T().Log("Tracer.Inject not supported, not checking")
+	}
 	ctx, err := s.tracer.Extract(customFormat, nil)
 	assert.Nil(s.T(), ctx)
-	assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
+	if s.opts.CheckExtract {
+		assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
+	} else {
+		s.T().Log("Tracer.Inject not supported, not checking")
+	}
 }
