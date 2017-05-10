@@ -1,3 +1,5 @@
+// Package harness provides a suite of API compatibility checks. They were originally
+// ported from the OpenTracing Python library's "harness" module.
 package harness
 
 import (
@@ -59,6 +61,7 @@ func NewAPICheckSuite(
 	return &APICheckSuite{newTracer: newTracer, opts: opts}
 }
 
+// TestStartSpan checks if a Tracer can start a span and calls some span API methods.
 func (s *APICheckSuite) TestStartSpan() {
 	span := s.tracer.StartSpan(
 		"Fry",
@@ -69,6 +72,7 @@ func (s *APICheckSuite) TestStartSpan() {
 	span.Finish()
 }
 
+// TestStartSpanWithParent checks if a Tracer can start a span with a specified parent.
 func (s *APICheckSuite) TestStartSpanWithParent() {
 	parentSpan := s.tracer.StartSpan("parent")
 	assert.NotNil(s.T(), parentSpan)
@@ -87,11 +91,13 @@ func (s *APICheckSuite) TestStartSpanWithParent() {
 	parentSpan.Finish()
 }
 
+// TestSetOperationName attempts to set the operation name on a span after it has been created.
 func (s *APICheckSuite) TestSetOperationName() {
 	span := s.tracer.StartSpan("").SetOperationName("Farnsworth")
 	span.Finish()
 }
 
+// TestSpanTagValueTypes sets tags using values of different types.
 func (s *APICheckSuite) TestSpanTagValueTypes() {
 	span := s.tracer.StartSpan("ManyTypes")
 	span.
@@ -100,6 +106,7 @@ func (s *APICheckSuite) TestSpanTagValueTypes() {
 		SetTag("a_string", "aoeuidhtns")
 }
 
+// TestSpanTagsWithChaining tests chaining of calls to SetTag.
 func (s *APICheckSuite) TestSpanTagsWithChaining() {
 	span := s.tracer.StartSpan("Farnsworth")
 	span.
@@ -111,6 +118,7 @@ func (s *APICheckSuite) TestSpanTagsWithChaining() {
 	span.Finish()
 }
 
+// TestSpanLogs tests calls to log keys and values with spans.
 func (s *APICheckSuite) TestSpanLogs() {
 	span := s.tracer.StartSpan("Fry")
 	span.LogKV(
@@ -135,6 +143,8 @@ func assertEmptyBaggage(t *testing.T, spanContext opentracing.SpanContext) {
 	})
 }
 
+// TestSpanBaggage tests calls to set and get span baggage, and if the CheckBaggageValues option
+// is set, asserts that baggage values were successfully retrieved.
 func (s *APICheckSuite) TestSpanBaggage() {
 	span := s.tracer.StartSpan("Fry")
 	assertEmptyBaggage(s.T(), span.Context())
@@ -151,6 +161,8 @@ func (s *APICheckSuite) TestSpanBaggage() {
 	span.Finish()
 }
 
+// TestSpanBaggage tests calls to set and get span baggage, and if the CheckBaggageValues option
+// is set, asserts that baggage values were successfully retrieved from the span's SpanContext.
 func (s *APICheckSuite) TestContextBaggage() {
 	span := s.tracer.StartSpan("Fry")
 	assertEmptyBaggage(s.T(), span.Context())
@@ -171,6 +183,9 @@ func (s *APICheckSuite) TestContextBaggage() {
 	span.Finish()
 }
 
+// TestTextPropagation tests if the Tracer can Inject a span into a TextMapCarrier, and later Extract it.
+// If CheckExtract is set, it will check if Extract was successful (returned no error). If a Probe is set,
+// it will check if the extracted context is in the same trace as the original span.
 func (s *APICheckSuite) TestTextPropagation() {
 	span := s.tracer.StartSpan("Bender")
 	textCarrier := opentracing.TextMapCarrier{}
@@ -184,10 +199,15 @@ func (s *APICheckSuite) TestTextPropagation() {
 	} else {
 		s.T().Log("Tracer.Extract not supported, not checking")
 	}
-	// XXX add option to check if propagation "works"
+	if s.opts.Probe != nil {
+		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+	}
 	span.Finish()
 }
 
+// TestHTTPPropagation tests if the Tracer can Inject a span into HTTP headers, and later Extract it.
+// If CheckExtract is set, it will check if Extract was successful (returned no error). If a Probe is set,
+// it will check if the extracted context is in the same trace as the original span.
 func (s *APICheckSuite) TestHTTPPropagation() {
 	span := s.tracer.StartSpan("Bender")
 	textCarrier := opentracing.HTTPHeadersCarrier{}
@@ -202,10 +222,15 @@ func (s *APICheckSuite) TestHTTPPropagation() {
 	} else {
 		s.T().Log("Tracer.Extract not supported, skipping")
 	}
-	// XXX add option to check if propagation "works"
+	if s.opts.Probe != nil {
+		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+	}
 	span.Finish()
 }
 
+// TestBinaryPropagation tests if the Tracer can Inject a span into a binary buffer, and later Extract it.
+// If CheckExtract is set, it will check if Extract was successful (returned no error). If a Probe is set,
+// it will check if the extracted context is in the same trace as the original span.
 func (s *APICheckSuite) TestBinaryPropagation() {
 	span := s.tracer.StartSpan("Bender")
 	buf := new(bytes.Buffer)
@@ -219,10 +244,14 @@ func (s *APICheckSuite) TestBinaryPropagation() {
 	} else {
 		s.T().Log("Tracer.Extract not supported, skipping")
 	}
-	// XXX add option to check if propagation "works"
+	if s.opts.Probe != nil {
+		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+	}
 	span.Finish()
 }
 
+// TestMandatoryFormats tests if all mandatory carrier formats are supported. If CheckExtract is set, it
+// will check if the call to Extract was successful (returned no error such as ErrUnsupportedFormat).
 func (s *APICheckSuite) TestMandatoryFormats() {
 	formats := []struct{ Format, Carrier interface{} }{
 		{opentracing.TextMap, opentracing.TextMapCarrier{}},
@@ -243,6 +272,8 @@ func (s *APICheckSuite) TestMandatoryFormats() {
 	}
 }
 
+// TestUnknownFormat checks if attempting to Inject or Extract using an unsupported format
+// returns ErrUnsupportedFormat, if CheckInject and CheckExtract are set.
 func (s *APICheckSuite) TestUnknownFormat() {
 	customFormat := "kiss my shiny metal ..."
 	span := s.tracer.StartSpan("Bender")
