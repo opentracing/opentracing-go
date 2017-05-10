@@ -86,6 +86,9 @@ func (s *APICheckSuite) TestStartSpanWithParent() {
 		"Leela",
 		opentracing.FollowsFrom(parentSpan.Context()),
 		opentracing.Tag{Key: "birthplace", Value: "sewers"})
+	if s.opts.Probe != nil {
+		assert.True(s.T(), s.opts.Probe.SameTrace(parentSpan, span))
+	}
 	span.Finish()
 
 	parentSpan.Finish()
