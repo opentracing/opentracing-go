@@ -125,11 +125,13 @@ func (s *APICheckSuite) TestSpanTagsWithChaining() {
 func (s *APICheckSuite) TestSpanLogs() {
 	span := s.tracer.StartSpan("Fry")
 	span.LogKV(
-		"frozen.year", 1999,
-		"frozen.place", "Cryogenics Labs")
+		"event", "frozen",
+		"year", 1999,
+		"place", "Cryogenics Labs")
 	span.LogKV(
-		"defrosted.year", 2999,
-		"defrosted.place", "Cryogenics Labs")
+		"event", "defrosted",
+		"year", 2999,
+		"place", "Cryogenics Labs")
 
 	// XXX add LogFields
 	// XXX add LogRecords FinishOptions with timestamp
