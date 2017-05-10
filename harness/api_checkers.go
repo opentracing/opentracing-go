@@ -161,7 +161,7 @@ func (s *APICheckSuite) TestSpanBaggage() {
 	span.Finish()
 }
 
-// TestSpanBaggage tests calls to set and get span baggage, and if the CheckBaggageValues option
+// TestContextBaggage tests calls to set and get span baggage, and if the CheckBaggageValues option
 // is set, asserts that baggage values were successfully retrieved from the span's SpanContext.
 func (s *APICheckSuite) TestContextBaggage() {
 	span := s.tracer.StartSpan("Fry")
