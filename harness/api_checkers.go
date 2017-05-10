@@ -2,19 +2,57 @@ package harness
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-type CheckOpts struct {
-	CheckBaggageValues bool
+// APICheckOpts describes options used by APICheckSuite when testing a Tracer.
+type APICheckOpts struct {
+	CheckBaggageValues bool // whether to check for propagation of baggage values
 }
 
-func CheckStartSpan(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan(
+// APICheckSuite is a testify suite for checking a Tracer against the OpenTracing API.
+type APICheckSuite struct {
+	suite.Suite
+	opts      APICheckOpts
+	newTracer func() (tracer opentracing.Tracer, closer func())
+	tracer    opentracing.Tracer
+	closer    func()
+}
+
+// BeforeTest creates a tracer for this specific test invocation.
+func (s *APICheckSuite) BeforeTest(suiteName, testName string) {
+	s.tracer, s.closer = s.newTracer()
+	if s.tracer == nil {
+		panic(fmt.Sprintf("newTracer returned nil Tracer before running %s, %s", suiteName, testName))
+	}
+}
+
+// AfterTest closes the tracer, and clears the test-specific tracer.
+func (s *APICheckSuite) AfterTest(suiteName, testName string) {
+	if s.closer != nil {
+		s.closer()
+	}
+	s.tracer, s.closer = nil, nil
+}
+
+// NewAPICheckSuite returns a testify suite for checking a Tracer against the OpenTracing API.
+// It is provided a function that will be executed to create and destroy a tracer for each test
+// in the suite, and API test options described by APICheckOpts.
+func NewAPICheckSuite(
+	newTracer func() (tracer opentracing.Tracer, closer func()),
+	opts APICheckOpts,
+) *APICheckSuite {
+	return &APICheckSuite{newTracer: newTracer, opts: opts}
+}
+
+func (s *APICheckSuite) TestStartSpan() {
+	span := s.tracer.StartSpan(
 		"Fry",
 		opentracing.Tag{Key: "birthday", Value: "August 14 1974"})
 	span.LogFields(
@@ -23,16 +61,16 @@ func CheckStartSpan(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
 	span.Finish()
 }
 
-func CheckStartSpanWithParent(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	parentSpan := tracer.StartSpan("parent")
-	assert.NotNil(t, parentSpan)
+func (s *APICheckSuite) TestStartSpanWithParent() {
+	parentSpan := s.tracer.StartSpan("parent")
+	assert.NotNil(s.T(), parentSpan)
 
-	span := tracer.StartSpan(
+	span := s.tracer.StartSpan(
 		"Leela",
 		opentracing.ChildOf(parentSpan.Context()))
 	span.Finish()
 
-	span = tracer.StartSpan(
+	span = s.tracer.StartSpan(
 		"Leela",
 		opentracing.FollowsFrom(parentSpan.Context()),
 		opentracing.Tag{Key: "birthplace", Value: "sewers"})
@@ -41,21 +79,21 @@ func CheckStartSpanWithParent(t *testing.T, tracer opentracing.Tracer, opts Chec
 	parentSpan.Finish()
 }
 
-func CheckSetOperationName(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("").SetOperationName("Farnsworth")
+func (s *APICheckSuite) TestSetOperationName() {
+	span := s.tracer.StartSpan("").SetOperationName("Farnsworth")
 	span.Finish()
 }
 
-func CheckSpanTagValueTypes(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("ManyTypes")
+func (s *APICheckSuite) TestSpanTagValueTypes() {
+	span := s.tracer.StartSpan("ManyTypes")
 	span.
 		SetTag("an_int", 9).
 		SetTag("a_bool", true).
 		SetTag("a_string", "aoeuidhtns")
 }
 
-func CheckSpanTagsWithChaining(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Farnsworth")
+func (s *APICheckSuite) TestSpanTagsWithChaining() {
+	span := s.tracer.StartSpan("Farnsworth")
 	span.
 		SetTag("birthday", "9 April, 2841").
 		SetTag("loves", "different lengths of wires")
@@ -65,8 +103,8 @@ func CheckSpanTagsWithChaining(t *testing.T, tracer opentracing.Tracer, opts Che
 	span.Finish()
 }
 
-func CheckSpanLogs(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Fry")
+func (s *APICheckSuite) TestSpanLogs() {
+	span := s.tracer.StartSpan("Fry")
 	span.LogKV(
 		"frozen.year", 1999,
 		"frozen.place", "Cryogenics Labs")
@@ -89,102 +127,102 @@ func assertEmptyBaggage(t *testing.T, spanContext opentracing.SpanContext) {
 	})
 }
 
-func CheckSpanBaggage(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Fry")
-	assertEmptyBaggage(t, span.Context())
+func (s *APICheckSuite) TestSpanBaggage() {
+	span := s.tracer.StartSpan("Fry")
+	assertEmptyBaggage(s.T(), span.Context())
 
 	spanRef := span.SetBaggageItem("Kiff-loves", "Amy")
-	assert.Exactly(t, spanRef, span)
+	assert.Exactly(s.T(), spanRef, span)
 
 	val := span.BaggageItem("Kiff-loves")
-	if opts.CheckBaggageValues {
-		assert.Equal(t, "Amy", val)
+	if s.opts.CheckBaggageValues {
+		assert.Equal(s.T(), "Amy", val)
 	}
 	span.Finish()
 }
 
-func CheckContextBaggage(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Fry")
-	assertEmptyBaggage(t, span.Context())
+func (s *APICheckSuite) TestContextBaggage() {
+	span := s.tracer.StartSpan("Fry")
+	assertEmptyBaggage(s.T(), span.Context())
 
 	span.SetBaggageItem("Kiff-loves", "Amy")
-	if opts.CheckBaggageValues {
+	if s.opts.CheckBaggageValues {
 		called := false
 		span.Context().ForeachBaggageItem(func(k, v string) bool {
-			assert.False(t, called)
+			assert.False(s.T(), called)
 			called = true
-			assert.Equal(t, "Kiff-loves", k)
-			assert.Equal(t, "Amy", v)
+			assert.Equal(s.T(), "Kiff-loves", k)
+			assert.Equal(s.T(), "Amy", v)
 			return true
 		})
 	}
 	span.Finish()
 }
 
-func CheckTextPropagation(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Bender")
+func (s *APICheckSuite) TestTextPropagation() {
+	span := s.tracer.StartSpan("Bender")
 	textCarrier := opentracing.TextMapCarrier{}
 	err := span.Tracer().Inject(span.Context(), opentracing.TextMap, textCarrier)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
-	extractedContext, err := tracer.Extract(opentracing.TextMap, textCarrier)
-	assert.NoError(t, err)
-	assertEmptyBaggage(t, extractedContext)
+	extractedContext, err := s.tracer.Extract(opentracing.TextMap, textCarrier)
+	assert.NoError(s.T(), err)
+	assertEmptyBaggage(s.T(), extractedContext)
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
 
-func CheckHTTPPropagation(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Bender")
+func (s *APICheckSuite) TestHTTPPropagation() {
+	span := s.tracer.StartSpan("Bender")
 	textCarrier := opentracing.HTTPHeadersCarrier{}
 	// XXX add same test cases around valid HTTP header characters, casing
 	err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, textCarrier)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
-	extractedContext, err := tracer.Extract(opentracing.HTTPHeaders, textCarrier)
-	assert.NoError(t, err)
-	assertEmptyBaggage(t, extractedContext)
+	extractedContext, err := s.tracer.Extract(opentracing.HTTPHeaders, textCarrier)
+	assert.NoError(s.T(), err)
+	assertEmptyBaggage(s.T(), extractedContext)
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
 
-func CheckBinaryPropagation(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
-	span := tracer.StartSpan("Bender")
+func (s *APICheckSuite) TestBinaryPropagation() {
+	span := s.tracer.StartSpan("Bender")
 	buf := new(bytes.Buffer)
 	err := span.Tracer().Inject(span.Context(), opentracing.Binary, buf)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
-	extractedContext, err := tracer.Extract(opentracing.Binary, buf)
-	assert.NoError(t, err)
-	assertEmptyBaggage(t, extractedContext)
+	extractedContext, err := s.tracer.Extract(opentracing.Binary, buf)
+	assert.NoError(s.T(), err)
+	assertEmptyBaggage(s.T(), extractedContext)
 	// XXX add option to check if propagation "works"
 	span.Finish()
 }
 
-func CheckMandatoryFormats(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
+func (s *APICheckSuite) TestMandatoryFormats() {
 	formats := []struct{ Format, Carrier interface{} }{
 		{opentracing.TextMap, opentracing.TextMapCarrier{}},
 		{opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier{}},
 		{opentracing.Binary, new(bytes.Buffer)},
 	}
-	span := tracer.StartSpan("Bender")
+	span := s.tracer.StartSpan("Bender")
 	for _, fmtCarrier := range formats {
 		err := span.Tracer().Inject(span.Context(), fmtCarrier.Format, fmtCarrier.Carrier)
-		assert.NoError(t, err)
-		spanCtx, err := tracer.Extract(fmtCarrier.Format, fmtCarrier.Carrier)
-		assert.NoError(t, err)
-		assertEmptyBaggage(t, spanCtx)
+		assert.NoError(s.T(), err)
+		spanCtx, err := s.tracer.Extract(fmtCarrier.Format, fmtCarrier.Carrier)
+		assert.NoError(s.T(), err)
+		assertEmptyBaggage(s.T(), spanCtx)
 	}
 }
 
-func CheckUnknownFormat(t *testing.T, tracer opentracing.Tracer, opts CheckOpts) {
+func (s *APICheckSuite) TestUnknownFormat() {
 	customFormat := "kiss my shiny metal ..."
-	span := tracer.StartSpan("Bender")
+	span := s.tracer.StartSpan("Bender")
 
 	err := span.Tracer().Inject(span.Context(), customFormat, nil)
-	assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
+	assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
 
-	ctx, err := tracer.Extract(customFormat, nil)
-	assert.Nil(t, ctx)
-	assert.Equal(t, opentracing.ErrUnsupportedFormat, err)
+	ctx, err := s.tracer.Extract(customFormat, nil)
+	assert.Nil(s.T(), ctx)
+	assert.Equal(s.T(), opentracing.ErrUnsupportedFormat, err)
 }
