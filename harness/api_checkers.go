@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -133,9 +134,22 @@ func (s *APICheckSuite) TestSpanLogs() {
 		"year", 2999,
 		"place", "Cryogenics Labs")
 
-	// XXX add LogFields
-	// XXX add LogRecords FinishOptions with timestamp
-	span.Finish()
+	ts := time.Now()
+	span.FinishWithOptions(opentracing.FinishOptions{
+		LogRecords: []opentracing.LogRecord{
+			{
+				Timestamp: ts,
+				Fields: []log.Field{
+					log.String("event", "job-assignment"),
+					log.String("type", "delivery boy"),
+				},
+			},
+		}})
+
+	// Test deprecated log methods
+	span.LogEvent("an arbitrary event")
+	span.LogEventWithPayload("y", "z")
+	span.Log(opentracing.LogData{Event: "y", Payload: "z"})
 }
 
 func assertEmptyBaggage(t *testing.T, spanContext opentracing.SpanContext) {
@@ -296,4 +310,91 @@ func (s *APICheckSuite) TestUnknownFormat() {
 	} else {
 		s.T().Log("Tracer.Inject not supported, not checking")
 	}
+}
+
+// ForeignSpanContext satisfies the opentracing.SpanContext interface, but otherwise does nothing.
+type ForeignSpanContext struct{}
+
+// ForeachBaggageItem could call handler for each baggage KV, but does nothing.
+func (f ForeignSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+
+// NotACarrier does not satisfy any of the opentracing carrier interfaces.
+type NotACarrier struct{}
+
+// TestInvalidInject checks if errors are returned when Inject is called with invalid inputs.
+func (s *APICheckSuite) TestInvalidInject() {
+	if s.opts.CheckInject {
+		span := s.tracer.StartSpan("op")
+
+		// binary inject
+		err := span.Tracer().Inject(ForeignSpanContext{}, opentracing.Binary, new(bytes.Buffer))
+		assert.Equal(s.T(), opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+		err = span.Tracer().Inject(span.Context(), opentracing.Binary, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Writer should return error")
+
+		// text inject
+		err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.TextMap, opentracing.TextMapCarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+		err = span.Tracer().Inject(span.Context(), opentracing.TextMap, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
+
+		// HTTP inject
+		err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+		err = span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
+	} else {
+		s.T().Log("Tracer.Inject not supported, skipping")
+	}
+}
+
+// TestInvalidExtract checks if errors are returned when Extract is called with invalid inputs.
+func (s *APICheckSuite) TestInvalidExtract() {
+	if s.opts.CheckExtract {
+		span := s.tracer.StartSpan("op")
+
+		// binary extract
+		ctx, err := span.Tracer().Extract(opentracing.Binary, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Reader should return error")
+		assert.Nil(s.T(), ctx)
+
+		// text extract
+		ctx, err = span.Tracer().Extract(opentracing.TextMap, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
+		assert.Nil(s.T(), ctx)
+
+		// HTTP extract
+		ctx, err = span.Tracer().Extract(opentracing.HTTPHeaders, NotACarrier{})
+		assert.Equal(s.T(), opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
+		assert.Nil(s.T(), ctx)
+
+		span.Finish()
+	} else {
+		s.T().Log("Tracer.Extract not supported, skipping")
+	}
+}
+
+// TestMultiBaggage tests calls to set multiple baggage items, and if the CheckBaggageValues option
+// is set, asserts that a baggage value was successfully retrieved from the span's SpanContext.
+// It also ensures that returning false from the ForeachBaggageItem handler aborts iteration.
+func (s *APICheckSuite) TestMultiBaggage() {
+	span := s.tracer.StartSpan("op")
+	assertEmptyBaggage(s.T(), span.Context())
+
+	span.SetBaggageItem("Bag1", "BaggageVal1")
+	span.SetBaggageItem("Bag2", "BaggageVal2")
+	if s.opts.CheckBaggageValues {
+		assert.Equal(s.T(), "BaggageVal1", span.BaggageItem("Bag1"))
+		assert.Equal(s.T(), "BaggageVal2", span.BaggageItem("Bag2"))
+		called := false
+		span.Context().ForeachBaggageItem(func(k, v string) bool {
+			assert.False(s.T(), called) // should only be called once
+			called = true
+			return false
+		})
+		assert.True(s.T(), called)
+	} else {
+		s.T().Log("Baggage propagation not supported, not checking")
+	}
+	span.Finish()
 }
