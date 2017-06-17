@@ -20,6 +20,7 @@ const (
 	errorType
 	objectType
 	lazyLoggerType
+	skipType
 )
 
 // Field instances are constructed via LogBool, LogString, and so on.
@@ -152,6 +153,15 @@ func Lazy(ll LazyLogger) Field {
 	}
 }
 
+// Skip allows for a field to skip the Marshal step.  Useful for constructing
+// optional fields.
+func Skip(key string) Field {
+	return Field{
+		key:       key,
+		fieldType: skipType,
+	}
+}
+
 // Encoder allows access to the contents of a Field (via a call to
 // Field.Marshal).
 //
@@ -203,6 +213,8 @@ func (lf Field) Marshal(visitor Encoder) {
 		visitor.EmitObject(lf.key, lf.interfaceVal)
 	case lazyLoggerType:
 		visitor.EmitLazyLogger(lf.interfaceVal.(LazyLogger))
+	case skipType:
+		// intentionally left blank
 	}
 }
 
@@ -234,6 +246,8 @@ func (lf Field) Value() interface{} {
 		return math.Float64frombits(uint64(lf.numericVal))
 	case errorType, objectType, lazyLoggerType:
 		return lf.interfaceVal
+	case skipType:
+		return nil
 	default:
 		return nil
 	}
