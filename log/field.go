@@ -153,18 +153,22 @@ func Lazy(ll LazyLogger) Field {
 	}
 }
 
-// Skip allows a field to be optionally be included in a Field list.
+// Skip creates a no-op log field that should be ignored by the tracer.
+// It can be used to capture optional fields, for example those that should
+// only be logged in non-production environment:
 //
-// Useful for the construction of composed field types like log.Error
-// to enable them to optionally decide where or not to trace content.
+//     func customerField(order *Order) log.Field {
+//          if os.Getenv("ENVIRONMENT") == "dev" {
+//              return log.String("customer", order.Customer.ID)
+//          }
+//          return log.Skip()
+//     }
 //
-// There are a number of reasons one might wish to dynamically include
-// fields.  For example, if you want to provide additional trace information
-// in non-production environment only.  Another example is if you have
-// fields that may not always be present.
-func Skip(key string) Field {
+//     span.LogFields(log.String("event", "purchase"), customerField(order))
+//
+func Skip() Field {
 	return Field{
-		key:       key,
+		key:       "_",
 		fieldType: skipType,
 	}
 }

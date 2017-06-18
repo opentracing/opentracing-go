@@ -31,8 +31,8 @@ func TestFieldString(t *testing.T) {
 			expected: "error:<nil>",
 		},
 		{
-			field:    Skip("key"),
-			expected: "key:<nil>",
+			field:    Skip(),
+			expected: "_:<nil>",
 		},
 	}
 	for i, tc := range testCases {
@@ -46,6 +46,6 @@ func TestSkipDoesNotMarshal(t *testing.T) {
 	mockEncoder := struct {
 		Encoder
 	}{}
-	f := Skip("skipped")
+	f := Skip()
 	f.Marshal(mockEncoder) // panics if any Encoder method is invoked
 }
