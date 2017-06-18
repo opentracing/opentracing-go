@@ -153,8 +153,15 @@ func Lazy(ll LazyLogger) Field {
 	}
 }
 
-// Skip allows for a field to skip the Marshal step.  Useful for constructing
-// optional fields.
+// Skip allows a field to be optionally be included in a Field list.
+//
+// Useful for the construction of composed field types like log.Error
+// to enable them to optionally decide where or not to trace content.
+//
+// There are a number of reasons one might wish to dynamically include
+// fields.  For example, if you want to provide additional trace information
+// in non-production environment only.  Another example is if you have
+// fields that may not always be present.
 func Skip(key string) Field {
 	return Field{
 		key:       key,
