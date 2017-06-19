@@ -32,7 +32,7 @@ func TestFieldString(t *testing.T) {
 		},
 		{
 			field:    Skip(),
-			expected: "_:<nil>",
+			expected: ":<nil>",
 		},
 	}
 	for i, tc := range testCases {

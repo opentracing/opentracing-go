@@ -168,7 +168,6 @@ func Lazy(ll LazyLogger) Field {
 //
 func Skip() Field {
 	return Field{
-		key:       "_",
 		fieldType: skipType,
 	}
 }
