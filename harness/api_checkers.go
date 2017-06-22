@@ -24,8 +24,10 @@ type APICheckCapabilities struct {
 
 // APICheckProbe exposes methods for testing data recorded by a Tracer.
 type APICheckProbe interface {
-	SameTrace(first, second opentracing.Span) bool // whether two spans are from the same trace
-	SameTraceContext(opentracing.Span, opentracing.SpanContext) bool
+	// SameTrace helps tests assert that this tracer's spans are from the same trace.
+	SameTrace(first, second opentracing.Span) bool
+	// SameSpanContext helps tests assert that a span and a context are from the same trace and span.
+	SameSpanContext(opentracing.Span, opentracing.SpanContext) bool
 }
 
 // APICheckSuite is a testify suite for checking a Tracer against the OpenTracing API.
@@ -35,6 +37,50 @@ type APICheckSuite struct {
 	newTracer func() (tracer opentracing.Tracer, closer func())
 	tracer    opentracing.Tracer
 	closer    func()
+}
+
+// NewAPICheckSuite returns a testify suite for checking a Tracer against the OpenTracing API.
+// It is provided a function that will be executed to create and destroy a tracer for each test
+// in the suite, and API test options described by APICheckCapabilities.
+func NewAPICheckSuite(
+	newTracer func() (tracer opentracing.Tracer, closer func()),
+	opts ...APICheckOption,
+) *APICheckSuite {
+	s := &APICheckSuite{newTracer: newTracer}
+	for _, o := range opts {
+		o.Apply(s)
+	}
+	return s
+}
+
+// APICheckOption instances may be passed to NewAPICheckSuite.
+type APICheckOption interface {
+	Apply(*APICheckSuite)
+}
+
+// Apply satisfies the APICheckOption interface.
+func (c APICheckCapabilities) Apply(s *APICheckSuite) {
+	s.opts = c
+}
+
+// CheckEverything enables all API checks.
+type CheckEverything struct{}
+
+// Apply satisfies the APICheckOption interface.
+func (CheckEverything) Apply(s *APICheckSuite) {
+	s.opts.CheckBaggageValues = true
+	s.opts.CheckExtract = true
+	s.opts.CheckInject = true
+}
+
+// UseProbe specifies an APICheckProbe implementation to use.
+type UseProbe struct {
+	APICheckProbe
+}
+
+// Apply satisfies the APICheckOption interface.
+func (u UseProbe) Apply(s *APICheckSuite) {
+	s.opts.Probe = u.APICheckProbe
 }
 
 // BeforeTest creates a tracer for this specific test invocation.
@@ -51,15 +97,6 @@ func (s *APICheckSuite) AfterTest(suiteName, testName string) {
 		s.closer()
 	}
 	s.tracer, s.closer = nil, nil
-}
-
-// NewAPICheckSuite returns a testify suite for checking a Tracer against the OpenTracing API.
-// It is provided a function that will be executed to create and destroy a tracer for each test
-// in the suite, and API test options described by APICheckCapabilities.
-func NewAPICheckSuite(
-	newTracer func() (tracer opentracing.Tracer, closer func()),
-	opts APICheckCapabilities) *APICheckSuite {
-	return &APICheckSuite{newTracer: newTracer, opts: opts}
 }
 
 // TestStartSpan checks if a Tracer can start a span and calls some span API methods.
@@ -219,7 +256,7 @@ func (s *APICheckSuite) TestTextPropagation() {
 		s.T().Log("Tracer.Extract not supported, not checking")
 	}
 	if s.opts.Probe != nil {
-		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+		assert.True(s.T(), s.opts.Probe.SameSpanContext(span, extractedContext))
 	}
 	span.Finish()
 }
@@ -242,7 +279,7 @@ func (s *APICheckSuite) TestHTTPPropagation() {
 		s.T().Log("Tracer.Extract not supported, skipping")
 	}
 	if s.opts.Probe != nil {
-		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+		assert.True(s.T(), s.opts.Probe.SameSpanContext(span, extractedContext))
 	}
 	span.Finish()
 }
@@ -264,7 +301,7 @@ func (s *APICheckSuite) TestBinaryPropagation() {
 		s.T().Log("Tracer.Extract not supported, skipping")
 	}
 	if s.opts.Probe != nil {
-		assert.True(s.T(), s.opts.Probe.SameTraceContext(span, extractedContext))
+		assert.True(s.T(), s.opts.Probe.SameSpanContext(span, extractedContext))
 	}
 	span.Finish()
 }
