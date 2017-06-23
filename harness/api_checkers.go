@@ -126,6 +126,8 @@ func (s *APICheckSuite) TestStartSpanWithParent() {
 		opentracing.Tag{Key: "birthplace", Value: "sewers"})
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameTrace(parentSpan, span))
+	} else {
+		s.T().Log("harness.Probe not supported, skipping")
 	}
 	span.Finish()
 
@@ -257,6 +259,8 @@ func (s *APICheckSuite) TestTextPropagation() {
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
+	} else {
+		s.T().Log("harness.Probe not supported, skipping")
 	}
 	span.Finish()
 }
@@ -280,6 +284,8 @@ func (s *APICheckSuite) TestHTTPPropagation() {
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
+	} else {
+		s.T().Log("harness.Probe not supported, skipping")
 	}
 	span.Finish()
 }
@@ -302,6 +308,8 @@ func (s *APICheckSuite) TestBinaryPropagation() {
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
+	} else {
+		s.T().Log("harness.Probe not supported, skipping")
 	}
 	span.Finish()
 }
