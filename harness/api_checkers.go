@@ -127,7 +127,7 @@ func (s *APICheckSuite) TestStartSpanWithParent() {
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameTrace(parentSpan, span))
 	} else {
-		s.T().Log("harness.Probe not supported, skipping")
+		s.T().Log("harness.Probe not specified, skipping")
 	}
 	span.Finish()
 
@@ -214,7 +214,7 @@ func (s *APICheckSuite) TestSpanBaggage() {
 	if s.opts.CheckBaggageValues {
 		s.Equal("Amy", val)
 	} else {
-		s.T().Log("Baggage propagation not supported, not checking")
+		s.T().Log("CheckBaggageValues capability not set, skipping")
 	}
 	span.Finish()
 }
@@ -236,7 +236,7 @@ func (s *APICheckSuite) TestContextBaggage() {
 			return true
 		})
 	} else {
-		s.T().Log("Baggage propagation not supported, not checking")
+		s.T().Log("CheckBaggageValues capability not set, skipping")
 	}
 	span.Finish()
 }
@@ -255,12 +255,12 @@ func (s *APICheckSuite) TestTextPropagation() {
 		s.NoError(err)
 		assertEmptyBaggage(s.T(), extractedContext)
 	} else {
-		s.T().Log("Tracer.Extract not supported, not checking")
+		s.T().Log("CheckExtract capability not set, skipping")
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
 	} else {
-		s.T().Log("harness.Probe not supported, skipping")
+		s.T().Log("harness.Probe not specified, skipping")
 	}
 	span.Finish()
 }
@@ -280,12 +280,12 @@ func (s *APICheckSuite) TestHTTPPropagation() {
 		s.NoError(err)
 		assertEmptyBaggage(s.T(), extractedContext)
 	} else {
-		s.T().Log("Tracer.Extract not supported, skipping")
+		s.T().Log("CheckExtract capability not set, skipping")
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
 	} else {
-		s.T().Log("harness.Probe not supported, skipping")
+		s.T().Log("harness.Probe not specified, skipping")
 	}
 	span.Finish()
 }
@@ -304,12 +304,12 @@ func (s *APICheckSuite) TestBinaryPropagation() {
 		s.NoError(err)
 		assertEmptyBaggage(s.T(), extractedContext)
 	} else {
-		s.T().Log("Tracer.Extract not supported, skipping")
+		s.T().Log("CheckExtract capability not set, skipping")
 	}
 	if s.opts.Probe != nil {
 		s.True(s.opts.Probe.SameSpanContext(span, extractedContext))
 	} else {
-		s.T().Log("harness.Probe not supported, skipping")
+		s.T().Log("harness.Probe not specified, skipping")
 	}
 	span.Finish()
 }
@@ -331,7 +331,7 @@ func (s *APICheckSuite) TestMandatoryFormats() {
 			s.NoError(err)
 			assertEmptyBaggage(s.T(), spanCtx)
 		} else {
-			s.T().Log("Tracer.Extract not supported, skipping")
+			s.T().Log("CheckExtract capability not set, skipping")
 		}
 	}
 }
@@ -346,14 +346,14 @@ func (s *APICheckSuite) TestUnknownFormat() {
 	if s.opts.CheckInject {
 		s.Equal(opentracing.ErrUnsupportedFormat, err)
 	} else {
-		s.T().Log("Tracer.Inject not supported, not checking")
+		s.T().Log("CheckInject capability not set, skipping")
 	}
 	ctx, err := s.tracer.Extract(customFormat, nil)
 	s.Nil(ctx)
 	if s.opts.CheckExtract {
 		s.Equal(opentracing.ErrUnsupportedFormat, err)
 	} else {
-		s.T().Log("Tracer.Inject not supported, not checking")
+		s.T().Log("CheckExtract capability not set, skipping")
 	}
 }
 
@@ -368,55 +368,53 @@ type NotACarrier struct{}
 
 // TestInvalidInject checks if errors are returned when Inject is called with invalid inputs.
 func (s *APICheckSuite) TestInvalidInject() {
-	if s.opts.CheckInject {
-		span := s.tracer.StartSpan("op")
-
-		// binary inject
-		err := span.Tracer().Inject(ForeignSpanContext{}, opentracing.Binary, new(bytes.Buffer))
-		s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
-		err = span.Tracer().Inject(span.Context(), opentracing.Binary, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Writer should return error")
-
-		// text inject
-		err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.TextMap, opentracing.TextMapCarrier{})
-		s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
-		err = span.Tracer().Inject(span.Context(), opentracing.TextMap, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
-
-		// HTTP inject
-		err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier{})
-		s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
-		err = span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
-	} else {
-		s.T().Log("Tracer.Inject not supported, skipping")
+	if !s.opts.CheckInject {
+		s.T().Skip("CheckInject capability not set, skipping")
 	}
+	span := s.tracer.StartSpan("op")
+
+	// binary inject
+	err := span.Tracer().Inject(ForeignSpanContext{}, opentracing.Binary, new(bytes.Buffer))
+	s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+	err = span.Tracer().Inject(span.Context(), opentracing.Binary, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Writer should return error")
+
+	// text inject
+	err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.TextMap, opentracing.TextMapCarrier{})
+	s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+	err = span.Tracer().Inject(span.Context(), opentracing.TextMap, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
+
+	// HTTP inject
+	err = span.Tracer().Inject(ForeignSpanContext{}, opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier{})
+	s.Equal(opentracing.ErrInvalidSpanContext, err, "Foreign SpanContext should return invalid error")
+	err = span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapWriter should return error")
 }
 
 // TestInvalidExtract checks if errors are returned when Extract is called with invalid inputs.
 func (s *APICheckSuite) TestInvalidExtract() {
-	if s.opts.CheckExtract {
-		span := s.tracer.StartSpan("op")
-
-		// binary extract
-		ctx, err := span.Tracer().Extract(opentracing.Binary, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Reader should return error")
-		s.Nil(ctx)
-
-		// text extract
-		ctx, err = span.Tracer().Extract(opentracing.TextMap, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
-		s.Nil(ctx)
-
-		// HTTP extract
-		ctx, err = span.Tracer().Extract(opentracing.HTTPHeaders, NotACarrier{})
-		s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
-		s.Nil(ctx)
-
-		span.Finish()
-	} else {
-		s.T().Log("Tracer.Extract not supported, skipping")
+	if !s.opts.CheckExtract {
+		s.T().Skip("CheckExtract capability not set, skipping")
 	}
+	span := s.tracer.StartSpan("op")
+
+	// binary extract
+	ctx, err := span.Tracer().Extract(opentracing.Binary, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not io.Reader should return error")
+	s.Nil(ctx)
+
+	// text extract
+	ctx, err = span.Tracer().Extract(opentracing.TextMap, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
+	s.Nil(ctx)
+
+	// HTTP extract
+	ctx, err = span.Tracer().Extract(opentracing.HTTPHeaders, NotACarrier{})
+	s.Equal(opentracing.ErrInvalidCarrier, err, "Carrier that's not TextMapReader should return error")
+	s.Nil(ctx)
+
+	span.Finish()
 }
 
 // TestMultiBaggage tests calls to set multiple baggage items, and if the CheckBaggageValues option
@@ -439,7 +437,7 @@ func (s *APICheckSuite) TestMultiBaggage() {
 		})
 		s.True(called)
 	} else {
-		s.T().Log("Baggage propagation not supported, not checking")
+		s.T().Log("CheckBaggageValues capability not set, skipping")
 	}
 	span.Finish()
 }
