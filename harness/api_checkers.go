@@ -119,6 +119,11 @@ func (s *APICheckSuite) TestStartSpanWithParent() {
 		"Leela",
 		opentracing.ChildOf(parentSpan.Context()))
 	span.Finish()
+	if s.opts.Probe != nil {
+		s.True(s.opts.Probe.SameTrace(parentSpan, span))
+	} else {
+		s.T().Log("harness.Probe not specified, skipping")
+	}
 
 	span = s.tracer.StartSpan(
 		"Leela",
