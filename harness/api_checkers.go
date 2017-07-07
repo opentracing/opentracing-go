@@ -39,18 +39,19 @@ type APICheckSuite struct {
 	closer    func()
 }
 
-// NewAPICheckSuite returns a testify suite for checking a Tracer against the OpenTracing API.
+// RunAPIChecks runs a test suite to check a Tracer against the OpenTracing API.
 // It is provided a function that will be executed to create and destroy a tracer for each test
 // in the suite, and API test options described by APICheckCapabilities.
-func NewAPICheckSuite(
+func RunAPIChecks(
+	t *testing.T,
 	newTracer func() (tracer opentracing.Tracer, closer func()),
 	opts ...APICheckOption,
-) *APICheckSuite {
+) {
 	s := &APICheckSuite{newTracer: newTracer}
 	for _, o := range opts {
 		o.Apply(s)
 	}
-	return s
+	suite.Run(t, s)
 }
 
 // APICheckOption instances may be passed to NewAPICheckSuite.
