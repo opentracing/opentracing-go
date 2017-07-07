@@ -57,34 +57,29 @@ func RunAPIChecks(
 // APICheckOption instances may be passed to NewAPICheckSuite.
 type APICheckOption func(*APICheckSuite)
 
-// APICheckOptions is a factory for all available values of APICheckOption
-var APICheckOptions apiCheckOptions
-
-type apiCheckOptions struct{}
-
-// CheckBaggageValues sets whether to check for propagation of baggage values.
-func (apiCheckOptions) CheckBaggageValues(val bool) APICheckOption {
+// CheckBaggageValues returns an option that sets whether to check for propagation of baggage values.
+func CheckBaggageValues(val bool) APICheckOption {
 	return func(s *APICheckSuite) {
 		s.opts.CheckBaggageValues = val
 	}
 }
 
-// CheckExtract sets whether to check if extracting contexts from carriers works.
-func (apiCheckOptions) CheckExtract(val bool) APICheckOption {
+// CheckExtract returns an option that sets whether to check if extracting contexts from carriers works.
+func CheckExtract(val bool) APICheckOption {
 	return func(s *APICheckSuite) {
 		s.opts.CheckExtract = val
 	}
 }
 
-// CheckInject sets whether to check if injecting contexts works.
-func (apiCheckOptions) CheckInject(val bool) APICheckOption {
+// CheckInject returns an option that sets whether to check if injecting contexts works.
+func CheckInject(val bool) APICheckOption {
 	return func(s *APICheckSuite) {
 		s.opts.CheckInject = val
 	}
 }
 
-// CheckEverything enables all API checks.
-func (apiCheckOptions) CheckEverything() APICheckOption {
+// CheckEverything returns an option that enables all API checks.
+func CheckEverything() APICheckOption {
 	return func(s *APICheckSuite) {
 		s.opts.CheckBaggageValues = true
 		s.opts.CheckExtract = true
@@ -92,8 +87,8 @@ func (apiCheckOptions) CheckEverything() APICheckOption {
 	}
 }
 
-// UseProbe specifies an APICheckProbe implementation to use.
-func (apiCheckOptions) UseProbe(probe APICheckProbe) APICheckOption {
+// UseProbe returns an option that specifies an APICheckProbe implementation to use.
+func UseProbe(probe APICheckProbe) APICheckOption {
 	return func(s *APICheckSuite) {
 		s.opts.Probe = probe
 	}
