@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// APICheckCapabilities describes options used by APICheckSuite when testing a Tracer.
+// APICheckCapabilities describes capabilities of a Tracer that should be checked by APICheckSuite.
 type APICheckCapabilities struct {
 	CheckBaggageValues bool          // whether to check for propagation of baggage values
 	CheckExtract       bool          // whether to check if extracting contexts from carriers works
@@ -41,7 +41,7 @@ type APICheckSuite struct {
 
 // RunAPIChecks runs a test suite to check a Tracer against the OpenTracing API.
 // It is provided a function that will be executed to create and destroy a tracer for each test
-// in the suite, and API test options described by APICheckCapabilities.
+// in the suite, and the given APICheckOption functional options `opts`.
 func RunAPIChecks(
 	t *testing.T,
 	newTracer func() (tracer opentracing.Tracer, closer func()),
