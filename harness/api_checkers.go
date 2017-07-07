@@ -48,40 +48,55 @@ func RunAPIChecks(
 	opts ...APICheckOption,
 ) {
 	s := &APICheckSuite{newTracer: newTracer}
-	for _, o := range opts {
-		o.Apply(s)
+	for _, opt := range opts {
+		opt(s)
 	}
 	suite.Run(t, s)
 }
 
 // APICheckOption instances may be passed to NewAPICheckSuite.
-type APICheckOption interface {
-	Apply(*APICheckSuite)
+type APICheckOption func(*APICheckSuite)
+
+// APICheckOptions is a factory for all available values of APICheckOption
+var APICheckOptions apiCheckOptions
+
+type apiCheckOptions struct{}
+
+// CheckBaggageValues sets whether to check for propagation of baggage values.
+func (apiCheckOptions) CheckBaggageValues(val bool) APICheckOption {
+	return func(s *APICheckSuite) {
+		s.opts.CheckBaggageValues = val
+	}
 }
 
-// Apply satisfies the APICheckOption interface.
-func (c APICheckCapabilities) Apply(s *APICheckSuite) {
-	s.opts = c
+// CheckExtract sets whether to check if extracting contexts from carriers works.
+func (apiCheckOptions) CheckExtract(val bool) APICheckOption {
+	return func(s *APICheckSuite) {
+		s.opts.CheckExtract = val
+	}
+}
+
+// CheckInject sets whether to check if injecting contexts works.
+func (apiCheckOptions) CheckInject(val bool) APICheckOption {
+	return func(s *APICheckSuite) {
+		s.opts.CheckInject = val
+	}
 }
 
 // CheckEverything enables all API checks.
-type CheckEverything struct{}
-
-// Apply satisfies the APICheckOption interface.
-func (CheckEverything) Apply(s *APICheckSuite) {
-	s.opts.CheckBaggageValues = true
-	s.opts.CheckExtract = true
-	s.opts.CheckInject = true
+func (apiCheckOptions) CheckEverything() APICheckOption {
+	return func(s *APICheckSuite) {
+		s.opts.CheckBaggageValues = true
+		s.opts.CheckExtract = true
+		s.opts.CheckInject = true
+	}
 }
 
 // UseProbe specifies an APICheckProbe implementation to use.
-type UseProbe struct {
-	APICheckProbe
-}
-
-// Apply satisfies the APICheckOption interface.
-func (u UseProbe) Apply(s *APICheckSuite) {
-	s.opts.Probe = u.APICheckProbe
+func (apiCheckOptions) UseProbe(probe APICheckProbe) APICheckOption {
+	return func(s *APICheckSuite) {
+		s.opts.Probe = probe
+	}
 }
 
 // BeforeTest creates a tracer for this specific test invocation.
