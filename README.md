@@ -134,6 +134,21 @@ reference.
     }
 ```
 
+#### Conditionally capture a field using `log.Noop`
+
+In some situations, you may want to dynamically decide whether or not
+to log a field.  For example, you may want to capture additional data,
+such as a customer ID, in non-production environments:
+
+```go
+    func Customer(order *Order) log.Field {
+        if os.Getenv("ENVIRONMENT") == "dev" {
+            return log.String("customer", order.Customer.ID)
+        }
+        return log.Noop()
+    }
+```
+
 #### Goroutine-safety
 
 The entire public API is goroutine-safe and does not require external
