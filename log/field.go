@@ -20,7 +20,7 @@ const (
 	errorType
 	objectType
 	lazyLoggerType
-	skipType
+	noopType
 )
 
 // Field instances are constructed via LogBool, LogString, and so on.
@@ -153,7 +153,7 @@ func Lazy(ll LazyLogger) Field {
 	}
 }
 
-// Skip creates a no-op log field that should be ignored by the tracer.
+// Noop creates a no-op log field that should be ignored by the tracer.
 // It can be used to capture optional fields, for example those that should
 // only be logged in non-production environment:
 //
@@ -161,14 +161,14 @@ func Lazy(ll LazyLogger) Field {
 //          if os.Getenv("ENVIRONMENT") == "dev" {
 //              return log.String("customer", order.Customer.ID)
 //          }
-//          return log.Skip()
+//          return log.Noop()
 //     }
 //
 //     span.LogFields(log.String("event", "purchase"), customerField(order))
 //
-func Skip() Field {
+func Noop() Field {
 	return Field{
-		fieldType: skipType,
+		fieldType: noopType,
 	}
 }
 
@@ -223,7 +223,7 @@ func (lf Field) Marshal(visitor Encoder) {
 		visitor.EmitObject(lf.key, lf.interfaceVal)
 	case lazyLoggerType:
 		visitor.EmitLazyLogger(lf.interfaceVal.(LazyLogger))
-	case skipType:
+	case noopType:
 		// intentionally left blank
 	}
 }
@@ -256,7 +256,7 @@ func (lf Field) Value() interface{} {
 		return math.Float64frombits(uint64(lf.numericVal))
 	case errorType, objectType, lazyLoggerType:
 		return lf.interfaceVal
-	case skipType:
+	case noopType:
 		return nil
 	default:
 		return nil

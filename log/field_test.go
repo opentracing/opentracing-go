@@ -31,7 +31,7 @@ func TestFieldString(t *testing.T) {
 			expected: "error:<nil>",
 		},
 		{
-			field:    Skip(),
+			field:    Noop(),
 			expected: ":<nil>",
 		},
 	}
@@ -42,10 +42,10 @@ func TestFieldString(t *testing.T) {
 	}
 }
 
-func TestSkipDoesNotMarshal(t *testing.T) {
+func TestNoopDoesNotMarshal(t *testing.T) {
 	mockEncoder := struct {
 		Encoder
 	}{}
-	f := Skip()
+	f := Noop()
 	f.Marshal(mockEncoder) // panics if any Encoder method is invoked
 }
