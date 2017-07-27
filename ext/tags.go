@@ -73,8 +73,11 @@ var (
 	// PeerHostname records the host name of the peer
 	PeerHostname = stringTagName("peer.hostname")
 
-	// PeerHostIPv4 records IP v4 host address of the peer
+	// PeerHostIPv4 records IP v4 host address of the peer as an uint32 value, keep this for backward compatibility
 	PeerHostIPv4 = uint32TagName("peer.ipv4")
+
+	// PeerHostIPv4String records IP v4 host address of the peer as a .-separated tuple. E.g., "127.0.0.1"
+	PeerHostIPv4String = stringTagName("peer.ipv4")
 
 	// PeerHostIPv6 records IP v6 host address of the peer
 	PeerHostIPv6 = stringTagName("peer.ipv6")
