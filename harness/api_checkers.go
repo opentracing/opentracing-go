@@ -451,38 +451,3 @@ func (s *APICheckSuite) TestMultiBaggage() {
 	}
 	span.Finish()
 }
-
-// TestHTTPBaggage tests whether serializing multiple baggage items that use the same key name
-// with different casing will overwrite each other (since HTTP Header names are case-insensitive).
-func (s *APICheckSuite) TestHTTPBaggage() {
-	if !s.opts.CheckBaggageValues {
-		s.T().Skip("CheckBaggageValues capability not set, skipping")
-	}
-	// set baggage items: should result in two baggage items when serializing using HTTP headers
-	span := s.tracer.StartSpan("Bender")
-	span.SetBaggageItem("BagItem", "Val1")
-	span.SetBaggageItem("bagitem", "Val2")
-	span.SetBaggageItem("BAGITEM", "Val3")
-	span.SetBaggageItem("KeyName", "Val4")
-
-	carrier := opentracing.HTTPHeadersCarrier{}
-	err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier)
-	s.NoError(err)
-
-	extractedContext, err := s.tracer.Extract(opentracing.HTTPHeaders, carrier)
-	if s.opts.CheckExtract {
-		s.NoError(err)
-	} else {
-		s.T().Log("CheckExtract capability not set, skipping")
-	}
-	// check baggage items
-	count := 0
-	items := make(map[string]string)
-	extractedContext.ForeachBaggageItem(func(k, v string) bool {
-		count++
-		items[k] = v
-		return true
-	})
-	s.Len(items, 2, "HTTP Baggage propagation seems to depend on case-sensitive HTTP header field names")
-	s.Equal(count, 2, "HTTP Baggage propagation seems to depend on case-sensitive HTTP header field names")
-}
