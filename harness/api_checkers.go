@@ -4,7 +4,6 @@ package harness
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 	"time"
 
@@ -98,7 +97,7 @@ func UseProbe(probe APICheckProbe) APICheckOption {
 func (s *APICheckSuite) BeforeTest(suiteName, testName string) {
 	s.tracer, s.closer = s.newTracer()
 	if s.tracer == nil {
-		panic(fmt.Sprintf("newTracer returned nil Tracer before running %s, %s", suiteName, testName))
+		s.T().Fatalf("newTracer returned nil Tracer before running %s, %s", suiteName, testName)
 	}
 }
 
@@ -123,29 +122,25 @@ func (s *APICheckSuite) TestStartSpan() {
 
 // TestStartSpanWithParent checks if a Tracer can start a span with a specified parent.
 func (s *APICheckSuite) TestStartSpanWithParent() {
-	parentSpan := s.tracer.StartSpan("parent")
+	parentSpan := s.tracer.StartSpan("Turanga Munda")
 	s.NotNil(parentSpan)
 
-	span := s.tracer.StartSpan(
-		"Leela",
-		opentracing.ChildOf(parentSpan.Context()))
-	span.Finish()
-	if s.opts.Probe != nil {
-		s.True(s.opts.Probe.SameTrace(parentSpan, span))
-	} else {
-		s.T().Log("harness.Probe not specified, skipping")
+	childFns := []func(opentracing.SpanContext) opentracing.SpanReference{
+		opentracing.ChildOf,
+		opentracing.FollowsFrom,
 	}
-
-	span = s.tracer.StartSpan(
-		"Leela",
-		opentracing.FollowsFrom(parentSpan.Context()),
-		opentracing.Tag{Key: "birthplace", Value: "sewers"})
-	if s.opts.Probe != nil {
-		s.True(s.opts.Probe.SameTrace(parentSpan, span))
-	} else {
-		s.T().Log("harness.Probe not specified, skipping")
+	for _, childFn := range childFns {
+		span := s.tracer.StartSpan(
+			"Leela",
+			childFn(parentSpan.Context()),
+			opentracing.Tag{Key: "birthplace", Value: "sewers"})
+		span.Finish()
+		if s.opts.Probe != nil {
+			s.True(s.opts.Probe.SameTrace(parentSpan, span))
+		} else {
+			s.T().Log("harness.Probe not specified, skipping")
+		}
 	}
-	span.Finish()
 
 	parentSpan.Finish()
 }
