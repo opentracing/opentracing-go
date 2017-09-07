@@ -93,16 +93,16 @@ func UseProbe(probe APICheckProbe) APICheckOption {
 	}
 }
 
-// BeforeTest creates a tracer for this specific test invocation.
-func (s *APICheckSuite) BeforeTest(suiteName, testName string) {
+// SetupTest creates a tracer for this specific test invocation.
+func (s *APICheckSuite) SetupTest() {
 	s.tracer, s.closer = s.newTracer()
 	if s.tracer == nil {
-		s.T().Fatalf("newTracer returned nil Tracer before running %s, %s", suiteName, testName)
+		s.T().Fatalf("newTracer returned nil Tracer")
 	}
 }
 
-// AfterTest closes the tracer, and clears the test-specific tracer.
-func (s *APICheckSuite) AfterTest(suiteName, testName string) {
+// TearDownTest closes the tracer, and clears the test-specific tracer.
+func (s *APICheckSuite) TearDownTest() {
 	if s.closer != nil {
 		s.closer()
 	}
