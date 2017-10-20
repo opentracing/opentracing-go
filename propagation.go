@@ -174,3 +174,41 @@ func (c HTTPHeadersCarrier) ForeachKey(handler func(key, val string) error) erro
 	}
 	return nil
 }
+
+// AMQPHeadersCarrier satisfies both TextMapWriter and TextMapReader.
+//
+// Example usage for server side:
+//
+//     carrier := opentracing.AMQPHeadersCarrier(amqp.Table)
+//     clientContext, err := tracer.Extract(
+//         opentracing.TextMap,
+//         carrier)
+//
+// Example usage for client side:
+//
+//     carrier := opentracing.AMQPHeadersCarrier(amqp.Table)
+//     err := tracer.Inject(
+//         span.Context(),
+//         opentracing.TextMap,
+//         carrier)
+//
+type AMQPHeadersCarrier map[string]interface{}
+
+// ForeachKey conforms to the TextMapReader interface.
+func (c AMQPHeadersCarrier) ForeachKey(handler func(key, val string) error) error {
+	for k, val := range c {
+		v, ok := val.(string)
+		if !ok {
+			continue
+		}
+		if err := handler(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Set implements Set() of opentracing.TextMapWriter.
+func (c AMQPHeadersCarrier) Set(key, val string) {
+	c[key] = val
+}
