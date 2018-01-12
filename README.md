@@ -27,7 +27,7 @@ The simplest starting point is `./default_tracer.go`. As early as possible, call
     import ".../some_tracing_impl"
 
     func main() {
-        opentracing.InitGlobalTracer(
+        opentracing.SetGlobalTracer(
             // tracing impl specific:
             some_tracing_impl.New(...),
         )
