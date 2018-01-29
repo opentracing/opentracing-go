@@ -266,3 +266,14 @@ func TestMockTracer_Propagation(t *testing.T) {
 		assert.Equal(t, "y:z", extractedContext.(MockSpanContext).Baggage["x"])
 	}
 }
+
+func TestMockSpan_Races(t *testing.T) {
+	tracer := New()
+	span := tracer.StartSpan("x")
+	go func() {
+		span.SetBaggageItem("test_key", "test_value")
+	}()
+	go func() {
+		span.Context()
+	}()
+}
