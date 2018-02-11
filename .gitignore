@@ -11,3 +11,6 @@ test.log
 
 # Build dir
 build/
+
+# Vendor dir
+vendor/
