@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/lint"
+  packages = ["."]
+  revision = "e14d9b0f1d332b1420c1ffa32562ad2dc84d645d"
+
+[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -29,9 +35,19 @@
   packages = ["context"]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/gcexportdata",
+    "go/gcimporter15",
+    "go/types/typeutil"
+  ]
+  revision = "95b47aa5df4eda9bfbc0133f77c0e320f0275eba"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5c625e82c805ceee6c23195e19a0d8f1e3b1f3811710fde63ee2d7700df78141"
+  inputs-digest = "2f046b167e98307814fb08edfe40dff049e9b6b80dcbe6c5eb2fe1a235c80e2d"
   solver-name = "gps-cdcl"
   solver-version = 1

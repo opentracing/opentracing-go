@@ -1,10 +1,11 @@
 # Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
 # for detailed Gopkg.toml documentation.
 
+required = ["github.com/golang/lint"]
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "1.2.1"
+  version = "^1.2.1"
 
 [[constraint]]
   branch = "master"

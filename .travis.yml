@@ -8,7 +8,7 @@ go:
 
 install:
   - go get -d -t github.com/opentracing/opentracing-go/...
-  - go get -u github.com/golang/lint/...
+  - go get -u github.com/golang/dep/cmd/dep
 script:
-  - make test lint
+  - make deps test lint
   - go build ./...

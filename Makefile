@@ -22,6 +22,10 @@ cover-pkg:
 	go test -coverprofile cover.out $(PKG)
 	@grep -v mode: cover.out >> cover-all.out
 
+.PHONY: deps
+deps:
+	dep ensure --vendor-only
+
 .PHONY: lint
 lint:
 	go fmt ./...
