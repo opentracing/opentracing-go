@@ -102,10 +102,6 @@ func TestFieldsFromZap(t *testing.T) {
 			zap.Bool("namespace", false),
 			Bool("namespace", false),
 		},
-		{
-			zap.Bool("namespace", true),
-			Bool("namespace", true),
-		},
 	}
 
 	for i, data := range testCases {
