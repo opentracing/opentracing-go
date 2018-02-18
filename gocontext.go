@@ -4,7 +4,12 @@ import "golang.org/x/net/context"
 
 type contextKey struct{}
 
-var activeSpanKey = contextKey{}
+var activeSpanKey interface{} = contextKey{}
+
+// SetActiveSpanKey sets the key used to store the span in the context
+func SetActiveSpanKey(k interface{}) {
+	activeSpanKey = k
+}
 
 // ContextWithSpan returns a new `context.Context` that holds a reference to
 // `span`'s SpanContext.
