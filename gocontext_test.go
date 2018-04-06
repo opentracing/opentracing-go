@@ -1,11 +1,11 @@
 package opentracing
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestContextWithSpan(t *testing.T) {
