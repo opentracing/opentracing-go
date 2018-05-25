@@ -1,6 +1,6 @@
 package opentracing
 
-import "golang.org/x/net/context"
+import "context"
 
 type contextKey struct{}
 
@@ -45,7 +45,7 @@ func StartSpanFromContext(ctx context.Context, operationName string, opts ...Sta
 }
 
 // StartSpanFromContextWithTracer starts and returns a span with `operationName`
-// using  a span found withen the context as a ChildOfRef. If that doesn't exist
+// using  a span found within the context as a ChildOfRef. If that doesn't exist
 // it creates a root span. It also returns a context.Context object built
 // around the returned span.
 //
@@ -55,9 +55,7 @@ func StartSpanFromContextWithTracer(ctx context.Context, tracer Tracer, operatio
 	var span Span
 	if parentSpan := SpanFromContext(ctx); parentSpan != nil {
 		opts = append(opts, ChildOf(parentSpan.Context()))
-		span = tracer.StartSpan(operationName, opts...)
-	} else {
-		span = tracer.StartSpan(operationName, opts...)
 	}
+	span := tracer.StartSpan(operationName, opts...)
 	return span, ContextWithSpan(ctx, span)
 }
