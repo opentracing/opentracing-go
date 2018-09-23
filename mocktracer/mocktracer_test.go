@@ -130,7 +130,8 @@ func TestMockSpan_LogFields(t *testing.T) {
 	span.LogFields(log.String("key0", "string0"))
 	span.LogFields(log.String("key1", "string1"), log.Uint32("key2", uint32(42)))
 	span.LogFields(log.Lazy(func(fv log.Encoder) {
-		fv.EmitInt("key_lazy", 12)
+		fv.EmitInt("key_lazy_int", 12)
+		fv.EmitBool("key_lazy_bool", true)
 	}))
 	span.FinishWithOptions(opentracing.FinishOptions{
 		LogRecords: []opentracing.LogRecord{
@@ -155,7 +156,8 @@ func TestMockSpan_LogFields(t *testing.T) {
 		MockLogRecord{
 			Fields: []MockKeyValue{
 				// Note that the LazyLogger gets to control the key as well as the value.
-				MockKeyValue{Key: "key_lazy", ValueKind: reflect.Int, ValueString: "12"},
+				MockKeyValue{Key: "key_lazy_int", ValueKind: reflect.Int, ValueString: "12"},
+				MockKeyValue{Key: "key_lazy_bool", ValueKind: reflect.Bool, ValueString: "true"},
 			},
 		},
 		MockLogRecord{

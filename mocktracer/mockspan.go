@@ -225,11 +225,10 @@ func (s *MockSpan) LogFields(fields ...log.Field) {
 func (s *MockSpan) logFieldsWithTimestamp(ts time.Time, fields ...log.Field) {
 	lr := MockLogRecord{
 		Timestamp: ts,
-		Fields:    make([]MockKeyValue, len(fields)),
+		Fields:    make([]MockKeyValue, 0, len(fields)),
 	}
-	for i, f := range fields {
-		outField := &(lr.Fields[i])
-		f.Marshal(outField)
+	for _, f := range fields {
+		f.Marshal(&lr)
 	}
 
 	s.Lock()
