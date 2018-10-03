@@ -1,7 +1,7 @@
 /*
 
 Package harness provides a suite of API compatibility checks. They were originally ported from the
-OpenTracing Python library's "harness" module.
+OpenTracing Python library's "harness" module .
 
 To run this test suite against your tracer, call harness.RunAPIChecks and provide it a function
 that returns a Tracer implementation and a function to call to close it. The function will be
