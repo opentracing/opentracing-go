@@ -19,6 +19,4 @@ script:
   - make test
   - go build ./...
   - if [ "$LINT" == true ]; then make lint ; else echo 'skipping lint'; fi
-
-after_success:
-  - if [ "$COVERAGE" == true ]; then bash <(curl -s https://codecov.io/bash) ; else echo 'skipping coverage'; fi
+  - if [ "$COVERAGE" == true ]; then make cover && bash <(curl -s https://codecov.io/bash) ; else echo 'skipping coverage'; fi
