@@ -1,4 +1,4 @@
-PACKAGES := . ./mocktracer/... ./ext/...
+PACKAGES := . ./mocktracer/... ./ext/... ./log/...
 
 .DEFAULT_GOAL := test-and-lint
 
@@ -8,7 +8,7 @@ test-and-lint: test lint
 
 .PHONY: test
 test:
-	go test -v -cover -race ./...
+	go test -v -coverprofile=coverage.txt -covermode=atomic -race ./...
 
 cover:
 	@rm -rf cover-all.out
