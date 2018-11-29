@@ -36,7 +36,7 @@ func InitGlobalTracer(tracer Tracer) {
 	SetGlobalTracer(tracer)
 }
 
-// IsRegistered returns a `bool` to indicate of a tracer has been globally registered
-func IsRegistered() bool {
+// IsGlobalTracerRegistered returns a `bool` to indicate if a tracer has been globally registered
+func IsGlobalTracerRegistered() bool {
 	return globalTracer.isRegistered
 }
