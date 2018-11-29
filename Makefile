@@ -1,13 +1,13 @@
 .DEFAULT_GOAL := test-and-lint
 
-.PHONE: test-and-lint
-
+.PHONY: test-and-lint
 test-and-lint: test lint
 
 .PHONY: test
 test:
 	go test -v -cover -race ./...
 
+.PHONY: cover
 cover:
 	go test -v -coverprofile=coverage.txt -covermode=atomic -race ./...
 
