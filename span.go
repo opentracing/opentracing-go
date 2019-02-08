@@ -9,6 +9,12 @@ import (
 // SpanContext represents Span state that must propagate to descendant Spans and across process
 // boundaries (e.g., a <trace_id, span_id, sampled> tuple).
 type SpanContext interface {
+	// spanID returns the span ID that this context is carrying.
+	SpanID() uint64
+
+	// TraceID returns the trace ID that this context is carrying.
+	TraceID() uint64
+
 	// ForeachBaggageItem grants access to all baggage items stored in the
 	// SpanContext.
 	// The handler function will be called for each baggage key/value pair.

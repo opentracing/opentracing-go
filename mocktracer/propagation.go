@@ -50,8 +50,8 @@ func (t *TextMapPropagator) Inject(spanContext MockSpanContext, carrier interfac
 		return opentracing.ErrInvalidCarrier
 	}
 	// Ids:
-	writer.Set(mockTextMapIdsPrefix+"traceid", strconv.Itoa(spanContext.TraceID))
-	writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.SpanID))
+	writer.Set(mockTextMapIdsPrefix+"traceid", strconv.Itoa(spanContext.traceID))
+	writer.Set(mockTextMapIdsPrefix+"spanid", strconv.Itoa(spanContext.spanID))
 	writer.Set(mockTextMapIdsPrefix+"sampled", fmt.Sprint(spanContext.Sampled))
 	// Baggage:
 	for baggageKey, baggageVal := range spanContext.Baggage {
@@ -80,14 +80,14 @@ func (t *TextMapPropagator) Extract(carrier interface{}) (MockSpanContext, error
 			if err != nil {
 				return err
 			}
-			rval.TraceID = i
+			rval.traceID = i
 		case lowerKey == mockTextMapIdsPrefix+"spanid":
 			// Ids:
 			i, err := strconv.Atoi(val)
 			if err != nil {
 				return err
 			}
-			rval.SpanID = i
+			rval.spanID = i
 		case lowerKey == mockTextMapIdsPrefix+"sampled":
 			b, err := strconv.ParseBool(val)
 			if err != nil {
@@ -110,7 +110,7 @@ func (t *TextMapPropagator) Extract(carrier interface{}) (MockSpanContext, error
 		}
 		return nil
 	})
-	if rval.TraceID == 0 || rval.SpanID == 0 {
+	if rval.traceID == 0 || rval.spanID == 0 {
 		return emptyContext, opentracing.ErrSpanContextNotFound
 	}
 	if err != nil {

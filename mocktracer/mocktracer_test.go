@@ -31,7 +31,7 @@ func TestMockTracer_StartSpan(t *testing.T) {
 	parent := spans[1]
 	child := spans[0]
 	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.Tags())
-	assert.Equal(t, child.ParentID, parent.Context().(MockSpanContext).SpanID)
+	assert.Equal(t, child.ParentID, parent.Context().(MockSpanContext).spanID)
 }
 
 func TestMockSpan_SetOperationName(t *testing.T) {
@@ -261,8 +261,8 @@ func TestMockTracer_Propagation(t *testing.T) {
 
 		extractedContext, err := tracer.Extract(test.format, carrier)
 		require.NoError(t, err)
-		assert.Equal(t, mSpan.SpanContext.TraceID, extractedContext.(MockSpanContext).TraceID)
-		assert.Equal(t, mSpan.SpanContext.SpanID, extractedContext.(MockSpanContext).SpanID)
+		assert.Equal(t, mSpan.SpanContext.traceID, extractedContext.(MockSpanContext).traceID)
+		assert.Equal(t, mSpan.SpanContext.spanID, extractedContext.(MockSpanContext).spanID)
 		assert.Equal(t, test.sampled, extractedContext.(MockSpanContext).Sampled)
 		assert.Equal(t, "y:z", extractedContext.(MockSpanContext).Baggage["x"])
 	}

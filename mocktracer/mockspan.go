@@ -19,8 +19,8 @@ import (
 // By default all spans have Sampled=true flag, unless {"sampling.priority": 0}
 // tag is set.
 type MockSpanContext struct {
-	TraceID int
-	SpanID  int
+	traceID int
+	spanID  int
 	Sampled bool
 	Baggage map[string]string
 }
@@ -53,7 +53,15 @@ func (c MockSpanContext) WithBaggageItem(key, value string) MockSpanContext {
 		newBaggage[key] = value
 	}
 	// Use positional parameters so the compiler will help catch new fields.
-	return MockSpanContext{c.TraceID, c.SpanID, c.Sampled, newBaggage}
+	return MockSpanContext{c.traceID, c.spanID, c.Sampled, newBaggage}
+}
+
+func (c MockSpanContext) TraceID() uint64 {
+	return uint64(c.traceID)
+}
+
+func (c MockSpanContext) SpanID() uint64 {
+	return uint64(c.spanID)
 }
 
 // MockSpan is an opentracing.Span implementation that exports its internal
@@ -84,8 +92,8 @@ func newMockSpan(t *MockTracer, name string, opts opentracing.StartSpanOptions) 
 	var baggage map[string]string
 	sampled := true
 	if len(opts.References) > 0 {
-		traceID = opts.References[0].ReferencedContext.(MockSpanContext).TraceID
-		parentID = opts.References[0].ReferencedContext.(MockSpanContext).SpanID
+		traceID = opts.References[0].ReferencedContext.(MockSpanContext).traceID
+		parentID = opts.References[0].ReferencedContext.(MockSpanContext).spanID
 		sampled = opts.References[0].ReferencedContext.(MockSpanContext).Sampled
 		baggage = opts.References[0].ReferencedContext.(MockSpanContext).Baggage
 	}
@@ -212,7 +220,7 @@ func (s *MockSpan) FinishWithOptions(opts opentracing.FinishOptions) {
 func (s *MockSpan) String() string {
 	return fmt.Sprintf(
 		"traceId=%d, spanId=%d, parentId=%d, sampled=%t, name=%s",
-		s.SpanContext.TraceID, s.SpanContext.SpanID, s.ParentID,
+		s.SpanContext.traceID, s.SpanContext.spanID, s.ParentID,
 		s.SpanContext.Sampled, s.OperationName)
 }
 

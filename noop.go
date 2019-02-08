@@ -32,6 +32,8 @@ const (
 
 // noopSpanContext:
 func (n noopSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+func (n noopSpanContext) SpanID() uint64                                    { return 0 }
+func (n noopSpanContext) TraceID() uint64                                   { return 0 }
 
 // noopSpan:
 func (n noopSpan) Context() SpanContext                                  { return defaultNoopSpanContext }

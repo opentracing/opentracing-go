@@ -391,6 +391,8 @@ type ForeignSpanContext struct{}
 
 // ForeachBaggageItem could call handler for each baggage KV, but does nothing.
 func (f ForeignSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+func (f ForeignSpanContext) TraceID() uint64                                   { return 0 }
+func (f ForeignSpanContext) SpanID() uint64                                    { return 0 }
 
 // NotACarrier does not satisfy any of the opentracing carrier interfaces.
 type NotACarrier struct{}

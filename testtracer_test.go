@@ -27,6 +27,8 @@ type testSpanContext struct {
 }
 
 func (n testSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
+func (n testSpanContext) TraceID() uint64                                   { return 0 }
+func (n testSpanContext) SpanID() uint64                                    { return 0 }
 
 type testSpan struct {
 	spanContext   testSpanContext
