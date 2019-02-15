@@ -3,7 +3,7 @@ package harness
 import (
 	"testing"
 
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 )
 
 func TestAPI(t *testing.T) {
