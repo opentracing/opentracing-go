@@ -192,7 +192,7 @@ func (tag uint16TagName) Set(span opentracing.Span, value uint16) {
 
 type boolTagName string
 
-// Add adds a bool tag to the `span`
+// Set adds adds a bool tag to the `span`
 func (tag boolTagName) Set(span opentracing.Span, value bool) {
 	span.SetTag(string(tag), value)
 }
