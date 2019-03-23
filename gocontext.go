@@ -52,7 +52,6 @@ func StartSpanFromContext(ctx context.Context, operationName string, opts ...Sta
 // It's behavior is identical to StartSpanFromContext except that it takes an explicit
 // tracer as opposed to using the global tracer.
 func StartSpanFromContextWithTracer(ctx context.Context, tracer Tracer, operationName string, opts ...StartSpanOption) (Span, context.Context) {
-	var span Span
 	if parentSpan := SpanFromContext(ctx); parentSpan != nil {
 		opts = append(opts, ChildOf(parentSpan.Context()))
 	}
