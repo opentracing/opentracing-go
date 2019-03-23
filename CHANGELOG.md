@@ -1,13 +1,20 @@
 Changes by Version
 ==================
 
-1.1.0 (unreleased)
+1.1.0 (2019-03-23)
 -------------------
+
+Notable changes:
+- The library is now released under Apache 2.0 license
+- Use Set() instead of Add() in HTTPHeadersCarrier is functionally a breaking change (fixes issue [#159](https://github.com/opentracing/opentracing-go/issues/159))
+- 'golang.org/x/net/context' is replaced with 'context' from the standard library
+
+List of all changes:
 
 - Export StartSpanFromContextWithTracer (#214) <Aaron Delaney>
 - Add IsGlobalTracerRegistered() to indicate if a tracer has been registered (#201) <Mike Goldsmith>
 - Use Set() instead of Add() in HTTPHeadersCarrier (#191) <jeremyxu2010>
-- Apdate license to Apache 2.0 (#181) <Andrea Kao>
+- Update license to Apache 2.0 (#181) <Andrea Kao>
 - Replace 'golang.org/x/net/context' with 'context' (#176) <Tony Ghita>
 - Port of Python opentracing/harness/api_check.py to Go (#146) <chris erway>
 - Fix race condition in MockSpan.Context() (#170) <Brad>
