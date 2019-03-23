@@ -36,7 +36,7 @@ func TestStartSpanFromContext(t *testing.T) {
 	{
 		parentSpan := &testSpan{}
 		parentCtx := ContextWithSpan(context.Background(), parentSpan)
-		childSpan, childCtx := startSpanFromContextWithTracer(parentCtx, testTracer, "child")
+		childSpan, childCtx := StartSpanFromContextWithTracer(parentCtx, testTracer, "child")
 		if !childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Failed to find parent: %v", childSpan)
 		}
@@ -48,7 +48,7 @@ func TestStartSpanFromContext(t *testing.T) {
 	// Test the case where there *is not* a Span in the Context.
 	{
 		emptyCtx := context.Background()
-		childSpan, childCtx := startSpanFromContextWithTracer(emptyCtx, testTracer, "child")
+		childSpan, childCtx := StartSpanFromContextWithTracer(emptyCtx, testTracer, "child")
 		if childSpan.Context().(testSpanContext).HasParent {
 			t.Errorf("Should not have found parent: %v", childSpan)
 		}
@@ -64,7 +64,7 @@ func TestStartSpanFromContextOptions(t *testing.T) {
 	// Test options are passed to tracer
 
 	startTime := time.Now().Add(-10 * time.Second) // ten seconds ago
-	span, ctx := startSpanFromContextWithTracer(
+	span, ctx := StartSpanFromContextWithTracer(
 		context.Background(), testTracer, "parent", StartTime(startTime), Tag{"component", "test"})
 
 	assert.Equal(t, "test", span.(testSpan).Tags["component"])
@@ -73,7 +73,7 @@ func TestStartSpanFromContextOptions(t *testing.T) {
 	// Test it also works for a child span
 
 	childStartTime := startTime.Add(3 * time.Second)
-	childSpan, _ := startSpanFromContextWithTracer(
+	childSpan, _ := StartSpanFromContextWithTracer(
 		ctx, testTracer, "child", StartTime(childStartTime))
 
 	assert.Equal(t, childSpan.(testSpan).Tags["component"], nil)
