@@ -29,6 +29,41 @@ func TestContextWithSpan(t *testing.T) {
 	}
 }
 
+type noopExtTracer struct {
+	NoopTracer
+}
+
+type noopExtTracerCtxType struct{}
+
+func (noopExtTracer) ContextWithSpanHook(ctx context.Context, span Span) context.Context {
+	return context.WithValue(ctx, noopExtTracerCtxType{}, noopExtTracerCtxType{})
+}
+
+var _ Tracer = noopExtTracer{}
+var _ TracerContextWithSpanExtension = noopExtTracer{}
+
+type noopExtSpan struct {
+	noopSpan
+}
+
+func (noopExtSpan) Tracer() Tracer {
+	return noopExtTracer{}
+}
+
+var _ Span = noopExtSpan{}
+
+func TestContextWithSpanWithExtension(t *testing.T) {
+	span := &noopExtSpan{}
+	ctx := ContextWithSpan(context.Background(), span)
+	span2 := SpanFromContext(ctx)
+	if span != span2 {
+		t.Errorf("Not the same span returned from context, expected=%+v, actual=%+v", span, span2)
+	}
+	if _, ok := ctx.Value(noopExtTracerCtxType{}).(noopExtTracerCtxType); !ok {
+		t.Error("ContextWithSpanHook was not called")
+	}
+}
+
 func TestStartSpanFromContext(t *testing.T) {
 	testTracer := testTracer{}
 
