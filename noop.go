@@ -35,7 +35,7 @@ func (n noopSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {}
 
 // noopSpan:
 func (n noopSpan) Context() SpanContext                                  { return defaultNoopSpanContext }
-func (n noopSpan) SetBaggageItem(key, val string) Span                   { return defaultNoopSpan }
+func (n noopSpan) SetBaggageItem(key, val string) Span                   { return n }
 func (n noopSpan) BaggageItem(key string) string                         { return emptyString }
 func (n noopSpan) SetTag(key string, value interface{}) Span             { return n }
 func (n noopSpan) LogFields(fields ...log.Field)                         {}
