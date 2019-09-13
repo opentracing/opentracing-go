@@ -21,9 +21,9 @@ type noopSpan struct{}
 type noopSpanContext struct{}
 
 var (
-	defaultNoopSpanContext = noopSpanContext{}
-	defaultNoopSpan        = noopSpan{}
-	defaultNoopTracer      = NoopTracer{}
+	defaultNoopSpanContext SpanContext = noopSpanContext{}
+	defaultNoopSpan        Span        = noopSpan{}
+	defaultNoopTracer      Tracer      = NoopTracer{}
 )
 
 const (
