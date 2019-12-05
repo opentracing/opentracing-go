@@ -34,6 +34,14 @@ func TestFieldString(t *testing.T) {
 			field:    Noop(),
 			expected: ":<nil>",
 		},
+		{
+			field:    Event("test"),
+			expected: "event:test",
+		},
+		{
+			field:    Message("test2"),
+			expected: "message:test2",
+		},
 	}
 	for i, tc := range testCases {
 		if str := tc.field.String(); str != tc.expected {

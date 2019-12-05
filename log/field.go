@@ -143,6 +143,16 @@ func Object(key string, obj interface{}) Field {
 	}
 }
 
+// Event creates a string-valued Field for span logs with key="event" and value=val.
+func Event(val string) Field {
+	return String("event", val)
+}
+
+// Message creates a string-valued Field for span logs with key="message" and value=val.
+func Message(val string) Field {
+	return String("message", val)
+}
+
 // LazyLogger allows for user-defined, late-bound logging of arbitrary data
 type LazyLogger func(fv Encoder)
 
