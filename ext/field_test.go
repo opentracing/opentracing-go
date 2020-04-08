@@ -37,7 +37,7 @@ func TestLogError(t *testing.T) {
 			ValueString: "error",
 		},
 		{
-			Key:         "error",
+			Key:         "error.object",
 			ValueKind:   reflect.String,
 			ValueString: err.Error(),
 		},
