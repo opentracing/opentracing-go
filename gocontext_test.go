@@ -27,6 +27,11 @@ func TestContextWithSpan(t *testing.T) {
 	if span != span2 {
 		t.Errorf("Not the same span returned from context, expected=%+v, actual=%+v", span, span2)
 	}
+
+	ctx = ContextWithSpan(ctx, nil)
+	if s := SpanFromContext(ctx); s != nil {
+		t.Errorf("Not able to reset span in context, expected=nil, actual=%+v", s)
+	}
 }
 
 type noopExtTracer struct {
