@@ -8,6 +8,9 @@ matrix:
     env:
     - LINT=true
     - COVERAGE=true
+  # Adding ppc64le jobs
+  - go: "tip"
+    arch: ppc64le
 
 install:
   - if [ "$LINT" == true ]; then go get -u golang.org/x/lint/golint/... ; else echo 'skipping lint'; fi
