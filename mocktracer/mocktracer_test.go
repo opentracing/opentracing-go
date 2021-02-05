@@ -25,13 +25,17 @@ func TestMockTracer_StartSpan(t *testing.T) {
 		"", opentracing.ChildOf(span1.Context()))
 	span2.Finish()
 	span1.Finish()
-	spans := tracer.FinishedSpans()
-	assert.Equal(t, 2, len(spans))
+	finishedSpans := tracer.FinishedSpans()
+	startedSpans := tracer.StartedSpans()
+	assert.Equal(t, 2, len(finishedSpans))
+	assert.Equal(t, 2, len(startedSpans))
 
-	parent := spans[1]
-	child := spans[0]
+	parent := finishedSpans[1]
+	child := finishedSpans[0]
 	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.Tags())
 	assert.Equal(t, child.ParentID, parent.Context().(MockSpanContext).SpanID)
+	assert.Equal(t, startedSpans[1], finishedSpans[0])
+	assert.Equal(t, startedSpans[0], finishedSpans[1])
 }
 
 func TestMockSpan_SetOperationName(t *testing.T) {
@@ -85,12 +89,14 @@ func TestMockTracer_FinishedSpans_and_Reset(t *testing.T) {
 	span.SetTag("x", "y")
 	span.Finish()
 	spans := tracer.FinishedSpans()
-	assert.Equal(t, 1, len(spans))
+	assert.Len(t, tracer.StartedSpans(), 1)
+	assert.Len(t, spans, 1)
 	assert.Equal(t, map[string]interface{}{"x": "y"}, spans[0].Tags())
 
 	tracer.Reset()
 	spans = tracer.FinishedSpans()
-	assert.Equal(t, 0, len(spans))
+	assert.Len(t, spans, 0)
+	assert.Len(t, tracer.StartedSpans(), 0)
 }
 
 func zeroOutTimestamps(recs []MockLogRecord) {
