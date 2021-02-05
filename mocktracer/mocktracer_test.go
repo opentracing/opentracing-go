@@ -34,8 +34,7 @@ func TestMockTracer_StartSpan(t *testing.T) {
 	child := finishedSpans[0]
 	assert.Equal(t, map[string]interface{}{"x": "y"}, parent.Tags())
 	assert.Equal(t, child.ParentID, parent.Context().(MockSpanContext).SpanID)
-	assert.Equal(t, startedSpans[1], finishedSpans[0])
-	assert.Equal(t, startedSpans[0], finishedSpans[1])
+	assert.NoError(t, tracer.AssertStartedSpansAreFinished())
 }
 
 func TestMockSpan_SetOperationName(t *testing.T) {
@@ -287,4 +286,25 @@ func TestMockSpan_Races(t *testing.T) {
 		span.Context()
 	}()
 	wg.Wait()
+}
+
+func TestMockTracer_AssertStartedSpansAreFinished(t *testing.T) {
+	tracer := New()
+	span1 := tracer.StartSpan("a")
+	span2 := newMockSpan(tracer, "b", opentracing.StartSpanOptions{})
+
+	// fail due to no spans being finished
+	assert.Error(t, tracer.AssertStartedSpansAreFinished())
+
+	// pass due to the one started span being finished
+	span1.Finish()
+	assert.NoError(t, tracer.AssertStartedSpansAreFinished())
+
+	// fail due to more finished spans than started spans
+	span2.Finish()
+	assert.Error(t, tracer.AssertStartedSpansAreFinished())
+
+	// fail due to started spans not equaling finished spans
+	tracer.StartSpan("c")
+	assert.Error(t, tracer.AssertStartedSpansAreFinished())
 }

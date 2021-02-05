@@ -1,6 +1,7 @@
 package mocktracer
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/opentracing/opentracing-go"
@@ -57,6 +58,30 @@ func (t *MockTracer) FinishedSpans() []*MockSpan {
 	spans := make([]*MockSpan, len(t.finishedSpans))
 	copy(spans, t.finishedSpans)
 	return spans
+}
+
+func (t *MockTracer) AssertStartedSpansAreFinished() error {
+	startedSpans := t.StartedSpans()
+	finishedSpans := t.FinishedSpans()
+
+	startedSpansMap := map[int32]bool{}
+	for _, span := range startedSpans {
+		startedSpansMap[int32(span.SpanContext.SpanID)] = false
+	}
+
+	for _, span := range finishedSpans {
+		if _, ok := startedSpansMap[int32(span.SpanContext.SpanID)]; !ok {
+			return fmt.Errorf("span %s was finished but never started", span.OperationName)
+		}
+		startedSpansMap[int32(span.SpanContext.SpanID)] = true
+	}
+
+	for _, span := range startedSpans {
+		if !startedSpansMap[int32(span.SpanContext.SpanID)] {
+			return fmt.Errorf("span %s was started but never finished", span.OperationName)
+		}
+	}
+	return nil
 }
 
 // Reset clears the internally accumulated finished spans. Note that any
