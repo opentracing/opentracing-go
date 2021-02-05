@@ -1,7 +1,6 @@
 package mocktracer
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/opentracing/opentracing-go"
@@ -41,7 +40,9 @@ type MockTracer struct {
 	extractors    map[interface{}]Extractor
 }
 
-func (t *MockTracer) StartedSpans() []*MockSpan {
+// StartedSpans returns all spans that have been started and not finished since the
+// MockTracer was constructed or since the last call to its Reset() method.
+func (t *MockTracer) UnfinishedSpans() []*MockSpan {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -58,16 +59,6 @@ func (t *MockTracer) FinishedSpans() []*MockSpan {
 	spans := make([]*MockSpan, len(t.finishedSpans))
 	copy(spans, t.finishedSpans)
 	return spans
-}
-
-func (t *MockTracer) AssertStartedSpansAreFinished() error {
-	startedSpans := t.StartedSpans()
-
-	if len(startedSpans) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf("span %s was started but never finished", startedSpans[0].OperationName)
 }
 
 // Reset clears the internally accumulated finished spans. Note that any
