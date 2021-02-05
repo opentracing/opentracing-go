@@ -62,26 +62,12 @@ func (t *MockTracer) FinishedSpans() []*MockSpan {
 
 func (t *MockTracer) AssertStartedSpansAreFinished() error {
 	startedSpans := t.StartedSpans()
-	finishedSpans := t.FinishedSpans()
 
-	startedSpansMap := map[int32]bool{}
-	for _, span := range startedSpans {
-		startedSpansMap[int32(span.SpanContext.SpanID)] = false
+	if len(startedSpans) == 0 {
+		return nil
 	}
 
-	for _, span := range finishedSpans {
-		if _, ok := startedSpansMap[int32(span.SpanContext.SpanID)]; !ok {
-			return fmt.Errorf("span %s was finished but never started", span.OperationName)
-		}
-		startedSpansMap[int32(span.SpanContext.SpanID)] = true
-	}
-
-	for _, span := range startedSpans {
-		if !startedSpansMap[int32(span.SpanContext.SpanID)] {
-			return fmt.Errorf("span %s was started but never finished", span.OperationName)
-		}
-	}
-	return nil
+	return fmt.Errorf("span %s was started but never finished", startedSpans[0].OperationName)
 }
 
 // Reset clears the internally accumulated finished spans. Note that any
@@ -148,4 +134,11 @@ func (t *MockTracer) recordFinishedSpan(span *MockSpan) {
 	t.Lock()
 	defer t.Unlock()
 	t.finishedSpans = append(t.finishedSpans, span)
+
+	for i := range t.startedSpans {
+		if t.startedSpans[i].SpanContext.SpanID == span.SpanContext.SpanID {
+			t.startedSpans = append(t.startedSpans[:i], t.startedSpans[i+1:]...)
+			return
+		}
+	}
 }
