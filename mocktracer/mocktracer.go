@@ -40,7 +40,7 @@ type MockTracer struct {
 	extractors    map[interface{}]Extractor
 }
 
-// StartedSpans returns all spans that have been started and not finished since the
+// UnfinishedSpans returns all spans that have been started and not finished since the
 // MockTracer was constructed or since the last call to its Reset() method.
 func (t *MockTracer) UnfinishedSpans() []*MockSpan {
 	t.RLock()
@@ -127,7 +127,8 @@ func (t *MockTracer) recordFinishedSpan(span *MockSpan) {
 	t.finishedSpans = append(t.finishedSpans, span)
 
 	for i := range t.startedSpans {
-		if t.startedSpans[i].SpanContext.SpanID == span.SpanContext.SpanID {
+		if t.startedSpans[i].SpanContext.SpanID == span.SpanContext.SpanID &&
+			t.startedSpans[i].SpanContext.TraceID == span.SpanContext.TraceID {
 			t.startedSpans = append(t.startedSpans[:i], t.startedSpans[i+1:]...)
 			return
 		}
