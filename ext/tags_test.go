@@ -48,6 +48,7 @@ func TestHTTPTags(t *testing.T) {
 	ext.HTTPUrl.Set(span, "test.biz/uri?protocol=false")
 	ext.HTTPMethod.Set(span, "GET")
 	ext.HTTPStatusCode.Set(span, 301)
+	ext.HTTPResponseSize.Set(span, 12345)
 	span.Finish()
 
 	rawSpan := tracer.FinishedSpans()[0]
@@ -55,6 +56,7 @@ func TestHTTPTags(t *testing.T) {
 		"http.url":         "test.biz/uri?protocol=false",
 		"http.method":      "GET",
 		"http.status_code": uint16(301),
+		"http.response_size": uint16(12345),
 		"span.kind":        ext.SpanKindRPCServerEnum,
 	}, rawSpan.Tags())
 }

@@ -97,6 +97,10 @@ var (
 	// HTTP response.
 	HTTPStatusCode = Uint16TagName("http.status_code")
 
+	// HTTPResponseSize is the size of the response body in bytes of the
+	// HTTP response.
+	HTTPResponseSize = Uint16TagName("http.response_size")
+
 	//////////////////////////////////////////////////////////////////////
 	// DB Tags
 	//////////////////////////////////////////////////////////////////////
