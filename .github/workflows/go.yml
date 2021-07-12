@@ -30,15 +30,12 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-
     - name: Set up Go ${{ matrix.go_version }} 
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go_version }}
-
     - name: Build
       run: go build -v ./...
-
     - name: Test with coverage 
       run: go test -race -v -count=1 -coverprofile=coverage.out ./...
     - name: Upload Test Coverage
