@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-const testHeaderPrefix = "testprefix-"
-
 func TestTextMapCarrierInject(t *testing.T) {
 	m := make(map[string]string)
 	m["NotOT"] = "blah"
