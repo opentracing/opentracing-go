@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
+        continue-on-error: true
         with:
           version: latest
   test:
@@ -36,6 +37,3 @@ jobs:
       run: go test -race -v -count=1 -coverprofile=coverage.out ./...
     - name: Upload Test Coverage
       uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
