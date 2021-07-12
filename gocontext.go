@@ -63,3 +63,36 @@ func StartSpanFromContextWithTracer(ctx context.Context, tracer Tracer, operatio
 	span := tracer.StartSpan(operationName, opts...)
 	return span, ContextWithSpan(ctx, span)
 }
+
+// StartSpanFollowsFromContext starts and returns a Span with `operationName`, using
+// any Span found within `ctx` as a FollowsFromRef. If no such parent could be
+// found, StartSpanFromContext creates a root (parentless) Span.
+//
+// The second return value is a context.Context object built around the
+// returned Span.
+//
+// Example usage:
+//
+//    SomeFunction(ctx context.Context, ...) {
+//        sp, ctx := opentracing.StartSpanFollowsFromContext(ctx, "SomeFunction")
+//        defer sp.Finish()
+//        ...
+//    }
+func StartSpanFollowsFromContext(ctx context.Context, operationName string, opts ...StartSpanOption) (Span, context.Context) {
+	return StartSpanFollowsFromContextWithTracer(ctx, GlobalTracer(), operationName, opts...)
+}
+
+// StartSpanFollowsFromContextWithTracer starts and returns a span with `operationName`
+// using  a span found within the context as a FollowsFromRef. If that doesn't exist
+// it creates a root span. It also returns a context.Context object built
+// around the returned span.
+//
+// It's behavior is identical to StartSpanFollowsFromContext except that it takes an explicit
+// tracer as opposed to using the global tracer.
+func StartSpanFollowsFromContextWithTracer(ctx context.Context, tracer Tracer, operationName string, opts ...StartSpanOption) (Span, context.Context) {
+	if parentSpan := SpanFromContext(ctx); parentSpan != nil {
+		opts = append(opts, FollowsFrom(parentSpan.Context()))
+	}
+	span := tracer.StartSpan(operationName, opts...)
+	return span, ContextWithSpan(ctx, span)
+}

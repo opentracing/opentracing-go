@@ -119,3 +119,54 @@ func TestStartSpanFromContextOptions(t *testing.T) {
 	assert.Equal(t, childSpan.(testSpan).Tags["component"], nil)
 	assert.Equal(t, childSpan.(testSpan).StartTime, childStartTime)
 }
+
+func TestStartSpanFollowsFromContext(t *testing.T) {
+	testTracer := testTracer{}
+
+	// Test the case where there *is* a Span in the Context.
+	{
+		parentSpan := &testSpan{}
+		parentCtx := ContextWithSpan(context.Background(), parentSpan)
+		childSpan, childCtx := StartSpanFollowsFromContextWithTracer(parentCtx, testTracer, "follow")
+		if !childSpan.Context().(testSpanContext).HasParent {
+			t.Errorf("Failed to find parent: %v", childSpan)
+		}
+		if !childSpan.(testSpan).Equal(SpanFromContext(childCtx)) {
+			t.Errorf("Unable to find child span in context: %v", childCtx)
+		}
+	}
+
+	// Test the case where there *is not* a Span in the Context.
+	{
+		emptyCtx := context.Background()
+		childSpan, childCtx := StartSpanFollowsFromContextWithTracer(emptyCtx, testTracer, "follow")
+		if childSpan.Context().(testSpanContext).HasParent {
+			t.Errorf("Should not have found parent: %v", childSpan)
+		}
+		if !childSpan.(testSpan).Equal(SpanFromContext(childCtx)) {
+			t.Errorf("Unable to find child span in context: %v", childCtx)
+		}
+	}
+}
+
+func TestStartSpanFollowsFromContextOptions(t *testing.T) {
+	testTracer := testTracer{}
+
+	// Test options are passed to tracer
+
+	startTime := time.Now().Add(-10 * time.Second) // ten seconds ago
+	span, ctx := StartSpanFollowsFromContextWithTracer(
+		context.Background(), testTracer, "parent", StartTime(startTime), Tag{"component", "test"})
+
+	assert.Equal(t, "test", span.(testSpan).Tags["component"])
+	assert.Equal(t, startTime, span.(testSpan).StartTime)
+
+	// Test it also works for a child span
+
+	childStartTime := startTime.Add(3 * time.Second)
+	childSpan, _ := StartSpanFollowsFromContextWithTracer(
+		ctx, testTracer, "child", StartTime(childStartTime))
+
+	assert.Equal(t, childSpan.(testSpan).Tags["component"], nil)
+	assert.Equal(t, childSpan.(testSpan).StartTime, childStartTime)
+}
