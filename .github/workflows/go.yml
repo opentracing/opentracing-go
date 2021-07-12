@@ -1,0 +1,41 @@
+name: Go
+
+on: [ push, pull_request ]
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+  test:
+    strategy:
+      matrix:
+        go_version:
+          - '1.13'
+          - '1.14'
+          - '1.15'
+          - '1.16'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go ${{ matrix.go_version }} 
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go_version }}
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test with coverage 
+      run: go test -race -v -count=1 -coverprofile=coverage.out ./...
+    - name: Upload Test Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
