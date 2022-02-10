@@ -31,7 +31,7 @@ func StartSpan(operationName string, opts ...StartSpanOption) Span {
 	return globalTracer.tracer.StartSpan(operationName, opts...)
 }
 
-// InitGlobalTracer is deprecated. Please use SetGlobalTracer.
+// Deprecated: InitGlobalTracer is deprecated. Please use SetGlobalTracer.
 func InitGlobalTracer(tracer Tracer) {
 	SetGlobalTracer(tracer)
 }

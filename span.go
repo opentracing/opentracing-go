@@ -157,7 +157,7 @@ type FinishOptions struct {
 	BulkLogData []LogData
 }
 
-// LogData is DEPRECATED
+// Deprecated: LogData is DEPRECATED
 type LogData struct {
 	Timestamp time.Time
 	Event     string
